@@ -12,14 +12,15 @@
             color: white;
             font-family: Arial, sans-serif;
             text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
         }
 
-        .main-header, .coming-soon, .cat-image {
+        .main-header {
+            font-size: 48px;
+            margin-top: 30vh;
+        }
+
+        .coming-soon {
+            font-size: 24px;
             opacity: 0;
             animation: fadeIn 2s ease-in-out forwards;
         }
@@ -33,18 +34,8 @@
             }
         }
 
-        .main-header {
-            font-size: 48px;
-        }
-
-        .coming-soon {
-            font-size: 24px;
-            margin-top: 20px;
-        }
-
         .cat-image {
-            width: 25%; /* Make the image 25% of its original size */
-            margin-top: 20px;
+            margin-top: 20px; /* Adjust the margin as needed */
         }
     </style>
 </head>
