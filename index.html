@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -56,36 +56,14 @@
     <div class="coming-soon">
         Coming Soon
     </div>
-
-    <!-- YouTube Audio Embed -->
-    <div id="player"></div>
-    <script src="https://www.youtube.com/iframe_api"></script>
-    <script>
-        var videoId = 'IZ36b3q1elI';
-
-        var player;
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player', {
-                height: '0',
-                width: '0',
-                videoId: videoId,
-                playerVars: {
-                    autoplay: 1, // Auto-play the video
-                    loop: 1,     // Enable looping
-                    controls: 0, // Hide video controls
-                    showinfo: 0, // Hide video information
-                    modestbranding: 1 // Hide YouTube logo
-                },
-                events: {
-                    onReady: onPlayerReady
-                }
-            });
-        }
-
-        function onPlayerReady(event) {
-            event.target.mute(); // Mute the audio
-            event.target.playVideo(); // Start playing the video
-        }
-    </script>
 </body>
+
+<lightning-widget 
+  name="Craig" 
+  accent="#fdec30" 
+  to="craigthespacebum@getalby.com" 
+  image="https://nostrfiles.dev/uploads/RP1YxE3WQuKkHTOp1N6J.jpg" 
+/>
+<script src="https://embed.twentyuno.net/js/app.js"></script>
+    
 </html>
