@@ -16,12 +16,14 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh; /* Ensure a minimum height of the viewport */
         }
 
         .cat-image {
             opacity: 0;
             animation: fadeIn 2s ease-in-out forwards;
+            max-width: 100%; /* Ensure the image fits within the viewport width */
+            max-height: 100vh; /* Ensure the image fits within the viewport height */
         }
 
         @keyframes fadeIn {
@@ -31,11 +33,6 @@
             100% {
                 opacity: 1;
             }
-        }
-
-        /* Add styling for the "Bitcoin Donations" header */
-        .donations-header {
-            display: none; /* Hide the header */
         }
 
         /* Add styling for the <lightning-widget> at the bottom */
