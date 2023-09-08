@@ -22,20 +22,24 @@
         .coming-soon {
             font-size: 24px;
             opacity: 0;
-            animation: fadeIn 2s ease-in-out forwards;
+            transform: translateY(-100px);
+            animation: dropIn 1.5s ease-in-out forwards;
         }
 
-        @keyframes fadeIn {
+        @keyframes dropIn {
             0% {
                 opacity: 0;
+                transform: translateY(-100px);
             }
             100% {
                 opacity: 1;
+                transform: translateY(0);
             }
         }
 
         .cat-image {
             margin-top: 20px; /* Adjust the margin as needed */
+            width: 25%; /* Make the image 25% of its original size */
         }
     </style>
 </head>
