@@ -14,9 +14,23 @@
             text-align: center;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
+            justify-content: center;
             align-items: center;
             height: 100vh;
+        }
+
+        .main-header, .coming-soon, .cat-image {
+            opacity: 0;
+            animation: fadeIn 2s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
         }
 
         .main-header {
@@ -25,29 +39,8 @@
 
         .coming-soon {
             font-size: 24px;
-            opacity: 0;
-            transform: translateY(-100px);
-            animation: dropIn 1.5s ease-in-out forwards;
-        }
-
-        @keyframes dropIn {
-            0% {
-                opacity: 0;
-                transform: translateY(-100px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            margin-top: 20px;
         }
 
         .cat-image {
             width: 25%; /* Make the image 25% of its original size */
-        }
-    </style>
-</head>
-<body>
-    <header class="main-header">
-        www.Bitcoin-Cats.ca
-    </header>
-    <img src="https://cdn.nostr.build/i/63dba7facad38a9ff43fe4c39061e814c16e9b09c9d9e10d87e
