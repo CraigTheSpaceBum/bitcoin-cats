@@ -21,6 +21,21 @@
 
         .coming-soon {
             font-size: 24px;
+            opacity: 0;
+            animation: fadeIn 2s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .cat-image {
+            margin-top: 20px; /* Adjust the margin as needed */
         }
     </style>
 </head>
@@ -28,6 +43,7 @@
     <header class="main-header">
         www.Bitcoin-Cats.ca
     </header>
+    <img src="https://cdn.nostr.build/i/63dba7facad38a9ff43fe4c39061e814c16e9b09c9d9e10d87e785d884f69bf7.jpg" alt="Bitcoin Cat Image" class="cat-image">
     <div class="coming-soon">
         Coming Soon
     </div>
