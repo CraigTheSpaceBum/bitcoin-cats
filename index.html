@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitcoin Donations</title>
+    <title>Bitcoin Cats</title>
     <style>
         body {
             margin: 0;
@@ -22,7 +22,6 @@
         .cat-image {
             opacity: 0;
             animation: fadeIn 2s ease-in-out forwards;
-            width: 50%; /* Make the image 50% of its original size */
         }
 
         @keyframes fadeIn {
@@ -36,29 +35,28 @@
 
         /* Add styling for the "Bitcoin Donations" header */
         .donations-header {
-            font-size: 32px;
-            margin-bottom: 40px; /* Increase margin at the bottom of the header */
+            display: none; /* Hide the header */
+        }
+
+        /* Add styling for the <lightning-widget> at the bottom */
+        .widget-container {
+            margin-top: auto; /* Push the widget to the bottom */
         }
     </style>
 </head>
 <body>
-    <!-- Remove the "www.Bitcoin-Cats.ca" and "Coming Soon" headers -->
-    
-    <!-- Add the "Bitcoin Donations" header with increased margin at the bottom -->
-    <div class="donations-header">
-        Bitcoin Donations
-    </div>
-
-    <!-- Replace the image with the provided image -->
+    <!-- Replace the image with the provided image without resizing -->
     <img src="https://nostrfiles.dev/uploads/VzE1XU5mlNmBcc8nLI8P.png" alt="Bitcoin Cat Image" class="cat-image">
 
-    <!-- Add the provided <lightning-widget> element -->
-    <lightning-widget 
-        name="Craig" 
-        accent="#fdec30" 
-        to="craigthespacebum@getalby.com" 
-        image="https://nostrfiles.dev/uploads/RP1YxE3WQuKkHTOp1N6J.jpg" 
-    ></lightning-widget>
+    <!-- Add the provided <lightning-widget> element at the bottom -->
+    <div class="widget-container">
+        <lightning-widget 
+            name="Craig" 
+            accent="#fdec30" 
+            to="craigthespacebum@getalby.com" 
+            image="https://nostrfiles.dev/uploads/RP1YxE3WQuKkHTOp1N6J.jpg" 
+        ></lightning-widget>
+    </div>
 
     <!-- Add the provided <script> tag -->
     <script src="https://embed.twentyuno.net/js/app.js"></script>
