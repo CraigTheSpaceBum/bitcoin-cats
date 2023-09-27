@@ -35,21 +35,39 @@
             }
         }
 
-        /* Add styling for the <lightning-widget> at the bottom */
-        .widget-container {
-            margin-top: auto; /* Push the widget to the bottom */
+        /* Add styling for the navigation bar */
+        .navbar {
+            background-color: black;
+            padding: 10px 0;
+        }
+
+        .navbar a {
+            color: white;
+            font-size: 24px;
+            text-decoration: none;
+            margin: 0 20px;
         }
     </style>
 </head>
 <body>
+    <!-- Navigation bar with links -->
+    <div class="navbar">
+        <a href="#">Shop</a>
+        <a href="#">Donation</a>
+        <a href="#">Nostr</a>
+        <a href="#">Node</a>
+    </div>
+
     <!-- Replace the image with the provided image without resizing -->
     <img src="https://bitcoin-cats.ca/cartoon-cat-with-sunglasses-and-stacks-of-bitcoin-with-transparent-background%20(2).png" alt="Bitcoin Cat" class="cat-image">
 
     <!-- Add the provided <lightning-widget> element at the bottom -->
-<lightning-widget 
-  name="Craig" 
-  accent="#f6fa00" 
-  to="craigthespacebum@getalby.com" 
-  image="https://bitcoin-cats.ca/155187057_10222717274613262_6459451257030295960_n.jpg" 
-/>
-<script src="https://embed.twentyuno.net/js/app.js"></script>
+    <lightning-widget 
+      name="Craig" 
+      accent="#f6fa00" 
+      to="craigthespacebum@getalby.com" 
+      image="https://bitcoin-cats.ca/155187057_10222717274613262_6459451257030295960_n.jpg" 
+    />
+    <script src="https://embed.twentyuno.net/js/app.js"></script>
+</body>
+</html>
