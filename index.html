@@ -69,6 +69,46 @@
                 opacity: 1;
             }
         }
+
+        /* Styles for the pop-up menu */
+        #menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+
+        #menu-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        #menu-content a {
+            display: block;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #333;
+            text-decoration: none;
+        }
+
+        #close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -80,7 +120,7 @@
     <div class="navbar">
         <a href="#">Shop(Coming Soon) </a>
         <a href="Donation">Donation(₿)</a>
-        <a href="Links">Links</a>
+        <a href="javascript:void(0);" onclick="openMenu()">Links</a>
     </div>
 
     <!-- Wrap the image in a container for alignment -->
@@ -88,6 +128,29 @@
         <img src="https://bitcoin-cats.ca/BitcoinCats.png" alt="Bitcoin Cat" class="cat-image">
     </div>
 
-    <script src="https://embed.twentyuno.net/js/app.js"></script>
+    <!-- Pop-up menu -->
+    <div id="menu-overlay">
+        <div id="menu-content">
+            <a href="https://snort.social/p/npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95">NOSTR</a>
+            <a href="https://www.twitch.tv/craigthespacebum">TWITCH</a>
+            <a href="https://twitter.com/SpaceBumCraig">TWITTER</a>
+            
+            
+            <div id="close-button" onclick="closeMenu()">X</div>
+            <a href="javascript:void(0);" onclick="closeMenu()">Back</a>
+        </div>
+    </div>
+
+    <script>
+        function openMenu() {
+            var menuOverlay = document.getElementById("menu-overlay");
+            menuOverlay.style.display = "block";
+        }
+
+        function closeMenu() {
+            var menuOverlay = document.getElementById("menu-overlay");
+            menuOverlay.style.display = "none";
+        }
+    </script>
 </body>
 </html>
