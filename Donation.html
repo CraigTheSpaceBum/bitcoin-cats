@@ -4,19 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bitcoin Cats</title>
+    
+    <!-- Set Favicon -->
+    <link rel="icon" href="https://bitcoin-cats.ca/BitcoinCats.png" type="image/png">
+    
     <style>
         body {
             margin: 0;
             padding: 0;
-            background: url('https://bitcoin-cats.ca/BackgroundLoop.webp') no-repeat center center fixed;
+            background-image: url("https://bitcoin-cats.ca/BackgroundLoop.webp");
             background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center center;
+            background-color: black;
             color: white;
             font-family: Arial, sans-serif;
         }
 
         /* Updated styles for the navbar and logo to scale */
         .navbar {
-            background-color: rgba(0, 0, 0, 0.7); /* Added a semi-transparent background color for readability */
+            background-color: black;
             padding: 10px 0; /* Removed horizontal padding */
             text-align: center; /* Center-align the navbar links */
             white-space: nowrap; /* Prevent text wrapping */
@@ -30,6 +38,19 @@
             display: inline-block; /* Prevent links from stacking vertically */
         }
 
+        .cat-image-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .cat-image {
+            opacity: 0;
+            animation: fadeIn 2s ease-in-out forwards;
+            max-width: 100%;
+            max-height: 100vh;
+        }
+
         /* Add styles for the logo image to make it responsive */
         .logo-container {
             text-align: center;
@@ -40,12 +61,6 @@
             height: auto;
         }
 
-        /* Center the lightning-widget */
-        .widget-container {
-            text-align: center;
-            margin-top: 20px;
-        }
-
         @keyframes fadeIn {
             0% {
                 opacity: 0;
@@ -53,6 +68,51 @@
             100% {
                 opacity: 1;
             }
+        }
+
+        /* Styles for the pop-up menu */
+        #menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+
+        #menu-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 40px; /* Increased padding for a larger pop-up */
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        #menu-content a {
+            display: block;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #333;
+            text-decoration: none;
+        }
+
+        #menu-content a.back {
+            font-size: 20px; /* Smaller font size for "Back" */
+            font-weight: normal; /* Not bold for "Back" */
+        }
+
+        #close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -64,20 +124,40 @@
 
     <div class="navbar">
         <a href="index">Home</a>
-        <a href="shop.bitcoin-cats.ca">Shop</a>
-        <a href="Links">Links</a>
+        <a href="#">Shop (₿)</a>
+        <a href="javascript:void(0);" onclick="openMenu()">Links</a>
     </div>
 
-    <!-- Center the lightning-widget -->
-    <div class="widget-container">
-        <lightning-widget 
-          name="Craig" 
-          accent="#f6fa00" 
-          to="craigthespacebum@getalby.com" 
-          image="https://bitcoin-cats.ca/155187057_10222717274613262_6459451257030295960_n.jpg" 
-        />
+   
+   <lightning-widget 
+  name="Craig@Bitcoin-Cats.ca" 
+  accent="#ffea00" 
+  to="craigthespacebum@getalby.com" 
+  image="https://bitcoin-cats.ca/155187057_10222717274613262_6459451257030295960_n.jpg" 
+/>
+<script src="https://embed.twentyuno.net/js/app.js"></script>
+
+    <!-- Pop-up menu -->
+    <div id="menu-overlay">
+        <div id="menu-content">
+            <a href="https://snort.social/p/npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95">NOSTR</a>
+            <a href="https://www.twitch.tv/craigthespacebum">TWITCH</a>
+            <a href="https://twitter.com/SpaceBumCraig">TWITTER</a>
+            <div id="close-button" onclick="closeMenu()">X</div>
+            <a href="javascript:void(0);" class="back" onclick="closeMenu()">Back</a>
+        </div>
     </div>
-    
-    <script src="https://embed.twentyuno.net/js/app.js"></script>
+
+    <script>
+        function openMenu() {
+            var menuOverlay = document.getElementById("menu-overlay");
+            menuOverlay.style.display = "block";
+        }
+
+        function closeMenu() {
+            var menuOverlay = document.getElementById("menu-overlay");
+            menuOverlay.style.display = "none";
+        }
+    </script>
 </body>
 </html>
