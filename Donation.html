@@ -1,1 +1,77 @@
-Test
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Cats</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ensure a minimum height of the viewport */
+        }
+
+        .navbar {
+            background-color: black;
+            padding: 10px 0;
+            display: flex;
+            justify-content: center; /* Center items horizontally */
+            align-items: center; /* Center items vertically */
+        }
+
+        .navbar a {
+            color: white;
+            font-size: 24px;
+            text-decoration: none;
+            margin: 0 20px;
+        }
+
+        .navbar a.home {
+            margin-left: 0; /* Remove margin for the home link */
+        }
+
+        .cat-image {
+            opacity: 0;
+            animation: fadeIn 2s ease-in-out forwards;
+            max-width: 100%; /* Ensure the image fits within the viewport width */
+            max-height: 100vh; /* Ensure the image fits within the viewport height */
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation bar with links -->
+    <div class="navbar">
+        <a href="#" class="home">Home</a>
+        <a href="#">Shop</a>
+        <a href="#">Donation</a>
+        <a href="#">Nostr</a>
+        <a href="#">Node</a>
+    </div>
+
+    <!-- Add the provided <lightning-widget> element at the bottom -->
+    <lightning-widget 
+      name="Craig" 
+      accent="#f6fa00" 
+      to="craigthespacebum@getalby.com" 
+      image="https://bitcoin-cats.ca/155187057_10222717274613262_6459451257030295960_n.jpg" 
+    />
+    <script src="https://embed.twentyuno.net/js/app.js"></script>
+</body>
+</html>
