@@ -11,12 +11,28 @@
             background-color: black;
             color: white;
             font-family: Arial, sans-serif;
-            text-align: center;
+        }
+
+        /* Updated styles for the navbar to align it to the left */
+        .navbar {
+            background-color: black;
+            padding: 10px 20px; /* Added padding for spacing */
             display: flex;
-            flex-direction: column;
+            justify-content: flex-start; /* Align links to the left */
+        }
+
+        .navbar a {
+            color: white;
+            font-size: 24px;
+            text-decoration: none;
+            margin-right: 20px; /* Add margin to separate links */
+        }
+
+        /* Center the cat image horizontally, but not vertically */
+        .cat-image-container {
+            display: flex;
             justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            align-items: flex-start; /* Align the image to the top */
         }
 
         .cat-image {
@@ -34,18 +50,6 @@
                 opacity: 1;
             }
         }
-
-        .navbar {
-            background-color: black;
-            padding: 10px 0;
-        }
-
-        .navbar a {
-            color: white;
-            font-size: 24px;
-            text-decoration: none;
-            margin: 0 20px;
-        }
     </style>
 </head>
 <body>
@@ -56,7 +60,11 @@
         <a href="#">Node</a>
     </div>
 
-    <img src="https://bitcoin-cats.ca/cartoon-cat-with-sunglasses-and-stacks-of-bitcoin-with-transparent-background%20(2).png" alt="Bitcoin Cat" class="cat-image">
+    <!-- Wrap the image in a container for alignment -->
+    <div class="cat-image-container">
+       <center> <img src="https://bitcoin-cats.ca/cartoon-cat-with-sunglasses-and-stacks-of-bitcoin-with-transparent-background%20(2).png" alt="Bitcoin Cat" class="cat-image"></Center>
+    </div>
+
     <script src="https://embed.twentyuno.net/js/app.js"></script>
 </body>
 </html>
