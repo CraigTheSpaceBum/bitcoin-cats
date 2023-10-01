@@ -6,13 +6,16 @@
     <title>Twitch Embed</title>
     <style>
         /* Center the Twitch embed and make it fullscreen */
-        body {
+        html, body {
+            height: 100%;
             margin: 0;
+            overflow: hidden;
+        }
+
+        body {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            overflow: hidden;
         }
 
         #twitch-embed {
