@@ -1,34 +1,65 @@
-import websocket
-import json
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nostr Feed Display</title>
+    <!-- Add your styles or CSS links here -->
+</head>
+<body>
+    <div id="nostr-feed">
+        <!-- The Nostr feed will be displayed here -->
+    </div>
 
-# Replace 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95' with your target npub
-npub = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95'
+    <script>
+        // Array of Nostr relay URLs
+        const relayURLs = [
+            'wss://relay.primal.net',
+            'wss://nostr.wine',
+            'wss://relay.damus.io',
+            'wss://nostr-pub.wellorder.net',
+            'wss://relay.current.fyi',
+            'wss://offchain.pub',
+            'wss://relay.nostr.band',
+            'wss://relay.nostrplebs.com',
+            'wss://nos.lol',
+            'wss://relay.snort.social',
+            'wss://eden.nostr.land',
+            'wss://nostr.orangepill.dev',
+            'wss://nostr-relay.nokotaro.com'
+        ];
 
-# List of relays
-relays = [
-    'wss://relay.primal.net',
-    'wss://nostr.wine',
-    'wss://relay.damus.io',
-    'wss://nostr-pub.wellorder.net',
-    'wss://relay.current.fyi',
-    'wss://offchain.pub',
-    'wss://relay.nostr.band',
-    'wss://relay.nostrplebs.com',
-    'wss://nos.lol',
-    'wss://relay.snort.social',
-    'wss://nostr.orangepill.dev',
-    'wss://eden.nostr.land',
-    'wss://nostr-relay.nokotaro.com'
-]
+        const feedContainer = document.getElementById('nostr-feed');
+        let currentRelayIndex = 0;
 
-# Function to handle WebSocket messages
-def on_message(ws, message):
-    data = json.loads(message)
-    if 'd' in data and 'author' in data and data['author'] == npub:
-        content = data['d']
-        print(content)
+        // Function to connect to a Nostr relay
+        const connectToRelay = () => {
+            const socket = new WebSocket(relayURLs[currentRelayIndex]);
 
-# Connect to the relays
-for relay in relays:
-    ws = websocket.WebSocketApp(relay, on_message=on_message)
-    ws.run_forever()
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                // Extract and display the Nostr feed data in the HTML container
+                const feedHTML = `
+                    <h2>Nostr Feed</h2>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                feedContainer.innerHTML = feedHTML;
+            };
+
+            socket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+
+                // Try the next relay
+                currentRelayIndex++;
+                if (currentRelayIndex < relayURLs.length) {
+                    connectToRelay();
+                } else {
+                    console.error('Failed to connect to all relays.');
+                }
+            };
+        };
+
+        // Start with the first relay
+        connectToRelay();
+    </script>
+</body>
+</html>
