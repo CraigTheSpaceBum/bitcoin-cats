@@ -1,0 +1,34 @@
+import websocket
+import json
+
+# Replace 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95' with your target npub
+npub = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95'
+
+# List of relays
+relays = [
+    'wss://relay.primal.net',
+    'wss://nostr.wine',
+    'wss://relay.damus.io',
+    'wss://nostr-pub.wellorder.net',
+    'wss://relay.current.fyi',
+    'wss://offchain.pub',
+    'wss://relay.nostr.band',
+    'wss://relay.nostrplebs.com',
+    'wss://nos.lol',
+    'wss://relay.snort.social',
+    'wss://nostr.orangepill.dev',
+    'wss://eden.nostr.land',
+    'wss://nostr-relay.nokotaro.com'
+]
+
+# Function to handle WebSocket messages
+def on_message(ws, message):
+    data = json.loads(message)
+    if 'd' in data and 'author' in data and data['author'] == npub:
+        content = data['d']
+        print(content)
+
+# Connect to the relays
+for relay in relays:
+    ws = websocket.WebSocketApp(relay, on_message=on_message)
+    ws.run_forever()
