@@ -46,7 +46,7 @@
 
         .cat-image {
             opacity: 0;
-            animation: fadeIn 2s ease-in-out forwards;
+            animation: fadeIn 6s ease-in-out forwards; /* Slowed down the fade-in animation to 6 seconds */
             max-width: 100%;
             max-height: 100vh;
         }
@@ -59,6 +59,12 @@
         .logo-image {
             max-width: 100%;
             height: auto;
+        }
+
+        /* New CSS rule for fading in links */
+        .fade-in-link {
+            opacity: 0;
+            animation: fadeIn 4s ease-in-out forwards; /* Slowed down the fade-in animation to 4 seconds */
         }
 
         @keyframes fadeIn {
@@ -80,6 +86,7 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
             z-index: 999;
+            animation: fadeIn 4s ease-in-out forwards; /* Slowed down the fade-in animation to 4 seconds */
         }
 
         #menu-content {
@@ -91,6 +98,7 @@
             padding: 40px; /* Increased padding for a larger pop-up */
             text-align: center;
             border-radius: 10px;
+            animation: fadeIn 4s ease-in-out forwards; /* Slowed down the fade-in animation to 4 seconds */
         }
 
         #menu-content a {
@@ -123,31 +131,23 @@
     </div>
 
     <div class="navbar">
-        <!DOCTYPE html>
-<html>
-<head>
-  <title>Images Above Text</title>
-</head>
-<body>
-  <a href="shop">
-    <img src="https://bitcoin-cats.ca/white-cat-with-orange-sunglasses-with-tropical-shirt--sticker-2d-cute-fantasy-dreamy-vector-ill.webp" width="100" height="100" alt="Shop">
-    <br>
-    <b>Shop</b>
-  </a>
+        <a href="shop" class="fade-in-link">
+            <img src="https://bitcoin-cats.ca/white-cat-with-orange-sunglasses-with-tropical-shirt--sticker-2d-cute-fantasy-dreamy-vector-ill.webp" width="100" height="100" alt="Shop">
+            <br>
+            <b>Shop</b>
+        </a>
 
-  <a href="Donation">
-    <img src="https://bitcoin-cats.ca/white-cat-dressed-up-as-trench-coat-and-sunglasses-with-a-large-pile-of-bitcoin--159725839.png" width="100" height="100" alt="Image Description">
-    <br>
-    <b>Donation</b>
-  </a>
+        <a href="Donation" class="fade-in-link">
+            <img src="https://bitcoin-cats.ca/white-cat-dressed-up-as-trench-coat-and-sunglasses-with-a-large-pile-of-bitcoin--159725839.png" width="100" height="100" alt="Image Description">
+            <br>
+            <b>Donation</b>
+        </a>
 
-  <a href="javascript:void(0);" onclick="openMenu()">
-    <img src="https://bitcoin-cats.ca/Voodoo.webp" width="100" height="100" alt="Socials and Links">
-    <br>
-    <b>Links</b>
-  </a>
-</body>
-</html>
+        <a href="javascript:void(0);" onclick="openMenu()" class="fade-in-link">
+            <img src="https://bitcoin-cats.ca/Voodoo.webp" width="100" height="100" alt="Socials and Links">
+            <br>
+            <b>Links</b>
+        </a>
     </div>
 
     <!-- Wrap the image in a container for alignment -->
@@ -163,20 +163,3 @@
             <a href="https://twitter.com/SpaceBumCraig">TWITTER <img src="https://cdn2.iconfinder.com/data/icons/threads-by-instagram/24/x-logo-twitter-new-brand-contained-512.png" width="32" height="32" alt="Follow on Elon's Musks private social media network"></a>
             <a href="https://amboss.space/node/0353c0823a03655ad51b22af9996f416e0bee4025bdbb9cd90ea3587cd4846b03b">LIGHTNING NODE<img src="https://cdn3.iconfinder.com/data/icons/jolly-icons-free/64/lightning_64.png" width="32" height="32" alt="\m/ RIDE THE LIGHTNING \m/"></a>
             <div id="close-button" onclick="closeMenu()">X</div>
-            <a href="javascript:void(0);" class="back" onclick="closeMenu()">Back</a>
-        </div>
-    </div>
-
-    <script>
-        function openMenu() {
-            var menuOverlay = document.getElementById("menu-overlay");
-            menuOverlay.style.display = "block";
-        }
-
-        function closeMenu() {
-            var menuOverlay = document.getElementById("menu-overlay");
-            menuOverlay.style.display = "none";
-        }
-    </script>
-</body>
-</html>
