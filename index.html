@@ -60,7 +60,6 @@
             max-width: 100%;
             height: auto;
             filter: hue-rotate(90deg) saturate(200%) brightness(150%);
-            animation: randomEffect 6s infinite;
         }
 
         /* New CSS rule for fading in links */
@@ -75,18 +74,6 @@
             }
             100% {
                 opacity: 1;
-            }
-        }
-
-        @keyframes randomEffect {
-            0% {
-                filter: hue-rotate(90deg) saturate(200%) brightness(150%);
-            }
-            50% {
-                filter: hue-rotate(150deg) saturate(250%) brightness(120%);
-            }
-            100% {
-                filter: hue-rotate(60deg) saturate(180%) brightness(130%);
             }
         }
 
@@ -136,6 +123,23 @@
             font-size: 24px;
             cursor: pointer;
         }
+
+        /* Styles for the music player */
+        .music-player {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: black;
+            color: white;
+            text-align: center;
+            width: 100%;
+            padding: 10px;
+        }
+
+        #mute-button {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -177,3 +181,43 @@
             <a href="https://twitter.com/SpaceBumCraig">TWITTER <img src="https://cdn2.iconfinder.com/data/icons/threads-by-instagram/24/x-logo-twitter-new-brand-contained-512.png" width="32" height="32" alt="Follow on Elon's Musks private social media network"></a>
             <a href="https://amboss.space/node/0353c0823a03655ad51b22af9996f416e0bee4025bdbb9cd90ea3587cd4846b03b">LIGHTNING NODE<img src="https://cdn3.iconfinder.com/data/icons/jolly-icons-free/64/lightning_64.png" width="32" height="32" alt="\m/ RIDE THE LIGHTNING \m/"></a>
             <div id="close-button" onclick="closeMenu()">X</div>
+        </div>
+    </div>
+
+    <!-- Music player with auto-play and mute button -->
+    <div class="music-player">
+        <audio id="bg-music" autoplay loop>
+            <source src="https://bitcoin-cats.ca/Rise%20of%20the%20Machines.mp3" type="audio/mpeg">
+        </audio>
+        <div id="mute-button">Mute</div>
+    </div>
+
+    <script>
+        function openMenu() {
+            var menuOverlay = document.getElementById("menu-overlay");
+            menuOverlay.style.display = "block";
+        }
+
+        function closeMenu() {
+            var menuOverlay = document.getElementById("menu-overlay");
+            menuOverlay.style.display = "none";
+        }
+
+        // Mute/unmute music
+        const bgMusic = document.getElementById("bg-music");
+        const muteButton = document.getElementById("mute-button");
+        let isMuted = false;
+
+        muteButton.addEventListener("click", function () {
+            if (isMuted) {
+                bgMusic.volume = 1.0;
+                muteButton.textContent = "Mute";
+            } else {
+                bgMusic.volume = 0.0;
+                muteButton.textContent = "Unmute";
+            }
+            isMuted = !isMuted;
+        });
+    </script>
+</body>
+</html>
