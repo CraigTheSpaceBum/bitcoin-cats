@@ -184,10 +184,11 @@
 
     <!-- Music player with auto-play and mute button -->
     <div class="music-player">
-        <audio id="bg-music" autoplay loop>
+        <audio id="bg-music" loop>
             <source src="https://bitcoin-cats.ca/Rise%20of%20the%20Machines.mp3" type="audio/mpeg">
         </audio>
         <div id="mute-button">Mute</div>
+        <button id="play-audio" onclick="playAudio()">Play Audio</button>
     </div>
 
     <script>
@@ -216,6 +217,12 @@
             }
             isMuted = !isMuted;
         });
+
+        function playAudio() {
+            const playButton = document.getElementById("play-audio");
+            bgMusic.play();
+            playButton.style.display = "none";
+        }
     </script>
 </body>
 </html>
