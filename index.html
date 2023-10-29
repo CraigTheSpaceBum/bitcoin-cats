@@ -89,15 +89,19 @@
             z-index: 999;
         }
 
+        /* Updated styles for the pop-up menu content */
         #menu-content {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            width: 80%; /* Updated width to 80% */
+            height: 80%; /* Updated height to 80% */
             background-color: #fff;
-            padding: 40px; /* Increased padding for a larger pop-up */
+            padding: 20px; /* Adjusted padding */
             text-align: center;
             border-radius: 10px;
+            overflow: auto;
         }
 
         #menu-content a {
@@ -114,7 +118,7 @@
             font-weight: normal; /* Not bold for "Back" */
         }
 
-        #close-button {
+        #close-menu {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -154,7 +158,7 @@
         </a>
 
         <a href="Minecraft" class="fade-in-link">
-            <img src="https://bitcoin-cats.ca/Minecraft.webp" width="100" height="100" alt="Image Description">
+            <img src="https://bitcoin-cats.ca/Minecraft.webp" width="100" height="100" alt="Minecraft Server">
             <br>
             <b>Minecraft Server</b>
         </a>
@@ -171,32 +175,32 @@
         <img src="https://bitcoin-cats.ca/BitcoinCats.png" alt="Bitcoin Cat" class="cat-image">
     </div>
 
-<!-- Pop-up menu -->
-<div id="menu-overlay">
-    <div id="menu-content">
-        <a href="Donation">
-            <img src="https://bitcoin-cats.ca/white-cat-dressed-up-as-trench-coat-and-sunglasses-with-a-large-pile-of-bitcoin--159725839.png" width="50" height="50" alt="Donate to Bitcoin-cats.ca"><br>
-            DONATIONS
-        </a>
-        <a href="https://snort.social/p/npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95">
-            <img src="https://bitcoin-cats.ca/super-ripped-purple-ostrich-icon-222032104.png" width="50" height="50" alt="Follow On Nostr"><br>
-            NOSTR
-        </a>
-        <a href="https://www.twitch.tv/craigthespacebum">
-            <img src="https://cdn2.iconfinder.com/data/icons/gaming-platforms-logo-shapes/250/twitch_logo-512.png" width="50" height="50" alt="Follow on Twitch"><br>
-            TWITCH
-        </a>
-        <a href="https://twitter.com/SpaceBumCraig">
-            <img src="https://cdn2.iconfinder.com/data/icons/threads-by-instagram/24/x-logo-twitter-new-brand-contained-512.png" width="50" height="50" alt="Follow on Elon's Musks private social media network"><br>
-            TWITTER
-        </a>
-        <a href="https://amboss.space/node/0353c0823a03655ad51b22af9996f416e0bee4025bdbb9cd90ea3587cd4846b03b">
-            <img src="https://cdn3.iconfinder.com/data/icons/jolly-icons-free/64/lightning_64.png" width="50" height="50" alt="\m/ RIDE THE LIGHTNING \m/"><br>
-            LIGHTNING NODE
-        </a>
-        <a id="close-menu" onclick="closeMenu()">Close</a>
+    <!-- Pop-up menu -->
+    <div id="menu-overlay">
+        <div id="menu-content">
+            <a href="Donation">
+                <img src="https://bitcoin-cats.ca/white-cat-dressed-up-as-trench-coat-and-sunglasses-with-a-large-pile-of-bitcoin--159725839.png" width="50" height="50" alt="Donate to Bitcoin-cats.ca"><br>
+                DONATIONS
+            </a>
+            <a href="https://snort.social/p/npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95">
+                <img src="https://bitcoin-cats.ca/super-ripped-purple-ostrich-icon-222032104.png" width="50" height="50" alt="Follow On Nostr"><br>
+                NOSTR
+            </a>
+            <a href="https://www.twitch.tv/craigthespacebum">
+                <img src="https://cdn2.iconfinder.com/data/icons/gaming-platforms-logo-shapes/250/twitch_logo-512.png" width="50" height="50" alt="Follow on Twitch"><br>
+                TWITCH
+            </a>
+            <a href="https://twitter.com/SpaceBumCraig">
+                <img src="https://cdn2.iconfinder.com/data/icons/threads-by-instagram/24/x-logo-twitter-new-brand-contained-512.png" width="50" height="50" alt="Follow on Elon's Musks private social media network"><br>
+                TWITTER
+            </a>
+            <a href="https://amboss.space/node/0353c0823a03655ad51b22af9996f416e0bee4025bdbb9cd90ea3587cd4846b03b">
+                <img src="https://cdn3.iconfinder.com/data/icons/jolly-icons-free/64/lightning_64.png" width="50" height="50" alt="\m/ RIDE THE LIGHTNING \m/"><br>
+                LIGHTNING NODE
+            </a>
+            <a id="close-menu" onclick="closeMenu()">Close</a>
+        </div>
     </div>
-</div>
 
     <!-- Music player with auto-play and mute button -->
     <div class="music-player">
