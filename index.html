@@ -107,7 +107,7 @@
 
         #menu-content.grid-layout {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* Two columns */
+            grid-template-columns: repeat(3, 1fr); /* Three columns */
             gap: 10px; /* Gap between items */
             align-items: center;
             justify-items: center;
@@ -119,13 +119,18 @@
             align-items: center;
         }
 
-        #menu-content a {
+        .menu-item a {
             display: block;
             font-size: 24px;
             font-weight: bold;
             margin: 10px 0;
             color: white; /* Text color set to white */
             text-decoration: none;
+        }
+
+        .menu-item img {
+            width: 64px;
+            height: 64px;
         }
 
         #menu-content a.back {
@@ -167,19 +172,13 @@
 
     <div class="navbar">
         <a href="shop" class="fade-in-link">
-            <img src="https://bitcoin-cats.ca/white-cat-with-orange-sunglasses-with-tropical-shirt--sticker-2d-cute-fantasy-dreamy-vector-ill.webp" width="100" height="100" alt="Shop">
+            <img src="https://bitcoin-cats.ca/white-cat-with-orange-sunglasses-with-tropical-shirt--sticker-2d-cute-fantasy-dreamy-vector-ill.webp" width="150" height="150" alt="Shop">
             <br>
             <b>Shop</b>
         </a>
 
-        <a href="Minecraft" class="fade-in-link">
-            <img src="https://bitcoin-cats.ca/Minecraft.webp" width="100" height="100" alt="Minecraft Server">
-            <br>
-            <b>Minecraft Server</b>
-        </a>
-
         <a href="javascript:void(0);" onclick="openMenu()" class="fade-in-link">
-            <img src="https://bitcoin-cats.ca/Voodoo.webp" width="100" height="100" alt="Socials and Links">
+            <img src="https://bitcoin-cats.ca/Voodoo.webp" width="150" height="150" alt="Socials and Links">
             <br>
             <b>Links</b>
         </a>
@@ -196,32 +195,38 @@
             <div class="menu-item">
                 <a href="Donation">
                     <img src="https://bitcoin-cats.ca/white-cat-dressed-up-as-trench-coat-and-sunglasses-with-a-large-pile-of-bitcoin--159725839.png" width="64" height="64" alt="Donate to Bitcoin-cats.ca">
+                    <p>DONATIONS</p>
                 </a>
-                <p>DONATIONS</p>
             </div>
             <div class="menu-item">
                 <a href="https://snort.social/p/npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95">
                     <img src="https://bitcoin-cats.ca/super-ripped-purple-ostrich-icon-222032104.png" width="64" height="64" alt="Follow On Nostr">
+                    <p>NOSTR</p>
                 </a>
-                <p>NOSTR</p>
             </div>
             <div class="menu-item">
                 <a href="https://www.twitch.tv/craigthespacebum">
                     <img src="https://cdn2.iconfinder.com/data/icons/gaming-platforms-logo-shapes/250/twitch_logo-512.png" width="50" height="50" alt="Follow on Twitch">
+                    <p>TWITCH</p>
                 </a>
-                <p>TWITCH</p>
             </div>
             <div class="menu-item">
                 <a href="https://twitter.com/SpaceBumCraig">
                     <img src="https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Twitter_colored_svg-512.png" width="50" height="50" alt="Follow on Elon's Musks private social media network">
+                    <p>TWITTER</p>
                 </a>
-                <p>TWITTER</p>
             </div>
             <div class="menu-item">
                 <a href="https://amboss.space/node/0353c0823a03655ad51b22af9996f416e0bee4025bdbb9cd90ea3587cd4846b03b">
                     <img src="https://cdn4.iconfinder.com/data/icons/the-weather-is-nice-today/64/weather_11-512.png" width="50" height="50" alt="\m/ RIDE THE LIGHTNING \m/">
+                    <p>LIGHTNING NODE</p>
                 </a>
-                <p>LIGHTNING NODE</p>
+            </div>
+                        <div class="menu-item">
+                <a href="https://app.onecompiler.com/3zrh6kt2q_3zrvkkg3f/Minecraft">
+                    <img src="https://bitcoin-cats.ca/Minecraft.webp" width="80" height="80" alt="\m/ RIDE THE LIGHTNING \m/">
+                    <p>MINECRAFT SERVER</p>
+                </a>
             </div>
             <a id="close-menu" onclick="closeMenu()">Close</a>
         </div>
