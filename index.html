@@ -105,6 +105,20 @@
             overflow: auto;
         }
 
+        #menu-content.grid-layout {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Two columns */
+            gap: 10px; /* Gap between items */
+            align-items: center;
+            justify-items: center;
+        }
+
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         #menu-content a {
             display: block;
             font-size: 24px;
@@ -178,27 +192,37 @@
 
     <!-- Pop-up menu -->
     <div id="menu-overlay">
-        <div id="menu-content">
-            <a href="Donation">
-                <img src="https://bitcoin-cats.ca/white-cat-dressed-up-as-trench-coat-and-sunglasses-with-a-large-pile-of-bitcoin--159725839.png" width="64" height="64" alt="Donate to Bitcoin-cats.ca"><br>
-                DONATIONS
-            </a>
-            <a href="https://snort.social/p/npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95">
-                <img src="https://bitcoin-cats.ca/super-ripped-purple-ostrich-icon-222032104.png" width="64" height="64" alt="Follow On Nostr"><br>
-                NOSTR
-            </a>
-            <a href="https://www.twitch.tv/craigthespacebum">
-                <img src="https://cdn2.iconfinder.com/data/icons/gaming-platforms-logo-shapes/250/twitch_logo-512.png" width="50" height="50" alt="Follow on Twitch"><br>
-                TWITCH
-            </a>
-            <a href="https://twitter.com/SpaceBumCraig">
-                <img src="https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Twitter_colored_svg-512.png" width="50" height="50" alt="Follow on Elon's Musks private social media network"><br>
-                TWITTER
-            </a>
-            <a href="https://amboss.space/node/0353c0823a03655ad51b22af9996f416e0bee4025bdbb9cd90ea3587cd4846b03b">
-                <img src="https://cdn4.iconfinder.com/data/icons/the-weather-is-nice-today/64/weather_11-512.png" width="50" height="50" alt="\m/ RIDE THE LIGHTNING \m/"><br>
-                LIGHTNING NODE
-            </a>
+        <div id="menu-content" class="grid-layout">
+            <div class="menu-item">
+                <a href="Donation">
+                    <img src="https://bitcoin-cats.ca/white-cat-dressed-up-as-trench-coat-and-sunglasses-with-a-large-pile-of-bitcoin--159725839.png" width="64" height="64" alt="Donate to Bitcoin-cats.ca">
+                </a>
+                <p>DONATIONS</p>
+            </div>
+            <div class="menu-item">
+                <a href="https://snort.social/p/npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95">
+                    <img src="https://bitcoin-cats.ca/super-ripped-purple-ostrich-icon-222032104.png" width="64" height="64" alt="Follow On Nostr">
+                </a>
+                <p>NOSTR</p>
+            </div>
+            <div class="menu-item">
+                <a href="https://www.twitch.tv/craigthespacebum">
+                    <img src="https://cdn2.iconfinder.com/data/icons/gaming-platforms-logo-shapes/250/twitch_logo-512.png" width="50" height="50" alt="Follow on Twitch">
+                </a>
+                <p>TWITCH</p>
+            </div>
+            <div class="menu-item">
+                <a href="https://twitter.com/SpaceBumCraig">
+                    <img src="https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Twitter_colored_svg-512.png" width="50" height="50" alt="Follow on Elon's Musks private social media network">
+                </a>
+                <p>TWITTER</p>
+            </div>
+            <div class="menu-item">
+                <a href="https://amboss.space/node/0353c0823a03655ad51b22af9996f416e0bee4025bdbb9cd90ea3587cd4846b03b">
+                    <img src="https://cdn4.iconfinder.com/data/icons/the-weather-is-nice-today/64/weather_11-512.png" width="50" height="50" alt="\m/ RIDE THE LIGHTNING \m/">
+                </a>
+                <p>LIGHTNING NODE</p>
+            </div>
             <a id="close-menu" onclick="closeMenu()">Close</a>
         </div>
     </div>
