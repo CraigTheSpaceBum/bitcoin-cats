@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nostr Pets</title>
+    <script src="nostr-sdk.js"></script>
+    <script src="nostr-lib.js"></script>
     <style>
         body {
             background-color: #15202B;
@@ -126,15 +128,14 @@
         </ul>
         <!-- Moved buttons to the header -->
         <div class="sidebar">
-            <button class="sidebar-btn">Pet Central</button>
-            <button class="sidebar-btn">Explore</button>
-            <button class="sidebar-btn">Battledome</button>
-            <button class="sidebar-btn">Inventory</button>
-            <button class="sidebar-btn">News Feed</button>
-            <button class="sidebar-btn">Mail</button>
-            <button class="sidebar-btn">Settings</button>
-            <button class="sidebar-btn">About</button>
-            <button class="sidebar-btn">Login</button>
+            <button class="sidebar-btn">PET CENTRAL</button>
+            <button class="sidebar-btn">EXPLORE</button>
+            <button class="sidebar-btn">BATTLEDOME</button>
+            <button class="sidebar-btn">INVENTORY</button>
+            <button class="sidebar-btn">NOSTR FEED</button>
+            <button class="sidebar-btn">MAIL</button>
+            <button class="sidebar-btn">SETTINGS</button>
+            <button id="nostrButton" class="sidebar-btn">SIGN IN</button>
         </div>
     </header>
 
@@ -149,5 +150,22 @@
     <footer>
         <!-- Removed footer content -->
     </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const nostrButton = document.getElementById('nostrButton');
+
+            nostrButton.addEventListener('click', async () => {
+                const isAuthenticated = await nostrLib.isAuthenticated();
+
+                if (isAuthenticated) {
+                    await nostrLib.logout();
+                    nostrButton.innerText = 'SIGN IN';
+                } else {
+                    await nostrLib.login();
+                    nostrButton.innerText = 'SIGN OUT';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
