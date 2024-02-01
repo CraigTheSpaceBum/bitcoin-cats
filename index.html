@@ -24,17 +24,6 @@
             transition: background-color 0.5s, color 0.5s;
         }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1em;
-            text-align: center;
-            margin-bottom: 1em;
-            transition: background-color 0.5s;
-            background-color: rgba(35, 35, 35, 0.4);
-        }
-
         h1 {
             margin: 0;
             font-size: 2vw; /* Adjust the font size as needed */
@@ -76,8 +65,8 @@
             color: #ffffff;
             padding: 1em;
             border-radius: 4px;
-            height: 40vh;
-            width: 70%;
+            height: 50vh;
+            width: 80%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -120,12 +109,49 @@
             color: #fff345;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Adjust the values as needed */
         }
+        
+      /*LOGO AT TOP*/ 
+svg {
+	font-family: "Press Start 2P", sans-serif;
+	width: 100%; height: 100%;
+}
+svg text {
+	animation: stroke 5s infinite alternate;
+	stroke-width: 1.5;
+	stroke: #fff345;
+	font-size: 6vw;
+}
+@keyframes stroke {
+	0%   {
+		fill: rgba(255,153,0,0); stroke: rgba(255,243,69,1);
+		stroke-dashoffset: 25%; stroke-dasharray: 0 50%; stroke-width: 2;
+	}
+	70%  {fill: rgba(255,153,0,0); stroke: rgba(255,243,69,1); }
+	80%  {fill: rgba(255,153,0,0); stroke: rgba(255,243,69,1); stroke-width: 3; }
+	100% {
+		fill: rgba(255,153,0,1); stroke: rgba(255,243,69,0);
+		stroke-dashoffset: -25%; stroke-dasharray: 50% 0; stroke-width: 0;
+	}
+}
+
+.wrapper {background-color: };
+
+        
+        
+        
+        
     </style>
 </head>
 
 <body>
     <header>
-        <h1>Bitcoin-Cats.ca</h1>
+        <div class="wrapper">
+	<svg>
+		<text x="50%" y="50%" dy=".35em" text-anchor="middle">
+			Bitcoin-Cats.ca
+		</text>
+	</svg>
+</div>
     </header>
 
     <main id="mainContent">
