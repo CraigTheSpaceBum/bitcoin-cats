@@ -5,8 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Craig's Website</title>
-    <script src="nostr-sdk.js"></script>
-    <script src="nostr-lib.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap">
 
     <style>
@@ -115,49 +113,6 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
 
-        svg {
-            font-family: "Press Start 2P", sans-serif;
-            width: 100%;
-            height: 100%;
-        }
-
-        svg text {
-            animation: stroke 5s infinite alternate;
-            stroke-width: 1.5;
-            stroke: #fff345;
-            font-size: 6vh;
-        }
-
-        @keyframes stroke {
-            0% {
-                fill: rgba(255, 153, 0, 0);
-                stroke: rgba(255, 243, 69, 1);
-                stroke-dashoffset: 25%;
-                stroke-dasharray: 0 50%;
-                stroke-width: 2;
-            }
-
-            70% {
-                fill: rgba(255, 153, 0, 0);
-                stroke: rgba(255, 243, 69, 1);
-            }
-
-            80% {
-                fill: rgba(255, 153, 0, 0);
-                stroke: rgba(255, 243, 69, 1);
-                stroke-width: 3;
-            }
-
-            100% {
-                fill: rgba(255, 153, 0, 1);
-                stroke: rgba(255, 243, 69, 0);
-                stroke-dashoffset: -25%;
-                stroke-dasharray: 50% 0;
-                stroke-width: 0;
-            }
-        }
-
-
 .glitch-wrapper {
    width: 100%;
    height: 100%;
@@ -223,16 +178,6 @@
 </head>
 
 <body>
-    <header>
-        <p> </p>
-        <div class="wrapper">
-            <svg>
-                <text x="50%" y="50%" dy=".35em" text-anchor="middle">
-                    <a href="">Bitcoin-Cats.ca</a>
-                </text>
-            </svg>
-        </div>
-    </header>
     <main id="mainContent">
         <div class="coming-soon-box">
             <p class="coming-soon-text centered-text">
@@ -243,16 +188,17 @@
 </div>
             <center><img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head Image"
                     style="width: 50%; max-width: 100%;"></center>
-            NIP-05:<a onclick="loadContent('nostr.html')">Craig@torontoplebs.ca</a>
+           NOSTR ADDRESS (NIP-05):<a onclick="loadContent('nostr.html')">Craig@torontoplebs.ca</a>
         </div>
     </main>
 
     <footer>
         <div class="sidebar-container">
             <div class="sidebar">
+                <button class="sidebar-btn" onclick="loadContent('')">HOME</button>
                 <button class="sidebar-btn" onclick="loadContent('donation.html')">ZAP</button>
-                <button class="sidebar-btn" onclick="loadContent('nostr.html')">NOSTR</button>
                 <button class="sidebar-btn" onclick="loadContent('node.html')">NODE</button>
+                <button class="sidebar-btn" onclick="loadContent('nostr.html')">NOSTR</button>
                 <button class="sidebar-btn" onclick="navigateToTorontoPlebs()">TORONTO PLEBS</button>
             </div>
         </div>
