@@ -47,7 +47,8 @@
         }
 
         .sidebar-btn {
-            font-size: 2vw; /* Adjust the font size as needed */
+            font-size: 2.5vw; /* Adjust the font size as needed */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Adjust the values as needed */
             display: block;
             background-color: rgba(111, 48, 47, 0.7);
             color: #ffffff;
@@ -70,6 +71,7 @@
 
         .coming-soon-box {
             font-size: 2vw;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Adjust the values as needed */
             background-color: rgba(35, 35, 35, 0.8);
             color: #ffffff;
             padding: 1em;
@@ -98,6 +100,7 @@
             flex-direction: row;
             align-items: center;
             justify-content: center;
+            
         }
 
         .sidebar-btn:hover {
@@ -106,6 +109,7 @@
 
         footer {
             margin-top: auto;
+            
         }
 
         a {
@@ -114,8 +118,9 @@
             transition: color 0.5s;
         }
 
-        a:hover {
-            color: #fff345;
+a:hover {
+    color: #fff345;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Adjust the values as needed */
         }
     </style>
 </head>
@@ -137,7 +142,7 @@
     <footer>
         <div class="sidebar-container">
             <div class="sidebar">
-                <button class="sidebar-btn" onclick="loadContent('')">HOME</button>
+                <button class="sidebar-btn" onclick="loadContent('donation.html')">DONATE</button>
                 <button class="sidebar-btn" onclick="loadContent('nostr.html')">NOSTR</button>
                 <button class="sidebar-btn" onclick="loadContent('node.html')">NODE</button>
                 <button class="sidebar-btn" onclick="navigateToTorontoPlebs()">TORONTO PLEBS</button>
@@ -146,19 +151,6 @@
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const nostrButton = document.getElementById('nostrButton');
-            nostrButton.addEventListener('click', async () => {
-                const isAuthenticated = await nostrLib.isAuthenticated();
-                if (isAuthenticated) {
-                    await nostrLib.logout();
-                    nostrButton.innerText = 'SIGN IN';
-                } else {
-                    await nostrLib.login();
-                    nostrButton.innerText = 'SIGN OUT';
-                }
-            });
-            setInterval(updateClock, 1000);
         });
 
         async function loadContent(htmlFile) {
