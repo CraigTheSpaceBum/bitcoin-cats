@@ -47,7 +47,7 @@
         }
 
         .sidebar-btn {
-            font-size: 1em; /* Adjust the font size as needed */
+            font-size: 3vw; /* Adjust the font size as needed */
             display: block;
             background-color: rgba(111, 48, 47, 0.7);
             color: #ffffff;
@@ -69,7 +69,7 @@
         }
 
         .coming-soon-box {
-            font-size: 1.5em; /* Adjust the font size as needed */
+            font-size: 2vw;
             background-color: rgba(35, 35, 35, 0.8);
             color: #ffffff;
             padding: 1em;
@@ -140,7 +140,7 @@
                 <button class="sidebar-btn" onclick="loadContent('')">HOME</button>
                 <button class="sidebar-btn" onclick="loadContent('nostr.html')">NOSTR</button>
                 <button class="sidebar-btn" onclick="loadContent('node.html')">NODE</button>
-                <button class="sidebar-btn" onclick="loadContent('torontoplebs.ca')">TORONTO PLEBS</button>
+                <button class="sidebar-btn" onclick="navigateToTorontoPlebs()">TORONTO PLEBS</button>
             </div>
         </div>
     </footer>
@@ -167,20 +167,6 @@
             document.getElementById('mainContent').innerHTML = content;
         }
 
-        function updateClock() {
-            const clockElement = document.getElementById('clock');
-            const now = new Date();
-            
-            const hours24 = now.getHours();
-            const hours12 = hours24 % 12 || 12; // Convert to 12-hour format
-            const amPm = hours24 < 12 ? 'AM' : 'PM'; // Determine AM or PM
-            
-            const hours = hours12.toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const seconds = now.getSeconds().toString().padStart(2, '0');
-            
-            clockElement.innerText = `${hours}:${minutes}:${seconds} ${amPm}`;
-        }
 
         function changeThemeColor(color) {
             document.body.style.backgroundColor = color;
@@ -208,6 +194,11 @@
             const b = parseInt(hexColor.substring(5, 7), 16);
             const brightness = (r * 299 + g * 587 + b * 114) / 1000;
             return brightness > 128 ? '#000' : '#fff';
+        }
+        
+        
+                function navigateToTorontoPlebs() {
+            window.location.href = 'https://torontoplebs.ca';
         }
     </script>
 </body>
