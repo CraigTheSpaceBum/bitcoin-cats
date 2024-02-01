@@ -26,18 +26,22 @@
 
         h1 {
             margin: 0;
-            font-size: 2vw; /* Adjust the font size as needed */
+            font-size: 2vw;
             color: #ffffff;
         }
 
         .coming-soon-text {
-            font-size: 2.5vw; /* Adjust the font size as needed */
+            font-size: 2.5vw;
             margin-bottom: 0.5em;
         }
 
+        .centered-text {
+            text-align: center;
+        }
+
         .sidebar-btn {
-            font-size: 2.5vw; /* Adjust the font size as needed */
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Adjust the values as needed */
+            font-size: 2.5vh;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
             display: block;
             background-color: rgba(255, 255, 0, 0.2);
             color: #ffffff;
@@ -60,7 +64,7 @@
 
         .coming-soon-box {
             font-size: 2vw;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Adjust the values as needed */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
             background-color: rgba(35, 35, 35, 0.9);
             color: #ffffff;
             padding: 1em;
@@ -71,7 +75,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin: 2em auto;
+
         }
 
         .sidebar-container {
@@ -107,54 +111,137 @@
 
         a:hover {
             color: #fff345;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Adjust the values as needed */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
-        
-      /*LOGO AT TOP*/ 
-svg {
-	font-family: "Press Start 2P", sans-serif;
-	width: 100%; height: 100%;
-}
-svg text {
-	animation: stroke 5s infinite alternate;
-	stroke-width: 1.5;
-	stroke: #fff345;
-	font-size: 5vw;
-}
-@keyframes stroke {
-	0%   {
-		fill: rgba(255,153,0,0); stroke: rgba(255,243,69,1);
-		stroke-dashoffset: 25%; stroke-dasharray: 0 50%; stroke-width: 2;
-	}
-	70%  {fill: rgba(255,153,0,0); stroke: rgba(255,243,69,1); }
-	80%  {fill: rgba(255,153,0,0); stroke: rgba(255,243,69,1); stroke-width: 3; }
-	100% {
-		fill: rgba(255,153,0,1); stroke: rgba(255,243,69,0);
-		stroke-dashoffset: -25%; stroke-dasharray: 50% 0; stroke-width: 0;
-	}
+
+        svg {
+            font-family: "Press Start 2P", sans-serif;
+            width: 100%;
+            height: 100%;
+        }
+
+        svg text {
+            animation: stroke 5s infinite alternate;
+            stroke-width: 1.5;
+            stroke: #fff345;
+            font-size: 5vw;
+        }
+
+        @keyframes stroke {
+            0% {
+                fill: rgba(255, 153, 0, 0);
+                stroke: rgba(255, 243, 69, 1);
+                stroke-dashoffset: 25%;
+                stroke-dasharray: 0 50%;
+                stroke-width: 2;
+            }
+
+            70% {
+                fill: rgba(255, 153, 0, 0);
+                stroke: rgba(255, 243, 69, 1);
+            }
+
+            80% {
+                fill: rgba(255, 153, 0, 0);
+                stroke: rgba(255, 243, 69, 1);
+                stroke-width: 3;
+            }
+
+            100% {
+                fill: rgba(255, 153, 0, 1);
+                stroke: rgba(255, 243, 69, 0);
+                stroke-dashoffset: -25%;
+                stroke-dasharray: 50% 0;
+                stroke-width: 0;
+            }
+        }
+
+
+.glitch-wrapper {
+   width: 100%;
+   height: 100%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   text-align: center;
+
 }
 
-.wrapper {background-color: };
-        
+.glitch {
+   position: relative;
+   font-size: 5wh;
+   font-weight: bold;
+   color: #FFFFFF;
+   letter-spacing: 3px;
+   z-index: 1;
+}
+
+.glitch:before,
+.glitch:after {
+   display: block;
+   content: attr(data-text);
+   position: absolute;
+   top: 0;
+   left: 0;
+   opacity: 0.8;
+}
+
+.glitch:before {
+   animation: glitch-it 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+   color: #FFF345;
+   z-index: -1;
+}
+
+.glitch:after {
+   animation: glitch-it 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both infinite;
+   color: #F69619;
+   z-index: -2;
+}
+
+@keyframes glitch-it {
+   0% {
+      transform: translate(0);
+   }
+   20% {
+      transform: translate(-2px, 2px);
+   }
+   40% {
+      transform: translate(-2px, -2px);
+   }
+   60% {
+      transform: translate(2px, 2px);
+   }
+   80% {
+      transform: translate(2px, -2px);
+   }
+   to {
+      transform: translate(0);
+   }
+}
     </style>
 </head>
 
 <body>
     <header>
-	    <p> </p>
+        <p> </p>
         <div class="wrapper">
-	<svg>
-		<text x="50%" y="50%" dy=".35em" text-anchor="middle">
-			<a href="">Bitcoin-Cats.ca</a>
-		</text>
-	</svg>
-</div>
+            <svg>
+                <text x="50%" y="50%" dy=".35em" text-anchor="middle">
+                    <a href="">Bitcoin-Cats.ca</a>
+                </text>
+            </svg>
+        </div>
     </header>
-
     <main id="mainContent">
         <div class="coming-soon-box">
-            <p class="coming-soon-text"><strong>SITE UNDER CONSTRUCTION</strong></p>
-<center><img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head Image" style="width: 50%; max-width: 100%;"></center>
+            <p class="coming-soon-text centered-text">
+                    <div class="glitch-wrapper">
+  <div class="glitch-wrapper">
+   <div class="glitch" data-text="Bitcoin Maximalist, Node Runner & Nostr Maniac">Bitcoin Maximalist, Node Runner & Nostr Maniac</div>
+</div>
+</div>
+            <center><img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head Image"
+                    style="width: 50%; max-width: 100%;"></center>
             NIP-05:<a onclick="loadContent('nostr.html')">Craig@torontoplebs.ca</a>
         </div>
     </main>
