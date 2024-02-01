@@ -195,7 +195,7 @@
     <footer>
         <div class="sidebar-container">
             <div class="sidebar">
-                <button class="sidebar-btn" onclick="loadContent('')">HOME</button>
+                <button class="sidebar-btn" onclick="navigateToHome()">HOME</button>
                 <button class="sidebar-btn" onclick="loadContent('donation.html')">ZAP</button>
                 <button class="sidebar-btn" onclick="loadContent('node.html')">NODE</button>
                 <button class="sidebar-btn" onclick="loadContent('nostr.html')">NOSTR</button>
@@ -213,6 +213,10 @@
 
         function navigateToTorontoPlebs() {
             window.location.href = 'https://torontoplebs.ca';
+        }
+
+         function navigateToHome() {
+            window.location.href = '';
         }
     </script>
 </body>
