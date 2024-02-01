@@ -1,0 +1,51 @@
+:root {
+  --btcpay-neutral-50: rgba(13, 17, 23, 0);
+  --btcpay-neutral-100: rgba(var(--btcpay-neutral-dark-900), 0);
+  --btcpay-neutral-200: rgba(var(--btcpay-neutral-dark-800), 0);
+  --btcpay-neutral-300: rgba(var(--btcpay-neutral-dark-700), 0);
+  --btcpay-neutral-400: rgba(var(--btcpay-neutral-dark-600), 0);
+  --btcpay-neutral-500: rgba(var(--btcpay-neutral-dark-500), 0);
+  --btcpay-neutral-600: rgba(var(--btcpay-neutral-dark-400), 0);
+  --btcpay-neutral-700: rgba(var(--btcpay-neutral-dark-300), 0);
+  --btcpay-neutral-800: rgba(var(--btcpay-neutral-dark-200), 0);
+  --btcpay-neutral-900: rgba(var(--btcpay-neutral-dark-100), 0);
+  --btcpay-bg-dark: rgba(var(--btcpay-neutral-50), 0);
+  --btcpay-bg-tile: rgba(var(--btcpay-bg-dark), 0);
+  --btcpay-body-bg-light: rgba(255, 165, 0, 0.5); /* Semi-transparent orange */
+  --btcpay-body-bg-hover: rgba(var(--btcpay-neutral-50), 0);
+  --btcpay-form-bg: rgba(var(--btcpay-bg-dark), 0);
+  --btcpay-header-bg: rgba(var(--btcpay-bg-dark), 0);
+  --btcpay-pre-bg: rgba(var(--btcpay-bg-dark), 0);
+  --btcpay-light-dim-bg: rgba(var(--btcpay-neutral-50), 0);
+}
+
+/* Example usage */
+body {
+  background-color: var(--btcpay-body-bg-light);
+  color: var(--btcpay-body-text);
+}
+
+/* Add more styles using the defined variables as needed */
+
+  --btcpay-primary-accent: rgba(255, 165, 0, 1); /* Solid orange color for buttons */
+  --btcpay-primary-accent-hover: rgba(255, 165, 0, 0.8); /* Lighter orange on hover */
+  --btcpay-primary-accent-active: rgba(255, 165, 0, 0.6); /* Darker orange on active/pressed */
+}
+
+/* Example usage */
+button {
+  background-color: var(--btcpay-primary-accent);
+  color: var(--btcpay-body-text);
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: var(--btcpay-primary-accent-hover);
+}
+
+button:active {
+  background-color: var(--btcpay-primary-accent-active);
+}
