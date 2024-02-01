@@ -10,174 +10,113 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap">
 
     <style>
-  body {
-    background: url("https://bitcoin-cats.ca/BackgroundLoop.webp") center/cover no-repeat fixed;
-    background-color: rgba(37, 51, 65, 0.7); /* #253341 with 70% transparency */
-    color: #ffffff;
-    font-family: 'Press Start 2P', cursive;
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    display: flex;
-    min-height: 100vh;
-    flex-direction: column;
-    transition: background-color 0.5s, color 0.5s;
-}
+        body {
+            background: url("https://bitcoin-cats.ca/BackgroundLoop.webp") center/cover no-repeat fixed;
+            background-color: rgba(37, 51, 65, 0.7);
+            color: #ffffff;
+            font-family: 'Press Start 2P', cursive;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            transition: background-color 0.5s, color 0.5s;
+        }
 
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1em;
+            text-align: center;
+            margin-bottom: 1em;
+            transition: background-color 0.5s;
+            background-color: rgba(35, 35, 35, 0.4);
+        }
 
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1em;
-    text-align: center;
-    margin-bottom: 1em;
-    transition: background-color 0.5s;
-        background-color: rgba(35, 35, 35, 0.4); /* #253341 with 70% transparency */
-}
+        h1 {
+            margin: 0;
+            font-size: 2em; /* Adjust the font size as needed */
+            color: #ffffff;
+        }
 
-h1 {
-    margin: 0;
-    color: #ffffff; /* Set text color for 'Nostr Pets' */
-}
+        .coming-soon-text {
+            font-size: 1.5em; /* Adjust the font size as needed */
+            margin-bottom: 0.5em;
+        }
 
-.sidebar-container {
-      display: block;
-    background-color: rgba(35, 35, 35, 0.4); /* #253341 with 70% transparency */
-    position: center
-    bottom: 0;
-    width: 100%;
-    z-index: 4;
-}
+        .sidebar-btn {
+            font-size: 1em; /* Adjust the font size as needed */
+            display: block;
+            background-color: rgba(111, 48, 47, 0.7);
+            color: #ffffff;
+            border: none;
+            padding: 1em;
+            margin: 0 0.5em;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
 
-.sidebar {
-    padding: 1em;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-}
+        main {
+            display: flex;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            padding: 1em;
+            transition: background-color 0.5s;
+        }
 
-.sidebar-btn {
-    display: block;
-    background-color: rgba(111, 48, 47, 0.7);
-    color: #ffffff;
-    border: none;
-    padding: 1em;
-    margin: 0 0.5em;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
+        .coming-soon-box {
+            font-size: 1.5em; /* Adjust the font size as needed */
+            background-color: rgba(35, 35, 35, 0.8);
+            color: #ffffff;
+            padding: 1em;
+            border-radius: 8px;
+            height: 50vh;
+            width: 70%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 2em auto;
+        }
 
-.sidebar-btn:hover {
-    background-color: #ffcc00
-}
+        .sidebar-container {
+            display: block;
+            background-color: rgba(35, 35, 35, 0.4);
+            position: center;
+            bottom: 0;
+            width: 100%;
+            z-index: 4;
+        }
 
-main {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-    padding: 1em;
-    transition: background-color 0.5s;
-}
+        .sidebar {
+            padding: 1em;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+        }
 
-.coming-soon-box {
-    background-color: rgba(35, 35, 35, 0.8); /* #253341 with 70% transparency */
-    color: #ffffff;
-    padding: 1em;
-    border-radius: 8px;
-    height: 50vh;
-    width: 70%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 2em auto;
-}
+        .sidebar-btn:hover {
+            background-color: #ffcc00;
+        }
 
-.coming-soon-text {
-    font-size: 2em;
-    margin-bottom: 0.5em;
-}
+        footer {
+            margin-top: auto;
+        }
 
-.rounded-square {
-    width: 50px;
-    height: 50px;
-    background-color: #3498db;
-    border-radius: 10px;
-    cursor: pointer;
-}
+        a {
+            color: #ffffff;
+            text-decoration: none;
+            transition: color 0.5s;
+        }
 
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    justify-content: center;
-    align-items: center;
-    z-index: 1;
-}
-
-.modal-content {
-    background-color: rgba(63, 102, 52, 0.7); /* #253341 with 70% transparency */
-    color: #ffffff;
-    padding: 2em;
-    border-radius: 8px;
-    text-align: center;
-}
-
-.modal-options {
-    margin-top: 1em;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-}
-
-.color-circle {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: transform 0.3s;
-}
-
-.color-circle:hover {
-    transform: scale(1.2);
-}
-
-a {
-    color: #ffffff;
-    text-decoration: none;
-    transition: color 0.5s;
-}
-
-a:hover {
-    color: #fff345;
-}
-
-.color-grid {
-    display: flex;
-    gap: 10px;
-}
-
-.color-circle {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: transform 0.3s;
-}
-
-.color-circle:hover {
-    transform: scale(1.2);
-}
-
+        a:hover {
+            color: #fff345;
+        }
     </style>
 </head>
 
