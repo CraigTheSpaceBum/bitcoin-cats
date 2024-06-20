@@ -23,16 +23,18 @@
   <h1>Nostr Feed</h1>
   <div id="feed"></div>
 
-  <script src="https://unpkg.com/nostr-tools"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nostr-tools"></script>
   <script>
-    const relays = [
-      'wss://relay.nostr.org',
-      'wss://nostr.sectiontwo.org',
-      'wss://relay.shitforce.one',
-      'wss://relay.snort.social'
-    ];
-    const pubkey = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95';
+    const { nip19 } = window.nostrTools;
 
+    const relays = [
+      'wss://relay.damus.io',
+      'wss://relay.snort.social',
+      'wss://relay.nostr.wine'
+    ];
+    const npub = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95';
+
+    const pubkey = nip19.decode(npub).data;
     const feedContainer = document.getElementById('feed');
 
     function connectToRelays() {
@@ -49,6 +51,10 @@
           if (type === 'EVENT' && data.pubkey === pubkey) {
             displayEvent(data);
           }
+        };
+
+        ws.onerror = (error) => {
+          console.error(`WebSocket error on ${url}:`, error);
         };
 
         ws.onclose = () => {
