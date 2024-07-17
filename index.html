@@ -39,19 +39,22 @@
             text-align: center;
         }
 
-        .sidebar-btn {
+        .bitcoin-button {
             font-size: 2vw;
             font-family: 'Press Start 2P', cursive;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            display: block;
-            background-color: rgba(255, 255, 0, 0.2);
+            background-color: #F7931A; /* Bitcoin orange */
             color: #ffffff;
             border: none;
             padding: 1em;
-            margin: 0 0.5em;
+            margin: 0.5em;
             border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: box-shadow 0.3s ease-in-out;
+        }
+
+        .bitcoin-button:hover {
+            box-shadow: 0 0 20px rgba(247, 147, 26, 0.6);
         }
 
         main {
@@ -100,10 +103,6 @@
             flex-direction: row;
             align-items: center;
             justify-content: center;
-        }
-
-        .sidebar-btn:hover {
-            background-color: rgba(35, 35, 35, 0.4);
         }
 
         footer {
@@ -185,7 +184,7 @@
 
 <body>
     <header class="header-content">
-        <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head Image" width="200" height="200">
+        <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head Image" width="175" height="175">
         <div class="glitch-wrapper">
             <div class="glitch" data-text="Bitcoin Maximalist, Node Runner & Nostr Maniac">Bitcoin Maximalist, Node Runner & Nostr Maniac</div>
         </div>
@@ -194,20 +193,19 @@
     <main id="mainContent">
         <div class="coming-soon-box">
             <p class="centered-text">Your Trusted Canadian Partner in Bitcoin Integration and Education</p>
-            <button class="sidebar-btn" onclick="window.location.href='about.html'" aria-label="About Us">ABOUT US</button>
-
+            <button class="bitcoin-button" onclick="window.location.href='about.html'" aria-label="About Us">ABOUT US</button>
         </div>
     </main>
 
     <footer>
         <div class="sidebar-container">
             <div class="sidebar">
-                <button class="sidebar-btn" onclick="navigateToHome()" aria-label="Home">HOME</button>
-                <button class="sidebar-btn" onclick="loadContent('booking.html')" aria-label="Bookings">BOOKINGS</button>
-                <button class="sidebar-btn" onclick="loadContent('donation.html')" aria-label="Zap">ZAP</button>
-                <button class="sidebar-btn" onclick="loadContent('node.html')" aria-label="Node">NODE</button>
-                <button class="sidebar-btn" onclick="loadContent('nostr.html')" aria-label="Nostr">NOSTR</button>
-                <button class="sidebar-btn" onclick="navigateToTorontoPlebs()" aria-label="Toronto Plebs">TORONTO PLEBS</button>
+                <button class="bitcoin-button" onclick="navigateToHome()" aria-label="Home">HOME</button>
+                <button class="bitcoin-button" onclick="loadContent('booking.html')" aria-label="Bookings">BOOKINGS</button>
+                <button class="bitcoin-button" onclick="loadContent('donation.html')" aria-label="Zap">ZAP</button>
+                <button class="bitcoin-button" onclick="loadContent('node.html')" aria-label="Node">NODE</button>
+                <button class="bitcoin-button" onclick="loadContent('nostr.html')" aria-label="Nostr">NOSTR</button>
+                <button class="bitcoin-button" onclick="navigateToTorontoPlebs()" aria-label="Toronto Plebs">TORONTO PLEBS</button>
             </div>
         </div>
     </footer>
