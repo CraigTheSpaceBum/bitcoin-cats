@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -74,7 +73,6 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-
         }
 
         .sidebar-container {
@@ -113,82 +111,81 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
 
-.glitch-wrapper {
-   width: 100%;
-   height: 100%;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   text-align: center;
+        .glitch-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
 
-}
+        .glitch {
+            position: relative;
+            font-size: 7wh;
+            font-weight: bold;
+            color: #FFFFFF;
+            letter-spacing: 3px;
+            z-index: 1;
+        }
 
-.glitch {
-   position: relative;
-   font-size: 7wh;
-   font-weight: bold;
-   color: #FFFFFF;
-   letter-spacing: 3px;
-   z-index: 1;
-}
+        .glitch:before,
+        .glitch:after {
+            display: block;
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0.8;
+        }
 
-.glitch:before,
-.glitch:after {
-   display: block;
-   content: attr(data-text);
-   position: absolute;
-   top: 0;
-   left: 0;
-   opacity: 0.8;
-}
+        .glitch:before {
+            animation: glitch-it 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+            color: #FFF345;
+            z-index: -1;
+        }
 
-.glitch:before {
-   animation: glitch-it 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
-   color: #FFF345;
-   z-index: -1;
-}
+        .glitch:after {
+            animation: glitch-it 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both infinite;
+            color: #F69619;
+            z-index: -2;
+        }
 
-.glitch:after {
-   animation: glitch-it 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both infinite;
-   color: #F69619;
-   z-index: -2;
-}
-
-@keyframes glitch-it {
-   0% {
-      transform: translate(0);
-   }
-   20% {
-      transform: translate(-2px, 2px);
-   }
-   40% {
-      transform: translate(-2px, -2px);
-   }
-   60% {
-      transform: translate(2px, 2px);
-   }
-   80% {
-      transform: translate(2px, -2px);
-   }
-   to {
-      transform: translate(0);
-   }
-}
+        @keyframes glitch-it {
+            0% {
+                transform: translate(0);
+            }
+            20% {
+                transform: translate(-2px, 2px);
+            }
+            40% {
+                transform: translate(-2px, -2px);
+            }
+            60% {
+                transform: translate(2px, 2px);
+            }
+            80% {
+                transform: translate(2px, -2px);
+            }
+            to {
+                transform: translate(0);
+            }
+        }
     </style>
 </head>
 
 <body>
     <main id="mainContent">
         <div class="coming-soon-box">
-            <p class="coming-soon-text centered-text">
-                    <div class="glitch-wrapper">
-  <div class="glitch-wrapper">
-   <h1></h1><div class="glitch" data-text="Bitcoin Maximalist, Node Runner & Nostr Maniac">Bitcoin Maximalist, Node Runner & Nostr Maniac</div></h1>
-</div>
-</div>
-            <center><img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head Image"
-                    style="width: 50%; max-width: 100%;"></center>
-           NOSTR ADDRESS (NIP-05):<a onclick="loadContent('nostr.html')">Craig@bitcoin-cats.ca</a>
+            <div class="glitch-wrapper">
+                <div class="glitch" data-text="Bitcoin Maximalist, Node Runner & Nostr Maniac">Bitcoin Maximalist, Node Runner & Nostr Maniac
+                <p> <center>
+                <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head Image" style="width: 40%; max-width: 40%;"></p></div>
+             <center>
+                <p class="centered-text">Your Trusted Partner in Bitcoin Integration</p>
+                <button class="sidebar-btn" onclick="loadContent('about.html')">ABOUT US</button>
+            </center>
+            </div>
         </div>
     </main>
 
@@ -212,12 +209,12 @@
             document.getElementById('mainContent').innerHTML = content;
         }
 
-        function navigateToTorontoPlebs() {
-            window.location.href = 'https://torontoplebs.ca';
+        function navigateToHome() {
+            window.location.href = '';
         }
 
-         function navigateToHome() {
-            window.location.href = '';
+        function navigateToTorontoPlebs() {
+            window.location.href = 'https://torontoplebs.ca';
         }
     </script>
 </body>
