@@ -1,8 +1,11 @@
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Craig's Website - Bitcoin Maximalist, Node Runner & Nostr Maniac">
+    <meta name="keywords" content="Bitcoin, Node Runner, Nostr, Cryptocurrency">
     <title>Craig's Website</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap">
 
@@ -60,6 +63,14 @@
             transition: background-color 0.5s;
         }
 
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2em 0;
+        }
+
         .coming-soon-box {
             font-size: 2vw;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
@@ -67,7 +78,6 @@
             color: #ffffff;
             padding: 1em;
             border-radius: 4vw;
-            height: 45vh;
             width: 80%;
             display: flex;
             flex-direction: column;
@@ -113,7 +123,6 @@
 
         .glitch-wrapper {
             width: 100%;
-            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -122,7 +131,7 @@
 
         .glitch {
             position: relative;
-            font-size: 7wh;
+            font-size: 7vh;
             font-weight: bold;
             color: #FFFFFF;
             letter-spacing: 3px;
@@ -175,29 +184,29 @@
 </head>
 
 <body>
+    <header class="header-content">
+        <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head Image" style="width: 40%; max-width: 40%;">
+        <div class="glitch-wrapper">
+            <div class="glitch" data-text="Bitcoin Maximalist, Node Runner & Nostr Maniac">Bitcoin Maximalist, Node Runner & Nostr Maniac</div>
+        </div>
+    </header>
+    
     <main id="mainContent">
         <div class="coming-soon-box">
-            <div class="glitch-wrapper">
-                <div class="glitch" data-text="Bitcoin Maximalist, Node Runner & Nostr Maniac">Bitcoin Maximalist, Node Runner & Nostr Maniac
-                <p> <center>
-                <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head Image" style="width: 40%; max-width: 40%;"></p></div>
-             <center>
-                <p class="centered-text">Your Trusted Partner in Bitcoin Integration</p>
-                <button class="sidebar-btn" onclick="loadContent('about.html')">ABOUT US</button>
-            </center>
-            </div>
+            <p class="centered-text">Your Trusted Partner in Bitcoin Integration</p>
+            <button class="sidebar-btn" onclick="loadContent('about.html')" aria-label="About Us">ABOUT US</button>
         </div>
     </main>
 
     <footer>
         <div class="sidebar-container">
             <div class="sidebar">
-                <button class="sidebar-btn" onclick="navigateToHome()">HOME</button>
-                <button class="sidebar-btn" onclick="loadContent('booking.html')">BOOKINGS</button>
-                <button class="sidebar-btn" onclick="loadContent('donation.html')">ZAP</button>
-                <button class="sidebar-btn" onclick="loadContent('node.html')">NODE</button>
-                <button class="sidebar-btn" onclick="loadContent('nostr.html')">NOSTR</button>
-                <button class="sidebar-btn" onclick="navigateToTorontoPlebs()">TORONTO PLEBS</button>
+                <button class="sidebar-btn" onclick="navigateToHome()" aria-label="Home">HOME</button>
+                <button class="sidebar-btn" onclick="loadContent('booking.html')" aria-label="Bookings">BOOKINGS</button>
+                <button class="sidebar-btn" onclick="loadContent('donation.html')" aria-label="Zap">ZAP</button>
+                <button class="sidebar-btn" onclick="loadContent('node.html')" aria-label="Node">NODE</button>
+                <button class="sidebar-btn" onclick="loadContent('nostr.html')" aria-label="Nostr">NOSTR</button>
+                <button class="sidebar-btn" onclick="navigateToTorontoPlebs()" aria-label="Toronto Plebs">TORONTO PLEBS</button>
             </div>
         </div>
     </footer>
