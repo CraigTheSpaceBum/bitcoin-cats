@@ -3,51 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nostr Posts</title>
-    <script src="https://cdn.jsdelivr.net/npm/nostr-tools@1.1.1/lib/index.umd.min.js"></script>
+    <title>Catstr</title>
 </head>
 <body>
-    <h1>Posts from npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95</h1>
+    <h1>Catstr - Nostr Posts</h1>
     <div id="posts"></div>
 
     <script>
         async function fetchPosts() {
-            const relayUrl = 'wss://relay.damus.io'; // Use a Nostr relay URL
-            const pubkey = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95';
+            const response = await fetch('/api/posts');
+            const posts = await response.json();
 
-            // Convert npub to hex format
-            const pubkeyHex = NostrTools.nip19.decode(pubkey).data;
+            const postsContainer = document.getElementById('posts');
+            postsContainer.innerHTML = '';
 
-            // Connect to the relay
-            const relay = NostrTools.relayInit(relayUrl);
-            await relay.connect();
-
-            // Subscribe to posts from the specific pubkey
-            const sub = relay.sub([
-                {
-                    authors: [pubkeyHex],
-                    kinds: [1] // Kind 1 is for text notes
-                }
-            ]);
-
-            sub.on('event', event => {
-                displayPost(event);
+            posts.forEach(post => {
+                const postElement = document.createElement('div');
+                postElement.textContent = post.content;
+                postsContainer.appendChild(postElement);
             });
-
-            sub.on('end', () => {
-                console.log('Subscription ended');
-            });
-        }
-
-        function displayPost(event) {
-            const postContainer = document.getElementById('posts');
-            const postElement = document.createElement('div');
-            postElement.className = 'post';
-            postElement.innerHTML = `
-                <p>${event.content}</p>
-                <small>Published at: ${new Date(event.created_at * 1000).toLocaleString()}</small>
-            `;
-            postContainer.appendChild(postElement);
         }
 
         fetchPosts();
