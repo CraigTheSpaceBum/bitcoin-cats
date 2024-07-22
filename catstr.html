@@ -1,77 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nostr Feed</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-    }
-    #feed {
-      margin: 20px;
-      padding: 10px;
-      border: 1px solid #ccc;
-    }
-    .event {
-      border-bottom: 1px solid #ddd;
-      padding: 10px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nostr Posts</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .post {
+            background-color: grey;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .post p {
+            white-space: pre-wrap;
+        }
+    </style>
 </head>
 <body>
-  <h1>Nostr Feed</h1>
-  <div id="feed"></div>
+    <h1>Posts by npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95</h1>
+    <div id="posts"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/nostr-tools"></script>
-  <script>
-    const { nip19 } = window.nostrTools;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noble-secp256k1/1.7.1/noble-secp256k1.min.js"></script>
+    <script src="https://unpkg.com/@scure/base@1.1.1"></script>
+    <script>
+        const relays = [
+            'wss://relay.damus.io',
+            'wss://relay.nostr.info',
+            'wss://relay.snort.social',
+            'wss://nostr-pub.wellorder.net'
+        ];
+        
+        const pubkey = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95';
+        const hexPubKey = decodeBech32(pubkey);
 
-    const relays = [
-      'wss://relay.damus.io',
-      'wss://relay.snort.social',
-      'wss://relay.nostr.wine'
-    ];
-    const npub = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95';
+        async function fetchPosts() {
+            const events = [];
+            for (const relay of relays) {
+                try {
+                    const ws = new WebSocket(relay);
+                    ws.onopen = () => {
+                        ws.send(JSON.stringify({
+                            "id": "1",
+                            "method": "REQ",
+                            "params": [{
+                                "kinds": [1],
+                                "authors": [hexPubKey]
+                            }]
+                        }));
+                    };
+                    ws.onmessage = (event) => {
+                        const response = JSON.parse(event.data);
+                        if (response && response[0] && response[0].event) {
+                            events.push(response[0].event);
+                        }
+                    };
+                    ws.onerror = () => {
+                        console.error(`Failed to connect to relay: ${relay}`);
+                    };
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // wait for a second before moving to the next relay
+                } catch (error) {
+                    console.error(`Error with relay ${relay}: ${error}`);
+                }
+            }
+            displayPosts(events);
+        }
 
-    const pubkey = nip19.decode(npub).data;
-    const feedContainer = document.getElementById('feed');
+        function displayPosts(events) {
+            const postsContainer = document.getElementById('posts');
+            events.forEach(event => {
+                const postElement = document.createElement('div');
+                postElement.className = 'post';
+                postElement.innerHTML = `<p>${event.content}</p>`;
+                postsContainer.appendChild(postElement);
+            });
+        }
 
-    function connectToRelays() {
-      relays.forEach(url => {
-        const ws = new WebSocket(url);
+        function decodeBech32(bech32) {
+            const { words } = bech32.decode(bech32);
+            const bytes = bech32.fromWords(words);
+            return bytes.map(byte => byte.toString(16).padStart(2, '0')).join('');
+        }
 
-        ws.onopen = () => {
-          console.log(`Connected to ${url}`);
-          ws.send(JSON.stringify(['REQ', 'sub-id', { kinds: [1], authors: [pubkey] }]));
-        };
-
-        ws.onmessage = (event) => {
-          const [type, subId, data] = JSON.parse(event.data);
-          if (type === 'EVENT' && data.pubkey === pubkey) {
-            displayEvent(data);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.error(`WebSocket error on ${url}:`, error);
-        };
-
-        ws.onclose = () => {
-          console.log(`Disconnected from ${url}`);
-          setTimeout(() => connectToRelays(), 5000);
-        };
-      });
-    }
-
-    function displayEvent(event) {
-      const eventElement = document.createElement('div');
-      eventElement.className = 'event';
-      eventElement.innerText = `${new Date(event.created_at * 1000).toLocaleString()}: ${event.content}`;
-      feedContainer.prepend(eventElement);
-    }
-
-    connectToRelays();
-  </script>
+        fetchPosts();
+    </script>
 </body>
 </html>
