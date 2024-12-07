@@ -138,15 +138,69 @@
             color: #fff345;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
+        
+        
+        .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1em;
+    margin: 2em 0;
+}
+
+.gallery-item {
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+}
+
+.gallery-item img,
+.gallery-item video {
+    width: 100%;
+    height: 150px; /* Maintain uniform size */
+    object-fit: cover; /* Keep aspect ratio while filling the space */
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+}
+
+.gallery-item:hover img,
+.gallery-item:hover video {
+    transform: scale(1.05); /* Zoom effect on hover */
+}
+
+/* Fullscreen Modal */
+.fullscreen-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.fullscreen-modal img,
+.fullscreen-modal video {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+}
+
+.fullscreen-modal.show {
+    display: flex;
+}
+
+        
+        
+        
     </style>
 </head>
 
 <body>
-    <header>
-        <h1>About Us</h1>
-    </header>
-
     <main class="content">
+      <h2>About Us</h2>
         <p>Your Trusted Partner in Bitcoin Integration</p>
         <p>Your premier destination for comprehensive Bitcoin consulting services. We specialize in empowering businesses to seamlessly incorporate Bitcoin into their operations, ensuring a smooth transition into the world of digital currency.</p>
 
@@ -184,9 +238,9 @@
     </tbody>
     <tbody>
         <tr>
-            <td>TBA</td>
-            <td></td>
-            <td><a href="" target="_blank"></a></td>
+            <td>Tito's Fades</td>
+            <td>299 The Queensway S, Keswick, ON L4P 2B4</td>
+            <td><a href="https://www.titosfades.booksy.com" target="_blank">titosfades.booksy.com</a></td>
         </tr>
     </tbody>
 </table>
@@ -194,11 +248,32 @@
 <div class="map">
     <h3>Client Location Map</h3>
     <iframe 
-        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2871.778803536302!2d-79.44942122488985!3d44.2589931791044!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882ad225c9e5d28b%3A0x46472880baec0dcb!2s3431%20Pollock%20Rd%2C%20Keswick%2C%20ON%20L4P%203E9%2C%20Canada!5e0!3m2!1sen!2sus!4v1691770626954!5m2!1sen!2sus" 
+        src="https://www.google.com/maps/d/embed?mid=1d07BfSFpf7VO_Wlz1ouWGwRBaTTXwlk&ehbc=2E312F" 
         allowfullscreen="" 
         loading="lazy">
     </iframe>
 </div>
+
+<h2>Gallery</h2>
+<div class="gallery">
+    <div class="gallery-item">
+        <img src="https://via.placeholder.com/300" alt="Bitcoin Consultation Event 1" />
+    </div>
+    <div class="gallery-item">
+        <img src="https://via.placeholder.com/300" alt="Bitcoin Mining Setup" />
+    </div>
+    <div class="gallery-item">
+        <video src="https://www.w3schools.com/html/mov_bbb.mp4" controls muted></video>
+    </div>
+    <div class="gallery-item">
+        <img src="https://via.placeholder.com/300" alt="Bitcoin Seminar" />
+    </div>
+    
+</div>
+
+
+
+
     </main>
 
     <footer>
@@ -209,6 +284,30 @@
         function navigateToHome() {
             window.location.href = 'index.html';
         }
+        
+        <script>
+    // Select all gallery items and the modal
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    const body = document.querySelector('body');
+
+    galleryItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const modal = document.createElement('div');
+            modal.classList.add('fullscreen-modal');
+            modal.innerHTML = item.innerHTML; // Copy image/video into modal
+            body.appendChild(modal);
+
+            // Add click listener to close the modal
+            modal.addEventListener('click', () => {
+                body.removeChild(modal);
+            });
+
+            modal.classList.add('show');
+        });
+    });
+</script>
+
+        
     </script>
 </body>
 
