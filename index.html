@@ -4,26 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nostr Blog</title>
-  <meta name="description" content="A Nostr-powered blog timeline." />
+  <meta name="description" content="Nostr-powered timeline over multiple relays." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="background"></div>
 
   <nav class="navbar">
-    <div id="site-name" class="logo">Loading...</div>
+    <div id="site-name" class="logo">Loading…</div>
     <div class="nav-buttons">
-      <button class="nav-btn" onclick="location.href='index.html'">Home</button>
+      <button class="nav-btn" id="refresh-btn">Refresh</button>
       <button class="nav-btn" onclick="alert('About coming soon')">About</button>
       <button class="nav-btn" onclick="alert('Contact coming soon')">Contact</button>
     </div>
   </nav>
 
   <main class="timeline">
-    <h1 class="header" id="page-title">Loading...</h1>
+    <h1 class="header" id="page-title">Loading…</h1>
     <p class="subhead">Posts from <span id="target-npub"></span></p>
-    <div id="relay-status">Connecting to relays…</div>
-    <section id="posts" class="posts"></section>
+
+    <section class="status">
+      <div id="relay-status">Connecting…</div>
+    </section>
+
+    <section id="posts" class="posts" aria-live="polite"></section>
+
     <template id="post-template">
       <article class="post">
         <header class="post-header">
@@ -42,9 +47,9 @@
   </main>
 
   <footer>
-    <p id="footer-text">Built on Nostr 🐾</p>
+    <p id="footer-text">Built on Nostr</p>
   </footer>
 
-  <script type="module" src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
