@@ -1,192 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Craig's Website - Bitcoin Maximalist, Node Runner & Nostr Maniac" />
-  <meta name="keywords" content="Bitcoin, Node Runner, Nostr, Cryptocurrency" />
-  <title>Craig's Website</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap" />
-  <style>
-    body {
-      background: url("https://bitcoin-cats.ca/BackgroundLoop.webp") center/cover no-repeat fixed;
-      background-color: rgba(37, 51, 65, 0.85);
-      color: #ffffff;
-      font-family: 'Press Start 2P', cursive;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    main {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 1em;
-    }
-
-    .coming-soon-box {
-      background-color: rgba(0, 0, 0, 0.8);
-      padding: 2em;
-      border-radius: 2vw;
-      text-align: center;
-      width: 80%;
-    }
-
-    .glitch-wrapper {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-top: 1em;
-    }
-
-    .glitch {
-      position: relative;
-      font-size: 2vh;
-      font-weight: bold;
-      color: #ffffff;
-      text-align: center;
-    }
-
-    .glitch:before,
-    .glitch:after {
-      content: attr(data-text);
-      position: absolute;
-      top: 0;
-      left: 0;
-      opacity: 0.8;
-    }
-
-    .glitch:before {
-      color: #FFF345;
-      z-index: -1;
-      animation: glitch-it 0.3s infinite;
-    }
-
-    .glitch:after {
-      color: #F69619;
-      z-index: -2;
-      animation: glitch-it 0.3s reverse infinite;
-    }
-
-    @keyframes glitch-it {
-      0%, 100% { transform: translate(0); }
-      20% { transform: translate(-2px, 2px); }
-      40% { transform: translate(-2px, -2px); }
-      60% { transform: translate(2px, 2px); }
-      80% { transform: translate(2px, -2px); }
-    }
-
-    .bitcoin-button {
-      background-color: #F7931A;
-      color: #ffffff;
-      font-family: 'Press Start 2P', cursive;
-      font-size: 1.5vw;
-      border: none;
-      padding: 0.75em 1em;
-      margin: 0.5em;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
-      transition: box-shadow 0.3s ease;
-    }
-
-    .bitcoin-button:hover {
-      box-shadow: 0 0 20px rgba(247, 147, 26, 0.6);
-    }
-
-    .top-buttons {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 1em;
-      margin-top: 1em;
-    }
-
-    .small-button {
-      font-size: 1vw;
-      padding: 0.5em 0.75em;
-    }
-
-    .nostr-button {
-      background-color: #9146FF;
-    }
-
-    .node-button {
-      background-color: #FFD700;
-    }
-
-    footer {
-      background-color: rgba(0, 0, 0, 0.5);
-      padding: 1em 0;
-      text-align: center;
-    }
-
-    a {
-      color: #ffffff;
-      text-decoration: none;
-    }
-
-    a:hover {
-      color: #fff345;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-    }
-
-    .profile-image {
-      display: block;
-      margin: 0 auto 1em;
-    }
-  </style>
+  <title>Nostr Blog</title>
+  <meta name="description" content="A Nostr-powered blog timeline." />
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-  <main id="mainContent">
-    <div class="coming-soon-box">
-      <Strong>www.Bitcoin-Cats.ca</Strong>
-      <img class="profile-image" src="https://bitcoin-cats.ca/nostr/senpaicat.png" alt="Bitcoin Cats" width="175" height="175" />
-      <div class="glitch-wrapper">
-        <div class="glitch" data-text=" ">
-          
-        </div>
-      </div>
-      <p style="margin-top: 1em;">Your Trusted Canadian Partner in Bitcoin Integration and Education</p>
-      <div class="top-buttons">
-        <button class="bitcoin-button small-button" onclick="window.location.href='about.html'">ABOUT US</button>
-        <button class="bitcoin-button small-button node-button" onclick="loadContent('node.html')">NODE</button>
-        <button class="bitcoin-button small-button nostr-button" onclick="loadContent('nostr.html')">NOSTR</button>
-      </div>
+  <div class="background"></div>
+
+  <nav class="navbar">
+    <div id="site-name" class="logo">Loading...</div>
+    <div class="nav-buttons">
+      <button class="nav-btn" onclick="location.href='index.html'">Home</button>
+      <button class="nav-btn" onclick="alert('About coming soon')">About</button>
+      <button class="nav-btn" onclick="alert('Contact coming soon')">Contact</button>
     </div>
+  </nav>
+
+  <main class="timeline">
+    <h1 class="header" id="page-title">Loading...</h1>
+    <p class="subhead">Posts from <span id="target-npub"></span></p>
+    <div id="relay-status">Connecting to relays…</div>
+    <section id="posts" class="posts"></section>
+    <template id="post-template">
+      <article class="post">
+        <header class="post-header">
+          <img class="profile-pic" alt="Profile picture" />
+          <div class="who">
+            <div class="display-name"></div>
+            <div class="handle"></div>
+          </div>
+          <time class="time" title=""></time>
+        </header>
+        <div class="post-content"></div>
+        <div class="attachments"></div>
+        <div class="links"></div>
+      </article>
+    </template>
   </main>
 
   <footer>
-    <div>
-      <button class="bitcoin-button" onclick="navigateToHome()">HOME</button>
-      <button class="bitcoin-button" onclick="loadContent('shop.html')">STORE</button>
-      <button class="bitcoin-button" onclick="loadContent('booking.html')">BOOKING</button>
-      <button class="bitcoin-button" onclick="loadContent('donation.html')">ZAP⚡</button>
-      
-    </div>
+    <p id="footer-text">Built on Nostr 🐾</p>
   </footer>
 
-  <script>
-    async function loadContent(htmlFile) {
-      try {
-        const response = await fetch(htmlFile);
-        const content = await response.text();
-        document.getElementById('mainContent').innerHTML = content;
-      } catch (e) {
-        console.error('Failed to load content:', e);
-      }
-    }
-
-    function navigateToHome() {
-      window.location.href = '';
-    }
-  </script>
+  <script type="module" src="script.js"></script>
 </body>
-
 </html>
