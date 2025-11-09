@@ -1,55 +1,486 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nostr Blog</title>
-  <meta name="description" content="Nostr-powered timeline over multiple relays." />
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Nostr Blog</title>
+  <meta name="description" content="Personal blog powered by Nostr (read-only feed).">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-overlay: rgba(0,0,0,0.6);
+      --text:#f3f3f6;
+      --muted:#b0b0ba;
+      --border:#2c2c3c;
+      --orange:#ffa447;
+      --orange-2:#ff7a1a;
+      --card-bg: rgba(20,20,28,0.65);
+      --quote-bg: rgba(40,40,52,0.5);
+      --shadow: 0 6px 20px rgba(0,0,0,0.45);
+      --play-bg: rgba(0,0,0,0.5);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;scroll-behavior:smooth;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    body{
+      color:var(--text);
+      background: var(--bg-overlay) url('https://bitcoin-cats.ca/BackgroundLoop.webp') center center / cover no-repeat fixed;
+      background-blend-mode: darken;
+      overflow-x:hidden;
+    }
+    a{color:#ffd099;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .container{max-width:1680px;margin:0 auto;padding:20px}
+    header.profile{text-align:center;margin:60px 0 40px 0;animation:fadeIn 1.5s ease;}
+    header.profile img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:2px solid var(--orange);box-shadow:var(--shadow);}
+    header.profile h1{margin-top:16px;font-size:2.1rem;font-weight:800;color:var(--orange)}
+    header.profile p{margin-top:8px;font-size:15px;color:var(--muted);max-width:760px;margin-left:auto;margin-right:auto}
+    .zapbar{display:flex;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .zapbtn{border:1px solid var(--border);background:linear-gradient(180deg,#251b10,#1b140d);color:#ffd9b3;padding:6px 12px;border-radius:999px;font-weight:700;cursor:pointer}
+    .zapbtn:hover{filter:brightness(1.1)}
+
+    /* Loading overlay */
+    .loading-overlay{
+      position:fixed; inset:0; display:grid; place-items:center; z-index:99;
+      background: radial-gradient(800px 400px at 20% -10%, rgba(255,122,26,0.12), transparent 60%) no-repeat,
+                  radial-gradient(900px 500px at 110% 120%, rgba(255,164,71,0.10), transparent 60%) no-repeat,
+                  rgba(5,5,8,0.9);
+      transition: opacity .6s ease, visibility .6s ease;
+    }
+    .loading-overlay.hidden{opacity:0; visibility:hidden;}
+    .loading-text{
+      font-family: "Press Start 2P", monospace;
+      color:#ffb77a; letter-spacing: 1px; text-shadow: 0 0 10px rgba(255,122,26,0.5);
+      animation: flicker 1.3s infinite;
+    }
+    @keyframes flicker{0%,100%{opacity:1}50%{opacity:0.55}}
+
+    main.feed{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap:24px;
+      padding-bottom:100px;
+    }
+    article.post{
+      background:var(--card-bg);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-start;
+      min-height:480px;
+      opacity:0;
+      transform:translateY(20px);
+      transition:opacity 0.8s ease, transform 0.8s ease;
+    }
+    article.post.visible{opacity:1;transform:translateY(0)}
+    .post-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .pfp{width:48px;height:48px;border-radius:50%;object-fit:cover;border:1px solid var(--border)}
+    .post-meta{display:flex;flex-direction:column}
+    .name{font-weight:800;color:var(--orange)}
+    .time{font-size:13px;color:var(--muted)}
+    .content{white-space:pre-wrap;word-wrap:break-word;font-size:15px;line-height:1.55;margin-top:4px}
+    .gallery{margin-top:6px;display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;flex:1;min-height:160px}
+    .gallery.single{min-height:0; height:100%;}
+    .gallery::-webkit-scrollbar{height:8px}
+    .gallery::-webkit-scrollbar-thumb{background:#333;border-radius:999px}
+    .media-box{
+      background:#0b0b12; border:1px solid var(--border); border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      min-width:260px; max-width:100%; height:220px; flex-shrink:0; position:relative; overflow:hidden;
+    }
+    .gallery.single .media-box{height:100%; min-width:0; width:100%}
+    .media-box img{max-height:100%; max-width:100%; object-fit:contain; display:block}
+    .play-overlay{
+      position:absolute; inset:0; display:grid; place-items:center; background:var(--play-bg);
+      opacity:1; transition:opacity .2s ease; cursor:pointer;
+      font-weight:800; color:#ffd9b3; border:1px dashed rgba(255,255,255,0.15);
+    }
+    .play-overlay:hover{opacity:1}
+    .quote{
+      background:var(--quote-bg);
+      border-left:3px solid var(--orange);
+      border-radius:12px;
+      padding:10px 14px;
+      margin-top:10px;
+    }
+    .quote-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    .quote-header img{width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid var(--border)}
+    .quote-name{font-size:13px;font-weight:700;color:var(--orange)}
+    .quote-text{font-size:14px;color:var(--muted);white-space:pre-wrap;line-height:1.4;}
+    .mention{
+      display:inline-flex; align-items:center; gap:6px; padding:2px 6px; border-radius:999px;
+      background: rgba(255,164,71,0.08); border:1px solid rgba(255,164,71,0.25);
+      margin:0 2px; opacity:0; transform:translateY(4px);
+      transition:opacity .4s ease, transform .4s ease;
+    }
+    .mention.visible{opacity:1; transform:translateY(0);}
+    .mention img{width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid var(--border)}
+    .mention .label{color:var(--orange); font-weight:700; font-size:13px}
+    footer{color:var(--muted);font-size:12px;text-align:center;padding:40px 0}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  </style>
 </head>
 <body>
-  <div class="background"></div>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-text">LOADING…</div>
+  </div>
 
-  <nav class="navbar">
-    <div id="site-name" class="logo">Loading…</div>
-    <div class="nav-buttons">
-      <button class="nav-btn" id="refresh-btn">Refresh</button>
-      <button class="nav-btn" onclick="alert('About coming soon')">About</button>
-      <button class="nav-btn" onclick="alert('Contact coming soon')">Contact</button>
-    </div>
-  </nav>
+  <div class="container">
+    <header class="profile" id="profileHeader">
+      <img id="pfp" alt="Profile Picture">
+      <h1 id="profName">Loading…</h1>
+      <p id="profAbout"></p>
+      <div class="zapbar" id="zapbar" style="display:none;">
+        <button class="zapbtn" data-sats="1000">⚡ 1k</button>
+        <button class="zapbtn" data-sats="5000">⚡ 5k</button>
+        <button class="zapbtn" data-sats="10000">⚡ 10k</button>
+        <button class="zapbtn" data-sats="21000">⚡ 21k</button>
+      </div>
+    </header>
 
-  <main class="timeline">
-    <h1 class="header" id="page-title">Loading…</h1>
-    <p class="subhead">Posts from <span id="target-npub"></span></p>
+    <main class="feed" id="feed"></main>
 
-    <section class="status">
-      <div id="relay-status">Connecting…</div>
-    </section>
+    <footer>Powered by <a href="https://docs.nostr.wine" target="_blank">Nostr.Wine API</a> · Read‑only personal blog</footer>
+  </div>
 
-    <section id="posts" class="posts" aria-live="polite"></section>
+<script>
+const API = "https://api.nostr.wine/search";
+const PUBKEY_HEX = "3ab4c8ea97cd164d17f68990c1006e21e87f31a919a7013ecf2dae2e416938fd";
+const DEFAULT_LIMIT = 100;
+const feedEl = document.getElementById("feed");
+const overlay = document.getElementById("loadingOverlay");
 
-    <template id="post-template">
-      <article class="post">
-        <header class="post-header">
-          <img class="profile-pic" alt="Profile picture" />
-          <div class="who">
-            <div class="display-name"></div>
-            <div class="handle"></div>
-          </div>
-          <time class="time" title=""></time>
-        </header>
-        <div class="post-content"></div>
-        <div class="attachments"></div>
-        <div class="links"></div>
-      </article>
-    </template>
-  </main>
+function humanTime(ts){return new Date(ts*1000).toLocaleString();}
+function linkify(text){
+  const urlRe=/(https?:\/\/[^\s]+)/g;
+  return text.replace(urlRe,(u)=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+}
+function extractImages(text){
+  const imgRe=/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi;
+  return [...text.matchAll(imgRe)].map(m=>m[0]);
+}
+function extractVideos(text){
+  const vidRe=/(https?:\/\/[^\s]+\.(mp4|webm|mov))/gi;
+  return [...text.matchAll(vidRe)].map(m=>m[0]);
+}
+function extractLive(text){
+  const list = [];
+  const urlRe=/(https?:\/\/[^\s]+)/g;
+  (text.match(urlRe)||[]).forEach(u=>{
+    if(u.includes("zap.stream") || u.includes("nostr.build/live")) list.push(u);
+  });
+  return list;
+}
+function findNevent(text){
+  const m = text.match(/nostr:nevent1[0-9a-z]+/i);
+  return m ? m[0] : null;
+}
+function findAllNprofiles(text){
+  return text.match(/nostr:nprofile1[0-9a-z]+/ig) || [];
+}
+function stripMediaAndNevent(text){
+  let t = text.replace(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)/gi, '');
+  t = t.replace(/https?:\/\/(?:zap\.stream|nostr\.build\/live)[^\s]*/gi, '');
+  t = t.replace(/nostr:nevent1[0-9a-z]+/ig, '');
+  // keep nprofile placeholders for mentions (we'll replace them later)
+  return t.trim();
+}
 
-  <footer>
-    <p id="footer-text">Built on Nostr</p>
-  </footer>
+// --- bech32 decode & TLV parsing ---
+const CHARSET="qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+function bech32Polymod(values){const GEN=[0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];let chk=1;for(const v of values){const b=chk>>25;chk=((chk&0x1ffffff)<<5)^v;for(let i=0;i<5;i++) if((b>>i)&1) chk^=GEN[i];}return chk;}
+function hrpExpand(hrp){const ret=[];for(let i=0;i<hrp.length;i++) ret.push(hrp.charCodeAt(i)>>5);ret.push(0);for(let i=0;i<hrp.length;i++) ret.push(hrp.charCodeAt(i)&31);return ret;}
+function verifyChecksum(hrp,data){return bech32Polymod(hrpExpand(hrp).concat(data))===1;}
+function bech32Decode(str){const s=str.trim().toLowerCase();const pos=s.lastIndexOf("1");if(pos<1) return null;const hrp=s.slice(0,pos);const data=[];for(let i=pos+1;i<s.length;i++){const v=CHARSET.indexOf(s[i]);if(v===-1) return null;data.push(v);}if(!verifyChecksum(hrp,data)) return null;return {hrp, words:data.slice(0,-6)};}
+function convertBits(data,fromBits,toBits,pad=true){let acc=0,bits=0;const ret=[];const maxv=(1<<toBits)-1;for(const value of data){if(value<0||(value>>fromBits)) return null;acc=(acc<<fromBits)|value;bits+=fromBits;while(bits>=toBits){bits-=toBits;ret.push((acc>>bits)&maxv);}}if(pad&&bits) ret.push((acc<<(toBits-bits))&maxv);return ret;}
 
-  <script src="script.js"></script>
+function neventToId(nevent){
+  try{
+    const dec=bech32Decode(nevent);
+    if(!dec || dec.hrp!=="nevent") return null;
+    const bytes = new Uint8Array(convertBits(dec.words,5,8,false));
+    // TLV: type, length, value
+    for(let i=0;i<bytes.length;){
+      const t=bytes[i++]; const l=bytes[i++]; const v=bytes.slice(i, i+l); i+=l;
+      if(t===1 && l===32){ // id
+        return Array.from(v).map(b=>b.toString(16).padStart(2,'0')).join('');
+      }
+    }
+  }catch{}
+  return null;
+}
+
+function nprofileToPubkey(nprofile){
+  try{
+    const dec=bech32Decode(nprofile);
+    if(!dec || dec.hrp!=="nprofile") return null;
+    const bytes = new Uint8Array(convertBits(dec.words,5,8,false));
+    for(let i=0;i<bytes.length;){
+      const t=bytes[i++]; const l=bytes[i++]; const v=bytes.slice(i, i+l); i+=l;
+      if(t===0 && l===32){
+        return Array.from(v).map(b=>b.toString(16).padStart(2,'0')).join('');
+      }
+    }
+  }catch{}
+  return null;
+}
+
+async function getNoteById(idHex){
+  const url = `${API}?id=${idHex}`;
+  const r = await fetch(url,{mode:"cors"});
+  if(!r.ok) return null;
+  const j = await r.json();
+  return (j && (j.data?.[0]||j[0]))||null;
+}
+
+async function getProfile(pubkeyHex){
+  const url=`${API}?pubkey=${pubkeyHex}&kind=0&sort=time&order=descending&limit=1`;
+  const r=await fetch(url,{mode:"cors"});
+  if(!r.ok) return {name: shortKey(pubkeyHex), picture:"https://api.dicebear.com/7.x/identicon/svg?seed="+pubkeyHex};
+  const j=await r.json();
+  const ev=(j && (j.data?.[0]||j[0]))||null;
+  if(!ev) return {name: shortKey(pubkeyHex), picture:"https://api.dicebear.com/7.x/identicon/svg?seed="+pubkeyHex};
+  let meta={};
+  try{meta=JSON.parse(ev.content||"{}");}catch{}
+  return {
+    name: meta.display_name || meta.name || shortKey(pubkeyHex),
+    picture: meta.picture || "https://api.dicebear.com/7.x/identicon/svg?seed="+pubkeyHex
+  };
+}
+
+function shortKey(k){return k.slice(0,8)+"…"+k.slice(-4);}
+
+function mediaBoxForImage(src){
+  const box=document.createElement("div"); box.className="media-box";
+  const img=document.createElement("img"); img.src=src; img.alt="image";
+  img.onclick=()=>window.open(src,"_blank");
+  box.appendChild(img);
+  return box;
+}
+function mediaBoxForVideo(src){
+  const box=document.createElement("div"); box.className="media-box";
+  const overlay=document.createElement("div"); overlay.className="play-overlay"; overlay.textContent="▶ CLICK TO PLAY";
+  overlay.onclick=()=>{
+    box.removeChild(overlay);
+    const v=document.createElement("video");
+    v.src=src; v.controls=true; v.playsInline=true; v.preload="none";
+    v.style.maxHeight="100%"; v.style.maxWidth="100%";
+    box.appendChild(v);
+    v.focus();
+  };
+  box.appendChild(overlay);
+  return box;
+}
+function mediaBoxForLive(url){
+  const box=document.createElement("div"); box.className="media-box";
+  const overlay=document.createElement("div"); overlay.className="play-overlay"; overlay.textContent="▶ CLICK TO OPEN STREAM";
+  overlay.onclick=()=>{
+    box.removeChild(overlay);
+    const f=document.createElement("iframe");
+    f.allow="accelerometer; encrypted-media; picture-in-picture; fullscreen";
+    f.style.width="100%"; f.style.height="100%"; f.frameBorder="0";
+    f.src=url;
+    box.appendChild(f);
+  };
+  box.appendChild(overlay);
+  return box;
+}
+
+async function replaceNprofileMentions(container){
+  const nodes = Array.from(container.childNodes);
+  for(const node of nodes){
+    if(node.nodeType === Node.TEXT_NODE){
+      const text = node.textContent;
+      const matches = findAllNprofiles(text);
+      if(!matches.length) continue;
+
+      let cursor = 0;
+      for(const token of matches){
+        const idx = text.indexOf(token, cursor);
+        if(idx === -1) continue;
+
+        // text before
+        if(idx > cursor){
+          container.insertBefore(document.createTextNode(text.slice(cursor, idx)), node);
+        }
+
+        // placeholder mention
+        const span = document.createElement("span");
+        span.className = "mention";
+        span.textContent = "…";
+        container.insertBefore(span, node);
+
+        // async fetch and render
+        (async () => {
+          const pubkey = nprofileToPubkey(token);
+          const profile = pubkey ? await getProfile(pubkey) : {name: token, picture:"https://api.dicebear.com/7.x/identicon/svg?seed=p"};
+          const a = document.createElement("a");
+          a.href = "https://njump.me/" + token;
+          a.target = "_blank"; a.rel="noopener noreferrer";
+          a.className = "mention visible";
+          const img = document.createElement("img"); img.src = profile.picture;
+          const label = document.createElement("span"); label.className="label"; label.textContent = profile.name;
+          a.appendChild(img); a.appendChild(label);
+          span.replaceWith(a);
+        })();
+
+        cursor = idx + token.length;
+      }
+
+      // remaining text
+      if(cursor < text.length){
+        container.insertBefore(document.createTextNode(text.slice(cursor)), node);
+      }
+      // remove original text node
+      container.removeChild(node);
+    } else if(node.nodeType === Node.ELEMENT_NODE){
+      await replaceNprofileMentions(node);
+    }
+  }
+}
+
+async function drawFeed(events){
+  feedEl.innerHTML="";
+  if(!events?.length){
+    feedEl.innerHTML="<p style='color:var(--muted);text-align:center;'>No posts found.</p>";
+    overlay.classList.add("hidden");
+    return;
+  }
+  for(const ev of events){
+    // skip replies: any 'e' tag implies reply/thread; user only wants main posts
+    if(ev.tags && ev.tags.some(t=>t[0]==="e")) continue;
+
+    const post=document.createElement("article");
+    post.className="post";
+
+    // top header with profile (your own)
+    const header=document.createElement("div"); header.className="post-header";
+    const pfp=document.createElement("img"); pfp.className="pfp"; pfp.src=document.getElementById("pfp").src;
+    const metaDiv=document.createElement("div"); metaDiv.className="post-meta";
+    const name=document.createElement("div"); name.className="name"; name.textContent=document.getElementById("profName").textContent;
+    const time=document.createElement("div"); time.className="time"; time.textContent=humanTime(ev.created_at);
+    metaDiv.appendChild(name); metaDiv.appendChild(time);
+    header.appendChild(pfp); header.appendChild(metaDiv);
+
+    // main text (strip media/streams/nevent; keep nprofile mentions)
+    const content=document.createElement("div"); content.className="content";
+    const textOnly = stripMediaAndNevent(ev.content||"");
+    content.innerHTML = linkify(textOnly);
+    await replaceNprofileMentions(content);
+
+    // gallery: images, videos, live
+    const gallery=document.createElement("div"); gallery.className="gallery";
+    const imgs=extractImages(ev.content||"");
+    const vids=extractVideos(ev.content||"");
+    const lives=extractLive(ev.content||"");
+
+    imgs.forEach(u=> gallery.appendChild(mediaBoxForImage(u)));
+    vids.forEach(u=> gallery.appendChild(mediaBoxForVideo(u)));
+    lives.forEach(u=> gallery.appendChild(mediaBoxForLive(u)));
+
+    // single image/video fills remaining space
+    if(gallery.childNodes.length === 1){
+      gallery.classList.add("single");
+    }
+
+    post.appendChild(header);
+    post.appendChild(content);
+    if(gallery.childNodes.length) post.appendChild(gallery);
+
+    // quoted note via nostr:nevent...
+    const nevent = findNevent(ev.content||"");
+    if(nevent){
+      const idHex = neventToId(nevent);
+      if(idHex){
+        try{
+          const quoted = await getNoteById(idHex);
+          if(quoted){
+            // quoted author meta
+            const qProfile = await getProfile(quoted.pubkey);
+            const quoteDiv=document.createElement("div"); quoteDiv.className="quote";
+            const qh=document.createElement("div"); qh.className="quote-header";
+            const qp=document.createElement("img"); qp.src=qProfile.picture;
+            const qname=document.createElement("div"); qname.className="quote-name"; qname.textContent=qProfile.name;
+            qh.appendChild(qp); qh.appendChild(qname);
+            const qt=document.createElement("div"); qt.className="quote-text"; qt.textContent=(quoted.content||"").slice(0,500);
+            quoteDiv.appendChild(qh); quoteDiv.appendChild(qt);
+            post.appendChild(quoteDiv);
+          }
+        }catch(e){ console.warn("Failed to render nevent quote", e); }
+      }
+    }
+
+    feedEl.appendChild(post);
+  }
+
+  setupFadeIn();
+  overlay.classList.add("hidden");
+}
+
+function setupFadeIn(){
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting) entry.target.classList.add("visible");
+      else entry.target.classList.remove("visible");
+    });
+  },{threshold:0.2});
+  document.querySelectorAll(".post").forEach(el=>observer.observe(el));
+}
+
+async function getKind0(pubkeyHex){
+  const url=`${API}?pubkey=${pubkeyHex}&kind=0&sort=time&order=descending&limit=1`;
+  const r=await fetch(url,{mode:"cors"});
+  if(!r.ok) return null;
+  const j=await r.json();
+  return (j && (j.data?.[0]||j[0]))||null;
+}
+async function getKind1(pubkeyHex){
+  const url=`${API}?pubkey=${pubkeyHex}&kind=1&sort=time&order=descending&limit=${DEFAULT_LIMIT}`;
+  const r=await fetch(url,{mode:"cors"});
+  if(!r.ok) return [];
+  const j=await r.json();
+  return j?.data||[];
+}
+
+function applyProfile(k0){
+  if(!k0) return;
+  let meta={};
+  try{meta=JSON.parse(k0.content||"{}");}catch{}
+  const name=meta.display_name||meta.name||"Unknown";
+  const about=meta.about||"";
+  const picture=meta.picture||"https://api.dicebear.com/7.x/shapes/svg?seed="+(k0.pubkey||"nostr");
+  document.getElementById("pfp").src=picture;
+  document.getElementById("profName").textContent=name;
+  document.getElementById("profAbout").textContent=about;
+
+  const zapbar=document.getElementById("zapbar");
+  const lud16=meta.lud16||"";const lud06=meta.lud06||"";
+  let zapTarget="";
+  if(lud16) zapTarget=`lightning:${lud16}`;
+  else if(lud06) zapTarget=`lightning:${lud06}`;
+  if(zapTarget){
+    zapbar.style.display="flex";
+    document.querySelectorAll(".zapbtn").forEach(btn=>{
+      btn.onclick=()=>{window.location.href=zapTarget;}
+    });
+  }
+}
+
+async function load(){
+  try{
+    const [k0, notes]=await Promise.all([getKind0(PUBKEY_HEX),getKind1(PUBKEY_HEX)]);
+    applyProfile(k0);
+    await drawFeed(notes);
+  }catch(e){
+    console.error(e);
+    overlay.classList.add("hidden");
+    feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Error loading posts.</p>";
+  }
+}
+
+window.addEventListener("load", load);
+</script>
 </body>
 </html>
