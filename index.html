@@ -30,13 +30,79 @@
     a{color:#ffd099;text-decoration:none}
     a:hover{text-decoration:underline}
     .container{max-width:1680px;margin:0 auto;padding:20px}
-    header.profile{text-align:center;margin:60px 0 40px 0;animation:fadeIn 1.5s ease;}
-    header.profile img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:2px solid var(--orange);box-shadow:var(--shadow);}
-    header.profile h1{margin-top:16px;font-size:2.1rem;font-weight:800;color:var(--orange)}
-    header.profile p{margin-top:8px;font-size:15px;color:var(--muted);max-width:760px;margin-left:auto;margin-right:auto}
-    .zapbar{display:flex;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap}
-    .zapbtn{border:1px solid var(--border);background:linear-gradient(180deg,#251b10,#1b140d);color:#ffd9b3;padding:6px 12px;border-radius:999px;font-weight:700;cursor:pointer}
-    .zapbtn:hover{filter:brightness(1.1)}
+
+    /* NEW: Banner */
+    header.profile{
+      position:relative;
+      margin:30px 0 30px 0;
+      animation:fadeIn 1.2s ease;
+    }
+    .banner{
+      position:relative;
+      width:100%;
+      border:1px solid rgba(255,180,120,0.25);
+      background:
+        linear-gradient(90deg, rgba(255,164,71,0.35), rgba(255,122,26,0.20) 45%, rgba(255,164,71,0.18));
+      backdrop-filter: blur(4px);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:22px 22px 22px 120px; /* space for overlapping pfp */
+      min-height:120px;
+      overflow:visible;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+    }
+    .pfp-wrap{
+      position:absolute;
+      left:-18px; top:50%;
+      transform:translateY(-50%);
+      width:140px; height:140px;
+    }
+    .pfp-wrap img{
+      width:140px; height:140px; border-radius:50%;
+      object-fit:cover;
+      border:4px solid rgba(255,164,71,0.6);
+      box-shadow:0 10px 30px rgba(0,0,0,0.55);
+    }
+    .id-block{
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .id-name{
+      font-size:1.9rem; font-weight:900; color:#ffe0c2; text-shadow:0 2px 10px rgba(0,0,0,0.35);
+    }
+    .id-npub{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size:0.95rem; color:#ffe0c2; opacity:0.85;
+      background:rgba(0,0,0,0.25);
+      border:1px solid rgba(255,200,150,0.25);
+      padding:4px 10px; border-radius:999px;
+      max-width:100%;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+
+    .actions{
+      margin-left:auto;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    }
+    .btn{
+      border:1px solid rgba(255,200,150,0.25);
+      background:linear-gradient(180deg, rgba(25,18,12,0.8), rgba(20,14,10,0.8));
+      color:#ffd9b3;
+      padding:9px 14px; border-radius:999px; font-weight:800; cursor:pointer;
+      box-shadow:var(--shadow);
+      transition:transform .08s ease, filter .15s ease;
+      user-select:none;
+    }
+    .btn:hover{filter:brightness(1.12)}
+    .btn:active{transform:scale(0.98)}
+    .btn.ghost{background:transparent}
+    .followers-badge{
+      display:inline-flex; align-items:center; gap:6px;
+    }
+
+    /* Removed old about and preset zaps UI */
 
     /* Loading overlay */
     .loading-overlay{
@@ -129,20 +195,27 @@
 
   <div class="container">
     <header class="profile" id="profileHeader">
-      <img id="pfp" alt="Profile Picture">
-      <h1 id="profName">Loading…</h1>
-      <p id="profAbout"></p>
-      <div class="zapbar" id="zapbar" style="display:none;">
-        <button class="zapbtn" data-sats="1000">⚡ 1k</button>
-        <button class="zapbtn" data-sats="5000">⚡ 5k</button>
-        <button class="zapbtn" data-sats="10000">⚡ 10k</button>
-        <button class="zapbtn" data-sats="21000">⚡ 21k</button>
+      <div class="banner">
+        <div class="pfp-wrap">
+          <img id="pfp" alt="Profile Picture">
+        </div>
+        <div class="id-block">
+          <div class="id-name" id="profName">Loading…</div>
+          <div class="id-npub" id="profNpub">npub…</div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="homeBtn">🏠 Home</button>
+          <button class="btn" id="aboutBtn">ℹ️ About</button>
+          <button class="btn" id="zapBtn">⚡ Zap</button>
+          <button class="btn ghost" id="shopBtn">🛒 Shop</button>
+          <button class="btn" id="followBtn"><span class="followers-badge">👥 Followers: <span id="followersCount">—</span></span></button>
+        </div>
       </div>
     </header>
 
     <main class="feed" id="feed"></main>
 
-    <footer>Powered by <a href="https://docs.nostr.wine" target="_blank">Nostr.Wine API</a> · Read‑only personal blog</footer>
+
   </div>
 
 <script>
@@ -152,6 +225,7 @@ const DEFAULT_LIMIT = 100;
 const feedEl = document.getElementById("feed");
 const overlay = document.getElementById("loadingOverlay");
 
+/* ---------- Utils ---------- */
 function humanTime(ts){return new Date(ts*1000).toLocaleString();}
 function linkify(text){
   const urlRe=/(https?:\/\/[^\s]+)/g;
@@ -184,34 +258,39 @@ function stripMediaAndNevent(text){
   let t = text.replace(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)/gi, '');
   t = t.replace(/https?:\/\/(?:zap\.stream|nostr\.build\/live)[^\s]*/gi, '');
   t = t.replace(/nostr:nevent1[0-9a-z]+/ig, '');
-  // keep nprofile placeholders for mentions (we'll replace them later)
   return t.trim();
 }
 
-// --- bech32 decode & TLV parsing ---
+/* ---------- Bech32 encode/decode & helpers ---------- */
 const CHARSET="qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 function bech32Polymod(values){const GEN=[0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];let chk=1;for(const v of values){const b=chk>>25;chk=((chk&0x1ffffff)<<5)^v;for(let i=0;i<5;i++) if((b>>i)&1) chk^=GEN[i];}return chk;}
 function hrpExpand(hrp){const ret=[];for(let i=0;i<hrp.length;i++) ret.push(hrp.charCodeAt(i)>>5);ret.push(0);for(let i=0;i<hrp.length;i++) ret.push(hrp.charCodeAt(i)&31);return ret;}
+function createChecksum(hrp,data){let values=hrpExpand(hrp).concat(data);values=values.concat([0,0,0,0,0,0]);const mod=bech32Polymod(values)^1;const ret=[];for(let p=0;p<6;p++) ret.push((mod>>(5*(5-p)))&31);return ret;}
 function verifyChecksum(hrp,data){return bech32Polymod(hrpExpand(hrp).concat(data))===1;}
 function bech32Decode(str){const s=str.trim().toLowerCase();const pos=s.lastIndexOf("1");if(pos<1) return null;const hrp=s.slice(0,pos);const data=[];for(let i=pos+1;i<s.length;i++){const v=CHARSET.indexOf(s[i]);if(v===-1) return null;data.push(v);}if(!verifyChecksum(hrp,data)) return null;return {hrp, words:data.slice(0,-6)};}
+function bech32Encode(hrp, words){const chk = createChecksum(hrp, words); const data = words.concat(chk); return hrp + "1" + data.map(v=>CHARSET[v]).join("");}
 function convertBits(data,fromBits,toBits,pad=true){let acc=0,bits=0;const ret=[];const maxv=(1<<toBits)-1;for(const value of data){if(value<0||(value>>fromBits)) return null;acc=(acc<<fromBits)|value;bits+=fromBits;while(bits>=toBits){bits-=toBits;ret.push((acc>>bits)&maxv);}}if(pad&&bits) ret.push((acc<<(toBits-bits))&maxv);return ret;}
+function hexToBytes(hex){const out=new Uint8Array(hex.length/2);for(let i=0;i<out.length;i++) out[i]=parseInt(hex.substr(i*2,2),16);return out;}
+function pubkeyToNpub(hex){
+  const data = convertBits(Array.from(hexToBytes(hex)),8,5,true);
+  return bech32Encode("npub", data);
+}
 
+/* ---------- TLV helpers for nevent/nprofile ---------- */
 function neventToId(nevent){
   try{
     const dec=bech32Decode(nevent);
     if(!dec || dec.hrp!=="nevent") return null;
     const bytes = new Uint8Array(convertBits(dec.words,5,8,false));
-    // TLV: type, length, value
     for(let i=0;i<bytes.length;){
       const t=bytes[i++]; const l=bytes[i++]; const v=bytes.slice(i, i+l); i+=l;
-      if(t===1 && l===32){ // id
+      if(t===1 && l===32){
         return Array.from(v).map(b=>b.toString(16).padStart(2,'0')).join('');
       }
     }
   }catch{}
   return null;
 }
-
 function nprofileToPubkey(nprofile){
   try{
     const dec=bech32Decode(nprofile);
@@ -227,6 +306,7 @@ function nprofileToPubkey(nprofile){
   return null;
 }
 
+/* ---------- API helpers ---------- */
 async function getNoteById(idHex){
   const url = `${API}?id=${idHex}`;
   const r = await fetch(url,{mode:"cors"});
@@ -234,7 +314,6 @@ async function getNoteById(idHex){
   const j = await r.json();
   return (j && (j.data?.[0]||j[0]))||null;
 }
-
 async function getProfile(pubkeyHex){
   const url=`${API}?pubkey=${pubkeyHex}&kind=0&sort=time&order=descending&limit=1`;
   const r=await fetch(url,{mode:"cors"});
@@ -246,12 +325,51 @@ async function getProfile(pubkeyHex){
   try{meta=JSON.parse(ev.content||"{}");}catch{}
   return {
     name: meta.display_name || meta.name || shortKey(pubkeyHex),
-    picture: meta.picture || "https://api.dicebear.com/7.x/identicon/svg?seed="+pubkeyHex
+    picture: meta.picture || "https://api.dicebear.com/7.x/identicon/svg?seed="+pubkeyHex,
+    lud16: meta.lud16 || "",
+    lud06: meta.lud06 || ""
   };
 }
-
 function shortKey(k){return k.slice(0,8)+"…"+k.slice(-4);}
 
+async function getKind0(pubkeyHex){
+  const url=`${API}?pubkey=${pubkeyHex}&kind=0&sort=time&order=descending&limit=1`;
+  const r=await fetch(url,{mode:"cors"});
+  if(!r.ok) return null;
+  const j=await r.json();
+  return (j && (j.data?.[0]||j[0]))||null;
+}
+async function getKind1(pubkeyHex){
+  const url=`${API}?pubkey=${pubkeyHex}&kind=1&sort=time&order=descending&limit=${DEFAULT_LIMIT}`;
+  const r=await fetch(url,{mode:"cors"});
+  if(!r.ok) return [];
+  const j=await r.json();
+  return j?.data||[];
+}
+
+/* ---------- Followers count (best-effort) ---------- */
+/* Tries to count kind:3 events that include our pubkey in a 'p' tag.
+   If the API doesn't support this filter, we'll show "—". */
+async function getFollowersCount(pubkeyHex){
+  try{
+    // Attempt #1: tag-based query (if supported by nostr.wine)
+    const try1 = await fetch(`${API}?kind=3&tag=p&value=${pubkeyHex}&count=true&limit=1`, {mode:"cors"});
+    if(try1.ok){
+      const j = await try1.json();
+      if(typeof j.count === "number") return j.count;
+      if(Array.isArray(j.data)) return j.data.length; // fallback if API returns data
+    }
+    // Attempt #2: generic search fallback (may not be accurate)
+    const try2 = await fetch(`${API}?kind=3&search=${pubkeyHex}&limit=100`, {mode:"cors"});
+    if(try2.ok){
+      const j = await try2.json();
+      if(Array.isArray(j.data)) return j.data.length;
+    }
+  }catch(e){}
+  return null;
+}
+
+/* ---------- Media helpers ---------- */
 function mediaBoxForImage(src){
   const box=document.createElement("div"); box.className="media-box";
   const img=document.createElement("img"); img.src=src; img.alt="image";
@@ -288,6 +406,7 @@ function mediaBoxForLive(url){
   return box;
 }
 
+/* ---------- Mentions ---------- */
 async function replaceNprofileMentions(container){
   const nodes = Array.from(container.childNodes);
   for(const node of nodes){
@@ -300,19 +419,11 @@ async function replaceNprofileMentions(container){
       for(const token of matches){
         const idx = text.indexOf(token, cursor);
         if(idx === -1) continue;
+        if(idx > cursor) container.insertBefore(document.createTextNode(text.slice(cursor, idx)), node);
 
-        // text before
-        if(idx > cursor){
-          container.insertBefore(document.createTextNode(text.slice(cursor, idx)), node);
-        }
-
-        // placeholder mention
-        const span = document.createElement("span");
-        span.className = "mention";
-        span.textContent = "…";
+        const span = document.createElement("span"); span.className = "mention"; span.textContent = "…";
         container.insertBefore(span, node);
 
-        // async fetch and render
         (async () => {
           const pubkey = nprofileToPubkey(token);
           const profile = pubkey ? await getProfile(pubkey) : {name: token, picture:"https://api.dicebear.com/7.x/identicon/svg?seed=p"};
@@ -328,12 +439,7 @@ async function replaceNprofileMentions(container){
 
         cursor = idx + token.length;
       }
-
-      // remaining text
-      if(cursor < text.length){
-        container.insertBefore(document.createTextNode(text.slice(cursor)), node);
-      }
-      // remove original text node
+      if(cursor < text.length) container.insertBefore(document.createTextNode(text.slice(cursor)), node);
       container.removeChild(node);
     } else if(node.nodeType === Node.ELEMENT_NODE){
       await replaceNprofileMentions(node);
@@ -341,6 +447,7 @@ async function replaceNprofileMentions(container){
   }
 }
 
+/* ---------- Feed ---------- */
 async function drawFeed(events){
   feedEl.innerHTML="";
   if(!events?.length){
@@ -349,13 +456,11 @@ async function drawFeed(events){
     return;
   }
   for(const ev of events){
-    // skip replies: any 'e' tag implies reply/thread; user only wants main posts
     if(ev.tags && ev.tags.some(t=>t[0]==="e")) continue;
 
     const post=document.createElement("article");
     post.className="post";
 
-    // top header with profile (your own)
     const header=document.createElement("div"); header.className="post-header";
     const pfp=document.createElement("img"); pfp.className="pfp"; pfp.src=document.getElementById("pfp").src;
     const metaDiv=document.createElement("div"); metaDiv.className="post-meta";
@@ -364,13 +469,11 @@ async function drawFeed(events){
     metaDiv.appendChild(name); metaDiv.appendChild(time);
     header.appendChild(pfp); header.appendChild(metaDiv);
 
-    // main text (strip media/streams/nevent; keep nprofile mentions)
     const content=document.createElement("div"); content.className="content";
     const textOnly = stripMediaAndNevent(ev.content||"");
     content.innerHTML = linkify(textOnly);
     await replaceNprofileMentions(content);
 
-    // gallery: images, videos, live
     const gallery=document.createElement("div"); gallery.className="gallery";
     const imgs=extractImages(ev.content||"");
     const vids=extractVideos(ev.content||"");
@@ -380,16 +483,12 @@ async function drawFeed(events){
     vids.forEach(u=> gallery.appendChild(mediaBoxForVideo(u)));
     lives.forEach(u=> gallery.appendChild(mediaBoxForLive(u)));
 
-    // single image/video fills remaining space
-    if(gallery.childNodes.length === 1){
-      gallery.classList.add("single");
-    }
+    if(gallery.childNodes.length === 1) gallery.classList.add("single");
 
     post.appendChild(header);
     post.appendChild(content);
     if(gallery.childNodes.length) post.appendChild(gallery);
 
-    // quoted note via nostr:nevent...
     const nevent = findNevent(ev.content||"");
     if(nevent){
       const idHex = neventToId(nevent);
@@ -397,7 +496,6 @@ async function drawFeed(events){
         try{
           const quoted = await getNoteById(idHex);
           if(quoted){
-            // quoted author meta
             const qProfile = await getProfile(quoted.pubkey);
             const quoteDiv=document.createElement("div"); quoteDiv.className="quote";
             const qh=document.createElement("div"); qh.className="quote-header";
@@ -418,7 +516,6 @@ async function drawFeed(events){
   setupFadeIn();
   overlay.classList.add("hidden");
 }
-
 function setupFadeIn(){
   const observer=new IntersectionObserver(entries=>{
     entries.forEach(entry=>{
@@ -429,54 +526,94 @@ function setupFadeIn(){
   document.querySelectorAll(".post").forEach(el=>observer.observe(el));
 }
 
-async function getKind0(pubkeyHex){
-  const url=`${API}?pubkey=${pubkeyHex}&kind=0&sort=time&order=descending&limit=1`;
-  const r=await fetch(url,{mode:"cors"});
-  if(!r.ok) return null;
-  const j=await r.json();
-  return (j && (j.data?.[0]||j[0]))||null;
-}
-async function getKind1(pubkeyHex){
-  const url=`${API}?pubkey=${pubkeyHex}&kind=1&sort=time&order=descending&limit=${DEFAULT_LIMIT}`;
-  const r=await fetch(url,{mode:"cors"});
-  if(!r.ok) return [];
-  const j=await r.json();
-  return j?.data||[];
+/* ---------- Page wiring ---------- */
+function applyProfileToBanner(meta){
+  document.getElementById("pfp").src = meta.picture;
+  document.getElementById("profName").textContent = meta.name;
+  document.getElementById("profNpub").textContent = pubkeyToNpub(PUBKEY_HEX);
 }
 
-function applyProfile(k0){
-  if(!k0) return;
-  let meta={};
-  try{meta=JSON.parse(k0.content||"{}");}catch{}
-  const name=meta.display_name||meta.name||"Unknown";
-  const about=meta.about||"";
-  const picture=meta.picture||"https://api.dicebear.com/7.x/shapes/svg?seed="+(k0.pubkey||"nostr");
-  document.getElementById("pfp").src=picture;
-  document.getElementById("profName").textContent=name;
-  document.getElementById("profAbout").textContent=about;
+/* Zap any amount (best effort using lightning address if present) */
+async function zapAnyAmount(lud){
+  if(!lud){
+    alert("No Lightning address set on this profile.");
+    return;
+  }
+  const input = prompt("Enter the amount to zap (in sats):", "1000");
+  if(!input) return;
+  const sats = parseInt(input, 10);
+  if(isNaN(sats) || sats <= 0){ alert("Invalid amount."); return; }
 
-  const zapbar=document.getElementById("zapbar");
-  const lud16=meta.lud16||"";const lud06=meta.lud06||"";
-  let zapTarget="";
-  if(lud16) zapTarget=`lightning:${lud16}`;
-  else if(lud06) zapTarget=`lightning:${lud06}`;
-  if(zapTarget){
-    zapbar.style.display="flex";
-    document.querySelectorAll(".zapbtn").forEach(btn=>{
-      btn.onclick=()=>{window.location.href=zapTarget;}
-    });
+  // Many wallets accept msat param on lightning: links. We'll try that first.
+  const msats = sats * 1000;
+  const target = `lightning:${lud}${lud.includes('?') ? '&' : '?'}amount=${msats}`;
+  window.location.href = target;
+}
+
+/* About: load about.html into the feed area (replacing posts) */
+async function showAbout(){
+  try{
+    overlay.classList.remove("hidden");
+    const r = await fetch("about.html", {mode:"cors"});
+    const html = r.ok ? await r.text() : "<p style='color:#f77'>about.html not found.</p>";
+    feedEl.innerHTML = `<article class="post visible"><div class="content">${html}</div></article>`;
+  }finally{
+    overlay.classList.add("hidden");
   }
 }
 
-async function load(){
+/* Follow flow: ask to sign via extension (window.nostr) */
+async function followViaExtension(){
   try{
-    const [k0, notes]=await Promise.all([getKind0(PUBKEY_HEX),getKind1(PUBKEY_HEX)]);
-    applyProfile(k0);
-    await drawFeed(notes);
+    if(!window.nostr){
+      alert("A Nostr extension is required to follow. Please install Alby, nos2x, or similar.");
+      return;
+    }
+    // Minimal contact list event that includes a 'p' tag for target.
+    const ev = {
+      kind: 3,
+      created_at: Math.floor(Date.now()/1000),
+      tags: [["p", PUBKEY_HEX]],
+      content: "" // leave empty; the user’s extension may merge/replace
+    };
+    const signed = await window.nostr.signEvent(ev);
+    // At this point most extensions will prompt the user to pick relays/publish.
+    // If you also want to explicitly publish, you can integrate relay code.
+    alert("Please confirm the follow in your extension’s signing popup.");
+    console.log("Signed follow event:", signed);
   }catch(e){
     console.error(e);
-    overlay.classList.add("hidden");
+    alert("Follow request was cancelled or failed.");
+  }
+}
+
+/* ---------- Boot ---------- */
+async function load(){
+  try{
+    const [profileEv, notes] = await Promise.all([getKind0(PUBKEY_HEX), getKind1(PUBKEY_HEX)]);
+    const meta = profileEv ? await getProfile(PUBKEY_HEX) : await getProfile(PUBKEY_HEX);
+    applyProfileToBanner(meta);
+    await drawFeed(notes);
+
+    // Followers count (best-effort)
+    const count = await getFollowersCount(PUBKEY_HEX);
+    document.getElementById("followersCount").textContent = (count ?? "—");
+
+    // Wire buttons
+    document.getElementById("homeBtn").onclick = async ()=>{
+      overlay.classList.remove("hidden");
+      const latest = await getKind1(PUBKEY_HEX);
+      await drawFeed(latest);
+    };
+    document.getElementById("aboutBtn").onclick = showAbout;
+    document.getElementById("shopBtn").onclick = ()=>{ /* intentionally does nothing */ };
+    document.getElementById("followBtn").onclick = followViaExtension;
+    document.getElementById("zapBtn").onclick = ()=> zapAnyAmount(meta.lud16 || meta.lud06 || "");
+  }catch(e){
+    console.error(e);
     feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Error loading posts.</p>";
+  }finally{
+    overlay.classList.add("hidden");
   }
 }
 
