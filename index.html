@@ -102,8 +102,6 @@
       display:inline-flex; align-items:center; gap:6px;
     }
 
-    /* Removed old about and preset zaps UI */
-
     /* Loading overlay */
     .loading-overlay{
       position:fixed; inset:0; display:grid; place-items:center; z-index:99;
@@ -146,7 +144,13 @@
     .post-meta{display:flex;flex-direction:column}
     .name{font-weight:800;color:var(--orange)}
     .time{font-size:13px;color:var(--muted)}
-    .content{white-space:pre-wrap;word-wrap:break-word;font-size:15px;line-height:1.55;margin-top:4px}
+    .content{
+      white-space:pre-wrap;
+      font-size:15px;line-height:1.55;margin-top:4px;
+      /* NEW: keep super-long tokens from breaking the card */
+      overflow-wrap:anywhere;
+      word-break:break-word;
+    }
     .gallery{margin-top:6px;display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;flex:1;min-height:160px}
     .gallery.single{min-height:0; height:100%;}
     .gallery::-webkit-scrollbar{height:8px}
@@ -180,10 +184,24 @@
       background: rgba(255,164,71,0.08); border:1px solid rgba(255,164,71,0.25);
       margin:0 2px; opacity:0; transform:translateY(4px);
       transition:opacity .4s ease, transform .4s ease;
+      /* NEW: never let badges overflow */
+      max-width:220px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      vertical-align:middle;
     }
     .mention.visible{opacity:1; transform:translateY(0);}
     .mention img{width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid var(--border)}
-    .mention .label{color:var(--orange); font-weight:700; font-size:13px}
+    .mention .label{
+      color:var(--orange); font-weight:700; font-size:13px;
+      /* NEW: clamp the text inside the badge */
+      max-width:170px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      display:inline-block;
+    }
     footer{color:var(--muted);font-size:12px;text-align:center;padding:40px 0}
     @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   </style>
@@ -191,6 +209,7 @@
 <body>
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-text">LOADING…</div>
+    
   </div>
 
   <div class="container">
@@ -214,8 +233,6 @@
     </header>
 
     <main class="feed" id="feed"></main>
-
-
   </div>
 
 <script>
@@ -348,18 +365,14 @@ async function getKind1(pubkeyHex){
 }
 
 /* ---------- Followers count (best-effort) ---------- */
-/* Tries to count kind:3 events that include our pubkey in a 'p' tag.
-   If the API doesn't support this filter, we'll show "—". */
 async function getFollowersCount(pubkeyHex){
   try{
-    // Attempt #1: tag-based query (if supported by nostr.wine)
     const try1 = await fetch(`${API}?kind=3&tag=p&value=${pubkeyHex}&count=true&limit=1`, {mode:"cors"});
     if(try1.ok){
       const j = await try1.json();
       if(typeof j.count === "number") return j.count;
-      if(Array.isArray(j.data)) return j.data.length; // fallback if API returns data
+      if(Array.isArray(j.data)) return j.data.length;
     }
-    // Attempt #2: generic search fallback (may not be accurate)
     const try2 = await fetch(`${API}?kind=3&search=${pubkeyHex}&limit=100`, {mode:"cors"});
     if(try2.ok){
       const j = await try2.json();
@@ -406,44 +419,57 @@ function mediaBoxForLive(url){
   return box;
 }
 
-/* ---------- Mentions ---------- */
+/* ---------- Mentions (fixed & robust) ---------- */
 async function replaceNprofileMentions(container){
-  const nodes = Array.from(container.childNodes);
-  for(const node of nodes){
-    if(node.nodeType === Node.TEXT_NODE){
-      const text = node.textContent;
-      const matches = findAllNprofiles(text);
-      if(!matches.length) continue;
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
 
-      let cursor = 0;
-      for(const token of matches){
-        const idx = text.indexOf(token, cursor);
-        if(idx === -1) continue;
-        if(idx > cursor) container.insertBefore(document.createTextNode(text.slice(cursor, idx)), node);
+  for (const node of nodes) {
+    const text = node.textContent;
+    const matches = findAllNprofiles(text);
+    if (!matches.length) continue;
 
-        const span = document.createElement("span"); span.className = "mention"; span.textContent = "…";
-        container.insertBefore(span, node);
+    const frag = document.createDocumentFragment();
+    let lastIndex = 0;
 
-        (async () => {
-          const pubkey = nprofileToPubkey(token);
-          const profile = pubkey ? await getProfile(pubkey) : {name: token, picture:"https://api.dicebear.com/7.x/identicon/svg?seed=p"};
-          const a = document.createElement("a");
-          a.href = "https://njump.me/" + token;
-          a.target = "_blank"; a.rel="noopener noreferrer";
-          a.className = "mention visible";
-          const img = document.createElement("img"); img.src = profile.picture;
-          const label = document.createElement("span"); label.className="label"; label.textContent = profile.name;
-          a.appendChild(img); a.appendChild(label);
-          span.replaceWith(a);
-        })();
-
-        cursor = idx + token.length;
+    for (const token of matches) {
+      const index = text.indexOf(token, lastIndex);
+      if (index > lastIndex) {
+        frag.appendChild(document.createTextNode(text.slice(lastIndex, index)));
       }
-      if(cursor < text.length) container.insertBefore(document.createTextNode(text.slice(cursor)), node);
-      container.removeChild(node);
-    } else if(node.nodeType === Node.ELEMENT_NODE){
-      await replaceNprofileMentions(node);
+
+      const placeholder = document.createElement("span");
+      placeholder.className = "mention";
+      placeholder.textContent = "…";
+      frag.appendChild(placeholder);
+
+      (async () => {
+        const pubkey = nprofileToPubkey(token);
+        const profile = pubkey
+          ? await getProfile(pubkey)
+          : {name: token, picture:"https://api.dicebear.com/7.x/identicon/svg?seed=p"};
+
+        const a = document.createElement("a");
+        a.href = "https://njump.me/" + token;
+        a.target = "_blank"; a.rel="noopener noreferrer";
+        a.className = "mention visible";
+
+        const img = document.createElement("img"); img.src = profile.picture; img.alt = profile.name;
+        const label = document.createElement("span"); label.className="label"; label.textContent = profile.name;
+
+        a.appendChild(img); a.appendChild(label);
+        placeholder.replaceWith(a);
+      })();
+
+      lastIndex = index + token.length;
     }
+
+    if (lastIndex < text.length) {
+      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+
+    node.parentNode.replaceChild(frag, node);
   }
 }
 
@@ -533,7 +559,7 @@ function applyProfileToBanner(meta){
   document.getElementById("profNpub").textContent = pubkeyToNpub(PUBKEY_HEX);
 }
 
-/* Zap any amount (best effort using lightning address if present) */
+/* Zap any amount */
 async function zapAnyAmount(lud){
   if(!lud){
     alert("No Lightning address set on this profile.");
@@ -543,14 +569,12 @@ async function zapAnyAmount(lud){
   if(!input) return;
   const sats = parseInt(input, 10);
   if(isNaN(sats) || sats <= 0){ alert("Invalid amount."); return; }
-
-  // Many wallets accept msat param on lightning: links. We'll try that first.
   const msats = sats * 1000;
   const target = `lightning:${lud}${lud.includes('?') ? '&' : '?'}amount=${msats}`;
   window.location.href = target;
 }
 
-/* About: load about.html into the feed area (replacing posts) */
+/* About page */
 async function showAbout(){
   try{
     overlay.classList.remove("hidden");
@@ -562,23 +586,20 @@ async function showAbout(){
   }
 }
 
-/* Follow flow: ask to sign via extension (window.nostr) */
+/* Follow via extension */
 async function followViaExtension(){
   try{
     if(!window.nostr){
       alert("A Nostr extension is required to follow. Please install Alby, nos2x, or similar.");
       return;
     }
-    // Minimal contact list event that includes a 'p' tag for target.
     const ev = {
       kind: 3,
       created_at: Math.floor(Date.now()/1000),
       tags: [["p", PUBKEY_HEX]],
-      content: "" // leave empty; the user’s extension may merge/replace
+      content: ""
     };
     const signed = await window.nostr.signEvent(ev);
-    // At this point most extensions will prompt the user to pick relays/publish.
-    // If you also want to explicitly publish, you can integrate relay code.
     alert("Please confirm the follow in your extension’s signing popup.");
     console.log("Signed follow event:", signed);
   }catch(e){
@@ -595,18 +616,16 @@ async function load(){
     applyProfileToBanner(meta);
     await drawFeed(notes);
 
-    // Followers count (best-effort)
     const count = await getFollowersCount(PUBKEY_HEX);
     document.getElementById("followersCount").textContent = (count ?? "—");
 
-    // Wire buttons
     document.getElementById("homeBtn").onclick = async ()=>{
       overlay.classList.remove("hidden");
       const latest = await getKind1(PUBKEY_HEX);
       await drawFeed(latest);
     };
     document.getElementById("aboutBtn").onclick = showAbout;
-    document.getElementById("shopBtn").onclick = ()=>{ /* intentionally does nothing */ };
+    document.getElementById("shopBtn").onclick = ()=>{};
     document.getElementById("followBtn").onclick = followViaExtension;
     document.getElementById("zapBtn").onclick = ()=> zapAnyAmount(meta.lud16 || meta.lud06 || "");
   }catch(e){
@@ -618,6 +637,9 @@ async function load(){
 }
 
 window.addEventListener("load", load);
+
+
+
 </script>
 </body>
 </html>
