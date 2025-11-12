@@ -1,223 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="About Us - Craig's Bitcoin Consulting Services">
-  <meta name="keywords" content="Bitcoin, Consulting, Node Setup, Bitcoin Mining, Bitcoin Integration">
-  <title>About Us - Craig's Bitcoin Consulting Services</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>About - Bitcoin Cats</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     :root {
-      --text: #f3f3f6;
-      --muted: #b0b0ba;
-      --orange: #ffa447;
-      --orange-2: #ff7a1a;
-      --bg-dark: rgba(10, 10, 15, 0.95);
-      --shadow: 0 10px 25px rgba(0,0,0,0.6);
+      --text:#f3f3f6;
+      --muted:#b0b0ba;
+      --border:#2c2c3c;
+      --orange:#ffa447;
+      --orange-2:#ff7a1a;
+      --card-bg: rgba(20,20,28,0.65);
+      --shadow: 0 6px 20px rgba(0,0,0,0.45);
     }
 
-    body {
-      color: var(--text);
-      font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    html, body {
       margin: 0;
       padding: 0;
-      background-attachment: fixed;
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-overlay, rgba(0,0,0,0.6))
+        url('https://bitcoin-cats.ca/BackgroundLoop.webp') center center / cover no-repeat fixed;
+      background-blend-mode: darken;
       overflow-x: hidden;
     }
 
-    main.content {
-      width: 100%;
-      padding: 2em;
-      animation: fadeIn 1.2s ease;
-      box-sizing: border-box;
+    .about-wrapper {
       max-width: 1400px;
       margin: auto;
+      padding: 40px;
+      animation: fadeIn 1s ease forwards;
     }
 
-    h1, h2, h3 {
-      color: var(--orange);
-      text-shadow: 0 2px 10px rgba(0,0,0,0.35);
-      font-family: "Press Start 2P", monospace;
-      font-size: 1rem;
-      margin-bottom: 1.2em;
-      text-align: center;
-    }
-
-    p, li {
-      color: var(--text);
-      font-size: 15px;
-      line-height: 1.6;
-    }
-
-    ul {
-      padding-left: 1.4em;
-      margin-bottom: 1.5em;
-    }
-
-    a {
-      color: #ffd099;
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    /* === Two Column Layout === */
-    .top-section {
+    .about-top {
       display: flex;
       flex-wrap: wrap;
-      gap: 2em;
+      gap: 40px;
       justify-content: space-between;
-      align-items: flex-start;
-      width: 100%;
-      box-sizing: border-box;
-      margin-bottom: 3em;
     }
 
-    .left-column, .right-column {
+    .about-left, .about-right {
       flex: 1;
-      min-width: 320px;
+      min-width: 300px;
     }
 
-    /* === Craig's Postcard === */
-    .team-card {
-      background: var(--bg-dark);
-      border-radius: 16px;
+    .about-card, .about-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
       box-shadow: var(--shadow);
-      text-align: center;
-      padding: 2em;
-      border: 1px solid rgba(255,255,255,0.1);
-      height: 100%;
+      padding: 24px;
     }
 
-    .team-card img {
-      border-radius: 50%;
-      border: 3px solid var(--orange);
+    /* Craig’s Card */
+    .about-card {
+      text-align: center;
+    }
+
+    .about-card img {
       width: 180px;
       height: 180px;
+      border-radius: 50%;
+      border: 3px solid var(--orange);
       object-fit: cover;
-      box-shadow: var(--shadow);
       margin-bottom: 1em;
+      box-shadow: var(--shadow);
     }
 
-    .team-card h3 {
-      font-family: "Press Start 2P", monospace;
+    .about-card h3 {
       color: var(--orange);
+      font-family: "Press Start 2P", monospace;
       font-size: 0.9rem;
       margin-bottom: 0.5em;
     }
 
-    .team-card p {
-      font-size: 14px;
+    .about-card p {
+      font-size: 15px;
+      color: var(--text);
+      opacity: 0.9;
     }
 
-    /* === About/Services/Map Box === */
-    .info-box {
-      background: var(--bg-dark);
-      border-radius: 16px;
-      padding: 2em;
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(255,255,255,0.1);
-      height: 100%;
+    /* Info box */
+    .about-box h2, .about-box h3 {
+      color: var(--orange);
+      font-family: "Press Start 2P", monospace;
+      font-size: 0.85rem;
+      margin-bottom: 1em;
     }
 
-    .info-box iframe {
+    .about-box p, .about-box li {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .about-box ul {
+      padding-left: 20px;
+      margin-bottom: 1.5em;
+    }
+
+    iframe {
       width: 100%;
-      height: 350px;
+      height: 320px;
       border: none;
       border-radius: 12px;
-      margin-top: 1em;
       box-shadow: var(--shadow);
+      margin-top: 1em;
     }
 
-    /* === Gallery === */
-    .gallery {
+    /* Gallery */
+    h2.gallery-title {
+      color: var(--orange);
+      font-family: "Press Start 2P", monospace;
+      font-size: 0.9rem;
+      margin: 2.5em 0 1.2em;
+      text-align: center;
+    }
+
+    .about-gallery {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.2em;
-      width: 100%;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
     }
 
     .gallery-item {
       position: relative;
+      border-radius: 12px;
       overflow: hidden;
-      border-radius: 14px;
-      cursor: pointer;
+      border: 1px solid var(--border);
       box-shadow: var(--shadow);
-      border: 1px solid rgba(255,255,255,0.08);
-      transition: transform 0.3s ease;
+      cursor: pointer;
+      transition: transform 0.25s ease;
     }
 
     .gallery-item:hover {
       transform: scale(1.03);
     }
 
-    .gallery-item img, .gallery-item video {
+    .gallery-item img,
+    .gallery-item video {
       width: 100%;
-      height: 200px;
+      height: 220px;
       object-fit: cover;
-      transition: opacity 0.3s ease;
-      border-radius: 14px;
-    }
-
-    .fullscreen-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.9);
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .fullscreen-modal.show {
-      display: flex;
-    }
-
-    .fullscreen-modal img, .fullscreen-modal video {
-      max-width: 90%;
-      max-height: 90%;
-      border-radius: 12px;
-    }
-
-    footer {
-      text-align: center;
-      margin: 2em 0;
-      font-size: 14px;
-      color: var(--muted);
+      display: block;
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
     }
 
     @media (max-width: 900px) {
-      .top-section {
-        flex-direction: column;
-      }
+      .about-top {flex-direction: column;}
     }
   </style>
 </head>
 
 <body>
-  <main class="content">
-    <!-- Two-column layout -->
-    <div class="top-section">
-      <!-- Left: Craig's postcard -->
-      <div class="left-column">
-        <div class="team-card">
-          <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head - Powered by Bitcoin Cats">
+  <div class="about-wrapper">
+    <div class="about-top">
+      <div class="about-left">
+        <div class="about-card">
+          <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head">
           <h3>Craig</h3>
           <p><em>Bitcoin Maximalist, Node Runner & Nostr Maniac</em></p>
         </div>
       </div>
 
-      <!-- Right: About/Services/Map -->
-      <div class="right-column">
-        <div class="info-box">
+      <div class="about-right">
+        <div class="about-box">
           <h2>About Us</h2>
           <p><strong>Your Trusted Partner in Bitcoin Integration</strong></p>
           <p>We’re your premier destination for comprehensive Bitcoin consulting services. We specialize in empowering businesses to seamlessly incorporate Bitcoin into their operations, ensuring a smooth transition into the world of digital currency.</p>
@@ -235,33 +188,14 @@
       </div>
     </div>
 
-    <!-- Gallery -->
-    <h2>Gallery</h2>
-    <div class="gallery">
+    <h2 class="gallery-title">Gallery</h2>
+    <div class="about-gallery">
       <div class="gallery-item"><img src="https://bitcoin-cats.ca/photo/MyClawMachine.png" alt="Bitcoin Consultation Event 1"></div>
       <div class="gallery-item"><video src="https://bitcoin-cats.ca/photo/video_2024-12-08_15-49-31.mp4" controls muted></video></div>
       <div class="gallery-item"><img src="https://bitcoin-cats.ca/photo/PeterMcCormick.jpg" alt="Bitcoin Mining Setup"></div>
       <div class="gallery-item"><video src="https://bitcoin-cats.ca/photo/video_2024-12-08_15-45-30.mp4" controls muted></video></div>
       <div class="gallery-item"><img src="https://image.nostr.build/5cd5aadfc780be8d6f586a29dd4757bd8e8160760e03b6d654d8e6fb75f386c8.jpg" alt="Bitcoin Seminar"></div>
     </div>
-
-  
-  </main>
-
-  <script>
-    const galleryItems = document.querySelectorAll('.gallery-item');
-    const body = document.body;
-
-    galleryItems.forEach(item => {
-      item.addEventListener('click', () => {
-        const modal = document.createElement('div');
-        modal.classList.add('fullscreen-modal');
-        modal.innerHTML = item.innerHTML;
-        body.appendChild(modal);
-        modal.classList.add('show');
-        modal.addEventListener('click', () => body.removeChild(modal));
-      });
-    });
-  </script>
+  </div>
 </body>
 </html>
