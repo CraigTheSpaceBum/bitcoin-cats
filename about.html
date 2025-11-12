@@ -13,7 +13,6 @@
       --muted: #b0b0ba;
       --orange: #ffa447;
       --orange-2: #ff7a1a;
-      --bg-dark: rgba(10, 10, 15, 0.85);
       --shadow: 0 10px 25px rgba(0,0,0,0.6);
     }
 
@@ -22,15 +21,15 @@
       font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
       padding: 0;
-      background-attachment: fixed;
+      background: transparent;
       overflow-x: hidden;
     }
 
     main.content {
-      max-width: 1200px;
-      margin: auto;
+      width: 100%;
       padding: 2em;
       animation: fadeIn 1.2s ease;
+      box-sizing: border-box;
     }
 
     h1, h2, h3 {
@@ -62,52 +61,39 @@
       text-decoration: underline;
     }
 
-    /* === Combined Section === */
-    .about-section {
-      background: var(--bg-dark);
-      border-radius: 16px;
-      padding: 2em;
-      box-shadow: var(--shadow);
+    /* === Layout === */
+    .top-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2em;
+      justify-content: space-between;
+      align-items: flex-start;
+      width: 100%;
+      box-sizing: border-box;
       margin-bottom: 3em;
     }
 
-    .about-section iframe {
-      width: 100%;
-      height: 350px;
-      border: none;
-      border-radius: 12px;
-      margin-top: 1em;
-      box-shadow: var(--shadow);
+    .left-column, .right-column {
+      flex: 1;
+      min-width: 320px;
     }
 
-    /* === Our Team Cards === */
-    .team {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5em;
-      margin: 3em 0;
-    }
-
+    /* === Team Postcard === */
     .team-card {
-      background: rgba(25,25,30,0.85);
-      border-radius: 12px;
+      background: rgba(25,25,30,0.65);
+      border-radius: 16px;
       box-shadow: var(--shadow);
       text-align: center;
-      padding: 1.5em;
-      transition: transform 0.25s ease, box-shadow 0.3s ease;
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .team-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 14px 35px rgba(0,0,0,0.8);
+      padding: 2em;
+      border: 1px solid rgba(255,255,255,0.1);
+      height: 100%;
     }
 
     .team-card img {
       border-radius: 50%;
       border: 3px solid var(--orange);
-      width: 150px;
-      height: 150px;
+      width: 180px;
+      height: 180px;
       object-fit: cover;
       box-shadow: var(--shadow);
       margin-bottom: 1em;
@@ -116,20 +102,39 @@
     .team-card h3 {
       font-family: "Press Start 2P", monospace;
       color: var(--orange);
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       margin-bottom: 0.5em;
     }
 
     .team-card p {
       font-size: 14px;
-      color: var(--text);
     }
 
-    /* === Fancy Gallery === */
+    /* === About/Services/Map Box === */
+    .info-box {
+      background: rgba(10, 10, 15, 0.65);
+      border-radius: 16px;
+      padding: 2em;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,0.1);
+      height: 100%;
+    }
+
+    .info-box iframe {
+      width: 100%;
+      height: 350px;
+      border: none;
+      border-radius: 12px;
+      margin-top: 1em;
+      box-shadow: var(--shadow);
+    }
+
+    /* === Gallery === */
     .gallery {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 1.2em;
+      width: 100%;
     }
 
     .gallery-item {
@@ -151,22 +156,9 @@
       height: 200px;
       object-fit: cover;
       transition: opacity 0.3s ease;
+      border-radius: 14px;
     }
 
-    .gallery-item::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, transparent, rgba(0,0,0,0.6));
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .gallery-item:hover::after {
-      opacity: 1;
-    }
-
-    /* === Modal === */
     .fullscreen-modal {
       display: none;
       position: fixed;
@@ -187,53 +179,50 @@
       border-radius: 12px;
     }
 
-    footer {
-      text-align: center;
-      margin: 2em 0;
-      font-size: 14px;
-      color: var(--muted);
-    }
-
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    @media (max-width: 600px) {
-      h1, h2, h3 { font-size: 0.8rem; }
-      p, li { font-size: 14px; }
+    @media (max-width: 900px) {
+      .top-section {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 
 <body>
   <main class="content">
-    <!-- Merged About, Services, and Map -->
-    <section class="about-section">
-      <h2>About Us</h2>
-      <p><strong>Your Trusted Partner in Bitcoin Integration</strong></p>
-      <p>We’re your premier destination for comprehensive Bitcoin consulting services. We specialize in empowering businesses to seamlessly incorporate Bitcoin into their operations, ensuring a smooth transition into the world of digital currency.</p>
-
-      <h2>Our Services</h2>
-      <ul>
-        <li><strong>Bitcoin Integration for Businesses:</strong> Incorporate Bitcoin seamlessly into your business model with our tailored consulting services.</li>
-        <li><strong>Bitcoin Education:</strong> Learn everything from blockchain fundamentals to advanced mining strategies.</li>
-        <li><strong>Node Setup and Management:</strong> Expert assistance in setting up and managing Bitcoin nodes for optimal performance and security.</li>
-      </ul>
-
-      <h3>Client Locations</h3>
-      <iframe src="https://www.google.com/maps/d/embed?mid=1d07BfSFpf7VO_Wlz1ouWGwRBaTTXwlk&ehbc=2E312F" allowfullscreen loading="lazy"></iframe>
-    </section>
-
-    <!-- Our Team -->
-    <h2>Our Team</h2>
-    <div class="team">
-      <div class="team-card">
-        <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head - Powered by Bitcoin Cats">
-        <h3>Craig</h3>
-        <p><em>Bitcoin Maximalist, Node Runner & Nostr Maniac</em></p>
+    <!-- Two-column layout -->
+    <div class="top-section">
+      <!-- Left: Craig's postcard -->
+      <div class="left-column">
+        <div class="team-card">
+          <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head - Powered by Bitcoin Cats">
+          <h3>Craig</h3>
+          <p><em>Bitcoin Maximalist, Node Runner & Nostr Maniac</em></p>
+        </div>
       </div>
-      <!-- Add more team cards here if needed -->
+
+      <!-- Right: About/Services/Map -->
+      <div class="right-column">
+        <div class="info-box">
+          <h2>About Us</h2>
+          <p><strong>Your Trusted Partner in Bitcoin Integration</strong></p>
+          <p>We’re your premier destination for comprehensive Bitcoin consulting services. We specialize in empowering businesses to seamlessly incorporate Bitcoin into their operations, ensuring a smooth transition into the world of digital currency.</p>
+
+          <h2>Our Services</h2>
+          <ul>
+            <li><strong>Bitcoin Integration for Businesses:</strong> Incorporate Bitcoin seamlessly into your business model with our tailored consulting services.</li>
+            <li><strong>Bitcoin Education:</strong> Learn everything from blockchain fundamentals to advanced mining strategies.</li>
+            <li><strong>Node Setup and Management:</strong> Expert assistance in setting up and managing Bitcoin nodes for optimal performance and security.</li>
+          </ul>
+
+          <h3>Client Locations</h3>
+          <iframe src="https://www.google.com/maps/d/embed?mid=1d07BfSFpf7VO_Wlz1ouWGwRBaTTXwlk&ehbc=2E312F" allowfullscreen loading="lazy"></iframe>
+        </div>
+      </div>
     </div>
 
     <!-- Gallery -->
