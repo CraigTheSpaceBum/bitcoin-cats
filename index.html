@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>My Nostr Blog</title>
+  <title>Bitcoin Cats</title>
   <meta name="description" content="Personal blog powered by Nostr (read-only feed).">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
@@ -35,7 +35,7 @@
     header.profile{
       position:relative;
       margin:30px 0 30px 0;
-      animation:fadeIn 1.2s ease;
+      animation:fadeIn 1.5s ease;
     }
     .banner{
       position:relative;
@@ -204,6 +204,28 @@
     }
     footer{color:var(--muted);font-size:12px;text-align:center;padding:40px 0}
     @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  
+    .about-page {
+  animation: fadeIn 0.8s ease forwards;
+  background: rgba(20,20,28,0.75);
+  border-radius: 0;
+  padding: 40px;
+  box-shadow: none;
+  border: none;
+  color: var(--text);
+  min-height: 60vh;
+}
+
+.about-page.hidden {
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+  
   </style>
 </head>
 <body>
@@ -226,11 +248,11 @@
           <div class="id-npub" id="profNpub">npub…</div>
         </div>
         <div class="actions">
-          <button class="btn" id="homeBtn">🏠 Feed</button>
+          <button class="btn" id="homeBtn">🏠 Blog</button>
           <button class="btn" id="aboutBtn">ℹ️ About</button>
           <button class="btn" id="zapBtn">⚡ Zap</button>
           <button class="btn ghost" id="shopBtn">🛒 Shop</button>
-          <button class="btn" id="followBtn"><span class="followers-badge">👥 Follow <span id="followersCount">—</span></span></button>
+          <button class="btn" id="followBtn"><span class="followers-badge">👥 Follow <span id="followersCount"></span></span></button>
         </div>
       </div>
     </header>
@@ -578,16 +600,29 @@ async function zapAnyAmount(lud){
 }
 
 /* About page */
-async function showAbout(){
-  try{
+async function showAbout() {
+  try {
     overlay.classList.remove("hidden");
-    const r = await fetch("about.html", {mode:"cors"});
-    const html = r.ok ? await r.text() : "<p style='color:#f77'>about.html not found.</p>";
-    feedEl.innerHTML = `<article class="post visible"><div class="content">${html}</div></article>`;
-  }finally{
+    const r = await fetch("about.html", { mode: "cors" });
+    const html = r.ok
+      ? await r.text()
+      : "<p style='color:#f77'>about.html not found.</p>";
+
+    // Clear the grid and inject a full-screen content div
+    feedEl.innerHTML = `
+      <div id="aboutPage" class="about-page hidden">${html}</div>
+    `;
+
+    // Trigger fade-in
+    setTimeout(() => {
+      const aboutPage = document.getElementById("aboutPage");
+      aboutPage.classList.remove("hidden");
+    }, 50);
+  } finally {
     overlay.classList.add("hidden");
   }
 }
+
 
 /* Follow via extension */
 async function followViaExtension(){
