@@ -206,35 +206,34 @@
     @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   
     .about-page {
-  animation: fadeIn 0.8s ease forwards;
-  border-radius: 0;
-  padding: 10px;
-  box-shadow: none;
-  border: none;
-  color: var(--text);
-  min-height: 10vh;
-}
+      animation: fadeIn 0.8s ease forwards;
+      border-radius: 0;
+      padding: 10px;
+      box-shadow: none;
+      border: none;
+      color: var(--text);
+      min-height: 10vh;
+    }
 
-.about-page.hidden {
-  opacity: 0;
-}
+    .about-page.hidden {
+      opacity: 0;
+    }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-  
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
   <div class="loading-overlay" id="loadingOverlay">
-  <div class="loading-content">
-    <center><div class="loading-text">LOADING…</div>
-    <img src="catstr.gif" alt="Loading Cat" class="loading-cat"></center>
+    <div class="loading-content">
+      <center>
+        <div class="loading-text">LOADING…</div>
+        <img src="catstr.gif" alt="Loading Cat" class="loading-cat">
+      </center>
+    </div>
   </div>
-</div>
-
 
   <div class="container">
     <header class="profile" id="profileHeader">
@@ -251,7 +250,9 @@
           <button class="btn" id="aboutBtn">ℹ️ About</button>
           <button class="btn" id="zapBtn">⚡ Zap</button>
           <button class="btn ghost" id="shopBtn">🛒 Shop</button>
-          <button class="btn" id="followBtn"><span class="followers-badge">👥 Follow <span id="followersCount"></span></span></button>
+          <button class="btn" id="followBtn">
+            <span class="followers-badge">👥 Follow <span id="followersCount"></span></span>
+          </button>
         </div>
       </div>
     </header>
@@ -583,7 +584,7 @@ function applyProfileToBanner(meta){
   document.getElementById("profNpub").textContent = pubkeyToNpub(PUBKEY_HEX);
 }
 
-/* Zap any amount */
+/* Zap any amount (currently unused, kept for future) */
 async function zapAnyAmount(lud){
   if(!lud){
     alert("No Lightning address set on this profile.");
@@ -622,6 +623,40 @@ async function showAbout() {
   }
 }
 
+/* Zap page (BTCPay app in iframe, same style as About) */
+async function showZapPage() {
+  try {
+    overlay.classList.remove("hidden");
+
+    const zapHTML = `
+      <center>
+        <h2 style="margin:20px 0; color:#ffd099;">⚡ Support Bitcoin Cats</h2>
+      </center>
+      <iframe
+        src="https://zap.bitcoin-cats.ca/"
+        style="
+          width:100%;
+          height:80vh;
+          border:none;
+          border-radius:16px;
+          box-shadow:0 0 20px rgba(0,0,0,0.5);
+          background:#000;
+        ">
+      </iframe>
+    `;
+
+    feedEl.innerHTML = `
+      <div id="zapPage" class="about-page hidden">${zapHTML}</div>
+    `;
+
+    setTimeout(() => {
+      const zapPage = document.getElementById("zapPage");
+      zapPage.classList.remove("hidden");
+    }, 50);
+  } finally {
+    overlay.classList.add("hidden");
+  }
+}
 
 /* Follow via extension */
 async function followViaExtension(){
@@ -664,7 +699,7 @@ async function load(){
     document.getElementById("aboutBtn").onclick = showAbout;
     document.getElementById("shopBtn").onclick = ()=>{};
     document.getElementById("followBtn").onclick = followViaExtension;
-    document.getElementById("zapBtn").onclick = ()=> zapAnyAmount(meta.lud16 || meta.lud06 || "");
+    document.getElementById("zapBtn").onclick = showZapPage;
   }catch(e){
     console.error(e);
     feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Error loading posts.</p>";
@@ -674,9 +709,6 @@ async function load(){
 }
 
 window.addEventListener("load", load);
-
-
-
 </script>
 </body>
 </html>
