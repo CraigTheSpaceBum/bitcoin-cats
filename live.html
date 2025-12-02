@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Live Stream</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body {
+    margin:0;
+    padding:0;
+    background:#0a0a0d;
+    color:#f3f3f6;
+    font-family:system-ui,Segoe UI,Arial;
+  }
+
+  .live-wrap {
+    display:flex;
+    height:100vh;
+    overflow:hidden;
+  }
+
+  /* Left: video */
+  .video-area {
+    flex: 3;
+    background:#000;
+    border-right:1px solid rgba(255,200,150,0.15);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+
+  iframe.stream {
+    width:100%;
+    height:100%;
+    border:none;
+  }
+
+  /* Right: chat */
+  .chat-area {
+    flex: 1.2;
+    background:#111;
+    border-left:1px solid rgba(255,200,150,0.15);
+    display:flex;
+    flex-direction:column;
+  }
+
+  .chat-header {
+    padding:12px;
+    background:rgba(255,164,71,0.15);
+    border-bottom:1px solid rgba(255,200,150,0.25);
+    font-weight:700;
+    color:#ffd9b3;
+    text-align:center;
+    text-shadow:0 2px 5px rgba(0,0,0,0.4);
+  }
+
+  iframe.chat {
+    flex:1;
+    width:100%;
+    border:none;
+    background:#000;
+  }
+
+  .loading {
+    font-size:22px;
+    color:#ffd9b3;
+    opacity:0.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="live-wrap">
+
+  <!-- Video player -->
+  <div class="video-area">
+    <div id="streamContainer" class="loading">Detecting live stream…</div>
+  </div>
+
+  <!-- Chat side -->
+  <div class="chat-area">
+    <div class="chat-header">Live Chat</div>
+    <iframe id="chatFrame" class="chat" src="about:blank"></iframe>
+  </div>
+
+</div>
+
+<script>
+const API = "https://api.nostr.wine/search";
+const PUBKEY = "3ab4c8ea97cd164d17f68990c1006e21e87f31a919a7013ecf2dae2e416938fd";
+
+/*
+  Searches latest posts for a livestream link.
+  Supports:
+    • zap.stream
+    • nostr.build/live
+    • owncast instances
+    • any public streaming URL
+*/
+async function detectLivestream() {
+  const res = await fetch(`${API}?pubkey=${PUBKEY}&limit=20`, {mode:"cors"});
+  const j = await res.json();
+  const events = j.data || [];
+
+  let streamURL = null;
+
+  for (const ev of events) {
+    const content = ev.content || "";
+
+    // Known livestream platforms
+    const urls = content.match(/https?:\/\/[^\s]+/g) || [];
+
+    for (const u of urls) {
+      if (
+        u.includes("zap.stream") ||
+        u.includes("nostr.build/live") ||
+        u.includes("owncast") ||
+        /\.(m3u8|mpd)$/i.test(u)
+      ) {
+        streamURL = u;
+        break;
+      }
+    }
+    if (streamURL) break;
+  }
+
+  return streamURL;
+}
+
+function embedPlayer(url) {
+  const wrap = document.getElementById("streamContainer");
+
+  // Create iframe
+  const iframe = document.createElement("iframe");
+  iframe.className = "stream";
+  iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+
+  // zap.stream uses embed path
+  if (url.includes("zap.stream")) {
+    iframe.src = url.replace("zap.stream/", "zap.stream/embed/");
+  }
+  // nostr.build is direct embed
+  else if (url.includes("nostr.build")) {
+    iframe.src = url;
+  }
+  // owncast: usually same URL works
+  else {
+    iframe.src = url;
+  }
+
+  wrap.innerHTML = "";
+  wrap.appendChild(iframe);
+}
+
+function embedChat(url) {
+  const chatFrame = document.getElementById("chatFrame");
+
+  if (url.includes("zap.stream")) {
+    chatFrame.src = url.replace("zap.stream/", "zap.stream/embed/chat/");
+  }
+  else if (url.includes("owncast")) {
+    chatFrame.src = url.replace(/\/$/, "") + "/embed/chat";
+  }
+  else {
+    // fallback: a basic Nostr chat room
+    chatFrame.src = "https://coracle.social/embed/chat?pubkey=" + PUBKEY;
+  }
+}
+
+/* Boot */
+(async function() {
+  const url = await detectLivestream();
+
+  if (!url) {
+    document.getElementById("streamContainer").innerHTML =
+      "<div class='loading'>No livestream currently detected.</div>";
+    return;
+  }
+
+  embedPlayer(url);
+  embedChat(url);
+})();
+</script>
+
+</body>
+</html>
