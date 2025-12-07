@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <title>Bitcoin Cats – Live</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Arcade font -->
+
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
   <style>
     :root {
       --bg: #050509;
@@ -19,17 +20,13 @@
       --shadow: 0 0 30px rgba(0,0,0,0.8);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
       padding: 0;
-      background:
-        radial-gradient(900px 600px at 10% -10%, rgba(255,122,26,0.18), transparent 60%) no-repeat,
-        radial-gradient(1000px 700px at 110% 120%, rgba(255,164,71,0.16), transparent 60%) no-repeat,
-        var(--bg);
+      /* transparent so outer page background shows through */
+      background: transparent;
       color: var(--text);
       font-family: "Press Start 2P", system-ui, sans-serif;
     }
@@ -41,35 +38,26 @@
       padding: 18px;
       border-radius: 24px;
       background: linear-gradient(145deg, rgba(10,10,18,0.95), rgba(8,8,14,0.98));
-      box-shadow:
-        0 0 0 2px rgba(255,196,130,0.25),
-        0 0 32px rgba(0,0,0,0.9);
+      box-shadow: 0 0 0 2px rgba(255,196,130,0.25), 0 0 32px rgba(0,0,0,0.9);
       position: relative;
       overflow: hidden;
+      margin: auto;
     }
 
-    /* Animated outline glow */
     .live-shell::before {
       content: "";
       position: absolute;
       inset: -2px;
       border-radius: inherit;
-      background: conic-gradient(
-        from 0deg,
-        #ffb36d,
-        #ff7a1a,
-        #ffd59a,
-        #ffb36d
-      );
+      background: conic-gradient(#ffb36d,#ff7a1a,#ffd59a,#ffb36d);
       opacity: 0.12;
       filter: blur(10px);
       animation: spinGlow 16s linear infinite;
-      pointer-events: none;
     }
 
     @keyframes spinGlow {
       from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
+      to { transform: rotate(360deg); }
     }
 
     .live-shell-inner {
@@ -85,120 +73,54 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      background: transparent;
     }
 
-    /* Title box with internal background effect, transparent overall */
     .title-box {
-      position: relative;
       padding: 6px 14px;
       border-radius: 999px;
       border: 1px solid rgba(255,196,130,0.85);
-      background:
-        radial-gradient(circle at 0% 0%, rgba(255,164,71,0.35), transparent 60%);
+      background: radial-gradient(circle at 0% 0%, rgba(255,164,71,0.35), transparent 60%);
       backdrop-filter: blur(4px);
       box-shadow: 0 0 16px rgba(0,0,0,0.8);
     }
 
-    .title-box::before {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      border-radius: inherit;
-      border: 1px solid rgba(255,255,255,0.1);
-      opacity: 0.5;
-      pointer-events: none;
-    }
-
     .live-title {
       font-size: 13px;
-      letter-spacing: 1px;
       text-transform: uppercase;
       color: #ffd9b3;
       text-shadow: 0 2px 8px rgba(0,0,0,0.7);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 480px;
     }
 
     .live-meta {
       display: flex;
-      align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .viewer-pill {
-      font-size: 10px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,196,130,0.6);
-      background: rgba(5,5,12,0.9);
-      color: #ffe8c8;
-      display: inline-flex;
       align-items: center;
-      gap: 6px;
     }
 
-    .viewer-pill span.icon {
-      font-size: 11px;
-    }
-
-    .follow-btn {
-      font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 9px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,196,130,0.7);
-      background: linear-gradient(180deg, rgba(25,18,12,0.95), rgba(15,10,6,0.95));
-      color: #ffd9b3;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.7);
-      transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
-    }
-
-    .follow-btn:hover {
-      filter: brightness(1.1);
-      box-shadow: 0 0 14px rgba(255,196,130,0.8);
-    }
-
-    .follow-btn:active {
-      transform: translateY(1px) scale(0.98);
-    }
-
-    .follow-btn span.count {
-      min-width: 1.5em;
-      text-align: right;
-    }
-
-    /* LIVE pill: grey (offline) vs glowing (live) */
+    /* LIVE pill base */
     .live-pill {
       font-size: 10px;
       padding: 4px 10px;
       border-radius: 999px;
       border: 1px solid rgba(255,196,130,0.6);
-      display: inline-flex;
-      align-items: center;
+      display: flex;
       gap: 6px;
+      align-items: center;
+      transition: background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
     }
 
     .live-pill .live-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
+      transition: background 0.25s ease, box-shadow 0.25s ease;
     }
 
+    /* OFFLINE state */
     .live-pill.offline {
       background: rgba(80,80,92,0.45);
       color: #d3d3df;
       box-shadow: none;
-      animation: none;
     }
 
     .live-pill.offline .live-dot {
@@ -206,6 +128,7 @@
       box-shadow: none;
     }
 
+    /* LIVE state */
     .live-pill.live {
       background: radial-gradient(circle at 0% 0%, #ff7a1a, #7a1600);
       color: #fff5e4;
@@ -219,7 +142,7 @@
     }
 
     @keyframes pulseLive {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(255,122,26,0.7); }
+      0%,100% { transform: scale(1); box-shadow: 0 0 16px rgba(255,122,26,0.7); }
       50% { transform: scale(1.05); box-shadow: 0 0 26px rgba(255,164,71,1); }
     }
 
@@ -230,18 +153,16 @@
       min-height: 0;
     }
 
-    /* Left: Stream area */
     .video-panel {
       flex: 3;
-      background: radial-gradient(circle at top left, rgba(255,164,71,0.18), rgba(0,0,0,0.95));
+      background: #000; /* CLEAN background like old version */
+      border: 1px solid var(--border-soft);
       border-radius: 20px;
       padding: 8px;
-      position: relative;
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border-soft);
       display: flex;
       flex-direction: column;
       gap: 10px;
+      box-shadow: var(--shadow);
     }
 
     .video-frame-wrap {
@@ -249,75 +170,25 @@
       border-radius: 16px;
       overflow: hidden;
       border: 2px solid rgba(255,196,130,0.45);
-      box-shadow: 0 0 20px rgba(0,0,0,0.9);
-      background:#000;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      background: #000;
     }
 
     iframe.stream {
       width: 100%;
       height: 100%;
       border: none;
-      display: block;
     }
 
-    .stream-status {
-      font-size: 11px;
-      color: var(--muted);
-      text-align: left;
-    }
-
-    .stream-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 2px;
-    }
-
-    .stream-btn {
-      font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 10px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,196,130,0.7);
-      background: linear-gradient(180deg, rgba(25,18,12,0.95), rgba(15,10,6,0.95));
-      color: #ffd9b3;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.7);
-      transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
-    }
-
-    .stream-btn span.icon {
-      font-size: 11px;
-    }
-
-    .stream-btn:hover {
-      filter: brightness(1.13);
-      box-shadow: 0 0 14px rgba(255,196,130,0.8);
-    }
-
-    .stream-btn:active {
-      transform: translateY(1px) scale(0.98);
-    }
-
-    /* Right: Chat area */
     .chat-panel {
       flex: 1.3;
-      background: radial-gradient(circle at bottom right, rgba(255,164,71,0.14), rgba(0,0,0,0.96));
+      background: #000; /* CLEAN background like old version */
       border-radius: 20px;
       padding: 8px;
       border: 1px solid var(--border-soft);
-      box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
       gap: 8px;
-      min-width: 270px;
+      box-shadow: var(--shadow);
     }
 
     .chat-inner {
@@ -331,100 +202,39 @@
     }
 
     .chat-header {
-      /* Chat header uses arcade font but chat content (inside iframe) stays normal */
       font-size: 11px;
       padding: 8px 10px;
       background: linear-gradient(90deg, rgba(255,164,71,0.4), rgba(255,122,26,0.2));
       border-bottom: 1px solid rgba(255,196,130,0.6);
       color: #fff0d8;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .chat-header span.small {
-      font-size: 9px;
-      color: #ffe2bd;
-      opacity: 0.9;
     }
 
     iframe.chat {
       flex: 1;
-      width: 100%;
       border: none;
-      background: #000;
-      /* font inside iframe is controlled by the embed, not this page */
+      width: 100%;
     }
 
-    .loading-text {
+    .stream-status {
       font-size: 11px;
-      color: #ffd9b3;
-      opacity: 0.7;
-      text-align: center;
-      padding: 20px;
+      color: var(--muted);
     }
 
-    /* Responsive tweaks */
-    @media (max-width: 1024px) {
-      .live-main {
-        flex-direction: column;
-      }
-      .chat-panel {
-        min-height: 260px;
-        min-width: 0;
-      }
-      .live-title {
-        max-width: 260px;
-      }
-    }
-
-    @media (max-width: 720px) {
-      .live-shell {
-        height: auto;
-        max-height: none;
-      }
-      .live-shell-inner {
-        height: auto;
-      }
-      .live-main {
-        min-height: 0;
-      }
-      .video-panel,
-      .chat-panel {
-        height: auto;
-      }
-      .live-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .live-meta {
-        width: 100%;
-        justify-content: space-between;
-      }
-    }
   </style>
 </head>
 <body>
 
 <div class="live-shell">
   <div class="live-shell-inner">
+
+    <!-- HEADER -->
     <div class="live-header">
       <div class="title-box">
-        <div class="live-title" id="liveTitle">
-          BITCOIN CATS LIVE BROADCAST
-        </div>
+        <div class="live-title">BITCOIN CATS LIVE BROADCAST</div>
       </div>
 
       <div class="live-meta">
-        <div class="viewer-pill" id="viewerCount">
-          <span class="icon">👁</span> <span>0 watching</span>
-        </div>
-
-        <button class="follow-btn" id="followBtn">
-          <span>👥 Follow</span>
-          <span class="count" id="followersCount">—</span>
-        </button>
-
+        <!-- Start as offline; JS will flip to .live when online -->
         <div class="live-pill offline" id="livePill">
           <span class="live-dot"></span>
           LIVE
@@ -432,278 +242,78 @@
       </div>
     </div>
 
+    <!-- MAIN -->
     <div class="live-main">
 
-      <!-- LEFT: STREAM -->
+      <!-- STREAM -->
       <div class="video-panel">
-        <div class="video-frame-wrap" id="streamContainer">
-          <div class="loading-text">
-            SCANNING NOSTR FOR LIVESTREAM…
-          </div>
+        <div class="video-frame-wrap">
+          <iframe
+            class="stream"
+            src="https://live.bitcoin-cats.ca/embed/video"
+            referrerpolicy="origin"
+            allowfullscreen
+            allow="autoplay; encrypted-media; picture-in-picture">
+          </iframe>
         </div>
         <div class="stream-status" id="streamStatus">
-          Waiting for current livestream URL from Nostr…
-        </div>
-        <div class="stream-buttons">
-          <a href="https://zap.stream" target="_blank" rel="noopener noreferrer" class="stream-btn" id="zapBtn">
-            <span class="icon">⚡</span> <span>Watch on zap.stream</span>
-          </a>
-          <a href="https://twitch.tv/YOUR_TWITCH_CHANNEL" target="_blank" rel="noopener noreferrer" class="stream-btn" id="twitchBtn">
-            <span class="icon">🎮</span> <span>Watch on Twitch</span>
-          </a>
-          <a href="https://youtube.com/@YOUR_YOUTUBE/live" target="_blank" rel="noopener noreferrer" class="stream-btn" id="ytBtn">
-            <span class="icon">▶</span> <span>Watch on YouTube</span>
-          </a>
+          Checking Owncast stream status…
         </div>
       </div>
 
-      <!-- RIGHT: CHAT -->
+      <!-- CHAT -->
       <div class="chat-panel">
         <div class="chat-inner">
-          <div class="chat-header">
-            <span>LIVE CHAT</span>
-          </div>
-          <iframe id="chatFrame" class="chat" src="about:blank"></iframe>
+          <div class="chat-header">LIVE CHAT</div>
+
+          <iframe
+            class="chat"
+            src="https://zap.stream/chat/npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95"
+            referrerpolicy="origin">
+          </iframe>
         </div>
       </div>
 
     </div>
+
   </div>
 </div>
 
 <script>
-  // Nostr search API + your pubkey
-  const API   = "https://api.nostr.wine/search";
-  const PUBKEY = "3ab4c8ea97cd164d17f68990c1006e21e87f31a919a7013ecf2dae2e416938fd";
+  // CORS-safe proxy for Owncast status
+  const STATUS_URL =
+    "https://api.allorigins.win/raw?url=" +
+    encodeURIComponent("https://live.bitcoin-cats.ca/api/status");
 
-  // TODO: replace these with your real channels
-  const TWITCH_URL  = "https://twitch.tv/YOUR_TWITCH_CHANNEL";
-  const YOUTUBE_URL = "https://youtube.com/@YOUR_YOUTUBE/live";
+  const livePill = document.getElementById("livePill");
+  const streamStatus = document.getElementById("streamStatus");
 
-  const streamContainer  = document.getElementById("streamContainer");
-  const streamStatus     = document.getElementById("streamStatus");
-  const chatFrame        = document.getElementById("chatFrame");
-  const zapBtn           = document.getElementById("zapBtn");
-  const twitchBtn        = document.getElementById("twitchBtn");
-  const ytBtn            = document.getElementById("ytBtn");
-
-  const liveTitleEl      = document.getElementById("liveTitle");
-  const livePill         = document.getElementById("livePill");
-  const viewerCountEl    = document.getElementById("viewerCount");
-  const followersCountEl = document.getElementById("followersCount");
-  const followBtn        = document.getElementById("followBtn");
-
-  // Update static buttons
-  twitchBtn.href = TWITCH_URL;
-  ytBtn.href     = YOUTUBE_URL;
-
-  /* ---------- Followers count (best-effort, same style as main site) ---------- */
-  async function getFollowersCount(pubkeyHex){
-    try{
-      const try1 = await fetch(`${API}?kind=3&tag=p&value=${pubkeyHex}&count=true&limit=1`, {mode:"cors"});
-      if(try1.ok){
-        const j = await try1.json();
-        if(typeof j.count === "number") return j.count;
-        if(Array.isArray(j.data)) return j.data.length;
-      }
-      const try2 = await fetch(`${API}?kind=3&search=${pubkeyHex}&limit=100`, {mode:"cors"});
-      if(try2.ok){
-        const j = await try2.json();
-        if(Array.isArray(j.data)) return j.data.length;
-      }
-    }catch(e){
-      console.error("Failed to fetch followers count:", e);
-    }
-    return null;
-  }
-
-  async function followViaExtension(){
-    try{
-      if(!window.nostr){
-        alert("A Nostr extension is required to follow. Please install Alby, nos2x, or similar.");
-        return;
-      }
-      const ev = {
-        kind: 3,
-        created_at: Math.floor(Date.now()/1000),
-        tags: [["p", PUBKEY]],
-        content: ""
-      };
-      const signed = await window.nostr.signEvent(ev);
-      alert("Please confirm the follow in your extension’s signing popup.");
-      console.log("Signed follow event:", signed);
-    }catch(e){
-      console.error(e);
-      alert("Follow request was cancelled or failed.");
-    }
-  }
-
-  followBtn.addEventListener("click", followViaExtension);
-
-  (async function initFollowers(){
-    const count = await getFollowersCount(PUBKEY);
-    followersCountEl.textContent = (count ?? "—");
-  })();
-
-  /* ---------- Livestream detection from Nostr ---------- */
-  async function detectLivestream() {
+  async function updateStatus() {
     try {
-      const res = await fetch(`${API}?pubkey=${PUBKEY}&limit=30`, { mode: "cors" });
-      if (!res.ok) throw new Error("Nostr API error");
-      const j = await res.json();
-      const events = j.data || [];
+      const res = await fetch(STATUS_URL);
+      const data = await res.json();
 
-      let streamURL = null;
-      let eventWithStream = null;
-
-      for (const ev of events) {
-        const content = ev.content || "";
-        const urls = content.match(/https?:\/\/[^\s]+/g) || [];
-
-        for (const u of urls) {
-          if (
-            u.includes("zap.stream") ||
-            u.includes("nostr.build/live") ||
-            u.includes("owncast") ||
-            /\.(m3u8|mpd)$/i.test(u)
-          ) {
-            streamURL = u;
-            eventWithStream = ev;
-            break;
-          }
-        }
-        if (streamURL) break;
-      }
-
-      if (!streamURL || !eventWithStream) return null;
-
-      // Try to derive a title from NIP-53-style tags or content
-      let title = null;
-      const tags = eventWithStream.tags || [];
-      const titleTag = tags.find(t => t[0] === "title" && t[1]);
-      if (titleTag) {
-        title = titleTag[1];
+      if (data && data.online) {
+        // LIVE
+        livePill.classList.remove("offline");
+        livePill.classList.add("live");
+        const viewers = typeof data.viewerCount === "number" ? data.viewerCount : 0;
+        streamStatus.textContent = "Viewers: " + viewers;
       } else {
-        const content = (eventWithStream.content || "").trim();
-        if (content) {
-          const firstLine = content.split("\n")[0];
-          const beforeUrl = firstLine.split("http")[0].trim();
-          if (beforeUrl) {
-            title = beforeUrl;
-          }
-        }
+        // OFFLINE (but keep iframe so layout is same)
+        livePill.classList.remove("live");
+        livePill.classList.add("offline");
+        streamStatus.textContent = "Stream offline • Waiting for next broadcast.";
       }
-
-      return { url: streamURL, title };
     } catch (e) {
-      console.error("Failed to detect livestream from Nostr:", e);
-      return null;
+      console.error("Error checking Owncast status:", e);
+      streamStatus.textContent = "Unable to verify stream status.";
+      // Leave pill in whatever state it was in
     }
   }
 
-  function embedPlayer(url) {
-    const wrap = document.createElement("iframe");
-    wrap.className = "stream";
-    wrap.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
-
-    let finalUrl = url;
-
-    if (url.includes("zap.stream")) {
-      // zap.stream embed format is usually /embed/, adjust if needed
-      finalUrl = url.replace("zap.stream/", "zap.stream/embed/");
-    }
-    // nostr.build / owncast / others can embed directly
-    wrap.src = finalUrl;
-
-    streamContainer.innerHTML = "";
-    streamContainer.appendChild(wrap);
-  }
-
-  function embedChat(url) {
-    let chatUrl = "about:blank";
-
-    if (url && url.includes("zap.stream")) {
-      // zap.stream chat embed (pattern may need adjustment depending on channel)
-      chatUrl = url.replace("zap.stream/", "zap.stream/embed/chat/");
-    } else if (url && url.includes("owncast")) {
-      chatUrl = url.replace(/\/$/, "") + "/embed/chat";
-    } else {
-      // Fallback: blank or your own custom chat page
-      chatUrl = "about:blank";
-    }
-
-    chatFrame.src = chatUrl;
-  }
-
-  /* 
-    Placeholder for zap.stream viewer count.
-    zap.stream is open-source but its public viewer-count API is not documented in a stable way.
-    This is wired so you can plug in a real endpoint later without breaking anything.
-  */
-  async function fetchZapStreamViewers(streamUrl){
-    try{
-      if(!streamUrl || !streamUrl.includes("zap.stream")) return null;
-
-      // TODO: When zap.stream exposes a documented viewer-count endpoint,
-      // call it here and return the numeric viewer count.
-      // For now we return null so the UI falls back gracefully.
-      return null;
-    }catch(e){
-      console.error("Failed to fetch viewer count from zap.stream:", e);
-      return null;
-    }
-  }
-
-  (async function initLive() {
-    // Default: offline UI
-    livePill.classList.remove("live");
-    livePill.classList.add("offline");
-    viewerCountEl.innerHTML = "<span class=\"icon\">👁</span> <span>0 watching</span>";
-
-    const result = await detectLivestream();
-
-    if (!result || !result.url) {
-      streamContainer.innerHTML = "<div class='loading-text'>No livestream currently detected on Nostr.</div>";
-  
-      zapBtn.href = "https://zap.stream";
-      return;
-    }
-
-    const url   = result.url;
-    const title = result.title;
-
-    // Turn LIVE pill on
-    livePill.classList.remove("offline");
-    livePill.classList.add("live");
-
-    // Update title from stream if we have one
-    if (title && title.trim()) {
-      liveTitleEl.textContent = title.trim();
-    } else {
-      liveTitleEl.textContent = "BITCOIN CATS LIVE BROADCAST";
-    }
-
-    embedPlayer(url);
-    embedChat(url);
-
-    streamStatus.textContent = "Live source detected from Nostr: " + url;
-
-    // Wire zap.stream button to actual live URL if it’s zap.stream
-    if (url.includes("zap.stream")) {
-      zapBtn.href = url;
-    } else {
-      zapBtn.href = "https://zap.stream";
-    }
-
-    // Try to get viewer count from zap.stream API (placeholder)
-    const viewers = await fetchZapStreamViewers(url);
-    if (typeof viewers === "number" && viewers >= 0) {
-      viewerCountEl.innerHTML = `<span class="icon">👁</span> <span>${viewers} watching</span>`;
-    } else {
-      // Graceful fallback label
-      viewerCountEl.innerHTML = `<span class="icon">👁</span> <span>Watching on zap.stream</span>`;
-    }
-  })();
+  updateStatus();
+  setInterval(updateStatus, 15000); // refresh every 15s
 </script>
 
 </body>
