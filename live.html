@@ -25,7 +25,7 @@
     body {
       margin: 0;
       padding: 0;
-      background: transparent;
+      background: var(--bg); /* SOLID BACKGROUND */
       color: var(--text);
       font-family: "Press Start 2P", system-ui, sans-serif;
     }
@@ -36,8 +36,11 @@
       height: 90vh;
       padding: 18px;
       border-radius: 24px;
-      background: transparent !important;
-      box-shadow: none !important;
+
+      /* RESTORED ORIGINAL BACKGROUND PANEL */
+      background: linear-gradient(145deg, rgba(10,10,18,0.95), rgba(8,8,14,0.98));
+      box-shadow: 0 0 0 2px rgba(255,196,130,0.25), 0 0 32px rgba(0,0,0,0.9);
+
       position: relative;
       overflow: hidden;
       margin: auto;
@@ -104,7 +107,6 @@
       display: flex;
       gap: 6px;
       align-items: center;
-      transition: 0.25s ease;
     }
 
     .live-pill .live-dot {
@@ -113,7 +115,6 @@
       border-radius: 50%;
     }
 
-    /* default state (offline look) but since JS is removed, this is just static */
     .live-pill.offline {
       background: rgba(80,80,92,0.45);
       color: #d3d3df;
@@ -191,7 +192,6 @@
       border: none;
       width: 100%;
     }
-
   </style>
 </head>
 <body>
