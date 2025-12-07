@@ -25,7 +25,6 @@
     body {
       margin: 0;
       padding: 0;
-      /* transparent so outer page background shows through */
       background: transparent;
       color: var(--text);
       font-family: "Press Start 2P", system-ui, sans-serif;
@@ -37,8 +36,8 @@
       height: 90vh;
       padding: 18px;
       border-radius: 24px;
-      background: linear-gradient(145deg, rgba(10,10,18,0.95), rgba(8,8,14,0.98));
-      box-shadow: 0 0 0 2px rgba(255,196,130,0.25), 0 0 32px rgba(0,0,0,0.9);
+      background: transparent !important;
+      box-shadow: none !important;
       position: relative;
       overflow: hidden;
       margin: auto;
@@ -97,7 +96,6 @@
       align-items: center;
     }
 
-    /* LIVE pill base */
     .live-pill {
       font-size: 10px;
       padding: 4px 10px;
@@ -106,44 +104,23 @@
       display: flex;
       gap: 6px;
       align-items: center;
-      transition: background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+      transition: 0.25s ease;
     }
 
     .live-pill .live-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      transition: background 0.25s ease, box-shadow 0.25s ease;
     }
 
-    /* OFFLINE state */
+    /* default state (offline look) but since JS is removed, this is just static */
     .live-pill.offline {
       background: rgba(80,80,92,0.45);
       color: #d3d3df;
-      box-shadow: none;
     }
 
     .live-pill.offline .live-dot {
       background: #9a9ab0;
-      box-shadow: none;
-    }
-
-    /* LIVE state */
-    .live-pill.live {
-      background: radial-gradient(circle at 0% 0%, #ff7a1a, #7a1600);
-      color: #fff5e4;
-      box-shadow: 0 0 18px rgba(255,122,26,0.8);
-      animation: pulseLive 1.3s ease-in-out infinite;
-    }
-
-    .live-pill.live .live-dot {
-      background: #fffbe0;
-      box-shadow: 0 0 12px rgba(255,255,200,0.9);
-    }
-
-    @keyframes pulseLive {
-      0%,100% { transform: scale(1); box-shadow: 0 0 16px rgba(255,122,26,0.7); }
-      50% { transform: scale(1.05); box-shadow: 0 0 26px rgba(255,164,71,1); }
     }
 
     .live-main {
@@ -155,7 +132,7 @@
 
     .video-panel {
       flex: 3;
-      background: #000; /* CLEAN background like old version */
+      background: #000;
       border: 1px solid var(--border-soft);
       border-radius: 20px;
       padding: 8px;
@@ -181,7 +158,7 @@
 
     .chat-panel {
       flex: 1.3;
-      background: #000; /* CLEAN background like old version */
+      background: #000;
       border-radius: 20px;
       padding: 8px;
       border: 1px solid var(--border-soft);
@@ -215,11 +192,6 @@
       width: 100%;
     }
 
-    .stream-status {
-      font-size: 11px;
-      color: var(--muted);
-    }
-
   </style>
 </head>
 <body>
@@ -227,14 +199,12 @@
 <div class="live-shell">
   <div class="live-shell-inner">
 
-    <!-- HEADER -->
     <div class="live-header">
       <div class="title-box">
         <div class="live-title">BITCOIN CATS LIVE BROADCAST</div>
       </div>
 
       <div class="live-meta">
-        <!-- Start as offline; JS will flip to .live when online -->
         <div class="live-pill offline" id="livePill">
           <span class="live-dot"></span>
           LIVE
@@ -242,10 +212,8 @@
       </div>
     </div>
 
-    <!-- MAIN -->
     <div class="live-main">
 
-      <!-- STREAM -->
       <div class="video-panel">
         <div class="video-frame-wrap">
           <iframe
@@ -256,12 +224,8 @@
             allow="autoplay; encrypted-media; picture-in-picture">
           </iframe>
         </div>
-        <div class="stream-status" id="streamStatus">
-          Checking Owncast stream status…
-        </div>
       </div>
 
-      <!-- CHAT -->
       <div class="chat-panel">
         <div class="chat-inner">
           <div class="chat-header">LIVE CHAT</div>
@@ -278,43 +242,6 @@
 
   </div>
 </div>
-
-<script>
-  // CORS-safe proxy for Owncast status
-  const STATUS_URL =
-    "https://api.allorigins.win/raw?url=" +
-    encodeURIComponent("https://live.bitcoin-cats.ca/api/status");
-
-  const livePill = document.getElementById("livePill");
-  const streamStatus = document.getElementById("streamStatus");
-
-  async function updateStatus() {
-    try {
-      const res = await fetch(STATUS_URL);
-      const data = await res.json();
-
-      if (data && data.online) {
-        // LIVE
-        livePill.classList.remove("offline");
-        livePill.classList.add("live");
-        const viewers = typeof data.viewerCount === "number" ? data.viewerCount : 0;
-        streamStatus.textContent = "Viewers: " + viewers;
-      } else {
-        // OFFLINE (but keep iframe so layout is same)
-        livePill.classList.remove("live");
-        livePill.classList.add("offline");
-        streamStatus.textContent = "Stream offline • Waiting for next broadcast.";
-      }
-    } catch (e) {
-      console.error("Error checking Owncast status:", e);
-      streamStatus.textContent = "Unable to verify stream status.";
-      // Leave pill in whatever state it was in
-    }
-  }
-
-  updateStatus();
-  setInterval(updateStatus, 15000); // refresh every 15s
-</script>
 
 </body>
 </html>
