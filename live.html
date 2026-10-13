@@ -133,7 +133,7 @@
     const chatSend = $('chatSend'), chatStatus = $('chatStatus'), chatState = $('chatState');
     let hlsInstance = null, pool = null, hostPubkey = '', activityAddress = '';
     let activityStatus = 'offline', currentEventId = '', streamRefreshRunning = false;
-    let chatRefreshRunning = false, chatRequestId = 0, lastPlaybackEventId = '';
+    let chatRefreshRunning = false, chatRequestId = 0, lastPlaybackKey = '';
     const profileCache = new Map();
 
     function setStatus(kind,text){pill.className='live-pill '+kind;label.textContent=text;}
@@ -331,8 +331,9 @@
         activityStatus=classifyActivity(event);currentEventId=event.id||'';
         if(activityStatus==='live'){
           const url=getTag(event,'streaming')||getTag(event,'url');
-          if(currentEventId!==lastPlaybackEventId){
-            lastPlaybackEventId=currentEventId;
+          const playbackKey=activityAddress+'|'+url;
+          if(playbackKey!==lastPlaybackKey){
+            lastPlaybackKey=playbackKey;
             try{
               if(url){
                 stopPlayback();await playUrl(url);setStatus('live','Live stream');
@@ -353,7 +354,7 @@
           }
           setChatComposerState();
         }else{
-          lastPlaybackEventId=currentEventId;
+          lastPlaybackKey='';
           showOffline(event,getTag(event,'status').toLowerCase()==='ended'?'The latest broadcast has ended. Its preview is blurred until the host goes live again.':'The host is offline or the stream announcement is stale. Its preview stays blurred.');
           $('streamSource').textContent='Last Nostr broadcast · '+(getTag(event,'status')||'stale status');
         }
