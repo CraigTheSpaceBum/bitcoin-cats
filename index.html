@@ -304,6 +304,14 @@
     .donation-unavailable{padding:20px 12px;border:1px dashed rgba(255,255,255,.15);border-radius:12px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
     @media(max-width:700px){.container{padding:12px}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{margin:0;gap:7px}.btn{padding:9px 10px;font-size:12px}.post-actions{gap:6px}.post-action{padding:8px}.comment-form{flex-direction:column}.comment-form .btn{align-self:flex-end}main.feed{grid-template-columns:1fr}.donation-methods{grid-template-columns:1fr;padding:14px}.donation-head{padding:18px}.donation-method{padding:15px}.donation-checkout{height:390px}}
 
+    /* The feed became a two-column featured-post grid; About must span both columns. */
+    .about-page {
+      grid-column: 1 / -1;
+      width: 100%;
+      min-width: 0;
+      padding: 0;
+    }
+
   </style>
 </head>
 <body>
