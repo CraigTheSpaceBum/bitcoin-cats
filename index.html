@@ -23,7 +23,6 @@
     html,body{height:100%;scroll-behavior:smooth;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
     body{
       color:var(--text);
-      background: var(--bg-overlay) url('https://bitcoin-cats.ca/BackgroundLoop.webp') center center / cover no-repeat fixed;
       background-blend-mode: darken;
       overflow-x:hidden;
     }
@@ -314,6 +313,22 @@
       padding: 0;
     }
 
+  
+    .feed-load-more {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px 12px 36px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .feed-load-more-status { font-size: 13px; line-height: 1.5; }
+    .feed-load-more button[hidden] { display: none !important; }
+    .feed-load-more button:disabled { opacity: .65; cursor: wait; }
+
   </style>
 </head>
 <body>
@@ -352,10 +367,21 @@
 <script>
 const API = "https://api.nostr.wine/search";
 const PUBKEY_HEX = "3ab4c8ea97cd164d17f68990c1006e21e87f31a919a7013ecf2dae2e416938fd";
-const DEFAULT_LIMIT = 100;
+const DEFAULT_LIMIT = 12;
+const POSTS_PER_BATCH = 6;
 const feedEl = document.getElementById("feed");
 let donationLightningAddress = "";
 const overlay = document.getElementById("loadingOverlay");
+let currentFeedEvents = [];
+let currentFeedPage = 1;
+let renderedFeedPosts = 0;
+let feedHasMorePages = false;
+let feedEventIds = new Set();
+let loadingMoreFeed = false;
+let feedLoadMoreContainer = null;
+let feedLoadMoreButton = null;
+let feedLoadMoreStatus = null;
+let feedPostObserver = null;
 
 /* ---------- Utils ---------- */
 function humanTime(ts){return new Date(ts*1000).toLocaleString();}
@@ -558,18 +584,20 @@ async function getKind0(pubkeyHex){
   const j=await r.json();
   return (j && (j.data?.[0]||j[0]))||null;
 }
-async function getKind1(pubkeyHex){
-  const url=`${API}?pubkey=${pubkeyHex}&kind=1&sort=time&order=descending&limit=${DEFAULT_LIMIT}`;
+async function getKind1(pubkeyHex,page=1){
+  const url=API+"?pubkey="+encodeURIComponent(pubkeyHex)+"&kind=1&sort=time&order=descending&limit="+DEFAULT_LIMIT+"&page="+page;
   const r=await fetch(url,{mode:"cors"});
-  if(!r.ok) return [];
+  if(!r.ok) throw new Error("Could not load blog posts ("+r.status+").");
   const j=await r.json();
-  return j?.data||[];
+  const events=Array.isArray(j?.data)?j.data:(Array.isArray(j)?j:[]);
+  const lastPage=j?.pagination?.last_page;
+  return {events,hasMore:typeof lastPage==="boolean"?!lastPage:events.length>=DEFAULT_LIMIT};
 }
 
 /* ---------- Media helpers ---------- */
 function mediaBoxForImage(src){
   const box=document.createElement("div"); box.className="media-box";
-  const img=document.createElement("img"); img.src=src; img.alt="image";
+  const img=document.createElement("img"); img.src=src; img.alt="image"; img.loading="lazy"; img.decoding="async";
   img.onclick=()=>window.open(src,"_blank");
   box.appendChild(img);
   return box;
@@ -676,87 +704,235 @@ async function replaceNprofileMentions(container){
 }
 
 /* ---------- Feed ---------- */
-async function drawFeed(events){
-  feedEl.innerHTML="";
-  events = (events || []).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
-  if(!events?.length){
+async function drawFeed(pageResult){
+  if(feedPostObserver){feedPostObserver.disconnect();feedPostObserver=null;}
+  feedEl.replaceChildren();
+  const events=(pageResult?.events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
+  currentFeedEvents=events.filter(ev=>!(ev.tags&&ev.tags.some(t=>t[0]==="e")));
+  currentFeedPage=1;
+  renderedFeedPosts=0;
+  feedHasMorePages=Boolean(pageResult?.hasMore);
+  feedEventIds=new Set(currentFeedEvents.map(ev=>ev.id).filter(Boolean));
+  loadingMoreFeed=false;
+  feedLoadMoreContainer=null;
+  feedLoadMoreButton=null;
+  feedLoadMoreStatus=null;
+
+  if(!currentFeedEvents.length&&!feedHasMorePages){
     feedEl.innerHTML="<p style='color:var(--muted);text-align:center;'>No posts found.</p>";
     overlay.classList.add("hidden");
     return;
   }
-  const topLevelEvents = events.filter(ev=>!(ev.tags && ev.tags.some(t=>t[0]==="e")));
-  let renderedPostIndex = 0;
-  for(const ev of topLevelEvents){
-    const post=document.createElement("article");
-    post.className="post" + (renderedPostIndex===0 ? " featured-post" : "");
-    if(renderedPostIndex===0){const ribbon=document.createElement("div");ribbon.className="featured-label";ribbon.textContent="✦ Latest post · Featured";post.appendChild(ribbon);}
-    renderedPostIndex++;
 
-    const header=document.createElement("div"); header.className="post-header";
-    const pfp=document.createElement("img"); pfp.className="pfp"; pfp.src=document.getElementById("pfp").src;
-    const metaDiv=document.createElement("div"); metaDiv.className="post-meta";
-    const name=document.createElement("div"); name.className="name"; name.textContent=document.getElementById("profName").textContent;
-    const time=document.createElement("div"); time.className="time"; time.textContent=humanTime(ev.created_at);
-    metaDiv.appendChild(name); metaDiv.appendChild(time);
-    header.appendChild(pfp); header.appendChild(metaDiv);
-
-    const content=document.createElement("div"); content.className="content";
-    const textOnly = normalizeNprofileMarkup(stripMediaAndNevent(ev.content||""));
-    content.textContent = textOnly;
-    await replaceNprofileMentions(content);
-    linkifyRemainingTextNodes(content);
-
-    const gallery=document.createElement("div"); gallery.className="gallery";
-    const imgs=extractImages(ev.content||"");
-    const vids=extractVideos(ev.content||"");
-    const lives=extractLive(ev.content||"");
-
-    imgs.forEach(u=> gallery.appendChild(mediaBoxForImage(u)));
-    vids.forEach(u=> gallery.appendChild(mediaBoxForVideo(u)));
-    lives.forEach(u=> gallery.appendChild(mediaBoxForLive(u)));
-
-    if(gallery.childNodes.length === 1) gallery.classList.add("single");
-
-    post.appendChild(header);
-    post.appendChild(content);
-    if(gallery.childNodes.length) post.appendChild(gallery);
-
-    const nevent = findNevent(ev.content||"");
-    if(nevent){
-      const idHex = neventToId(nevent);
-      if(idHex){
-        try{
-          const quoted = await getNoteById(idHex);
-          if(quoted){
-            const qProfile = await getProfile(quoted.pubkey);
-            const quoteDiv=document.createElement("div"); quoteDiv.className="quote";
-            const qh=document.createElement("div"); qh.className="quote-header";
-            const qp=document.createElement("img"); qp.src=qProfile.picture;
-            const qname=document.createElement("div"); qname.className="quote-name"; qname.textContent=qProfile.name;
-            qh.appendChild(qp); qh.appendChild(qname);
-            const qt=document.createElement("div"); qt.className="quote-text"; qt.textContent=(quoted.content||"").slice(0,500);
-            quoteDiv.appendChild(qh); quoteDiv.appendChild(qt);
-            post.appendChild(quoteDiv);
-          }
-        }catch(e){ console.warn("Failed to render nevent quote", e); }
-      }
-    }
-
-    attachInteractions(post, ev);
-    feedEl.appendChild(post);
-  }
-
-  setupFadeIn();
+  ensureFeedLoadMoreControls();
+  await loadMoreFeedPosts({initial:true});
   overlay.classList.add("hidden");
 }
+
+function ensureFeedLoadMoreControls(){
+  if(feedLoadMoreContainer&&feedLoadMoreContainer.isConnected)return;
+  const container=document.createElement("div");
+  container.className="feed-load-more";
+  const status=document.createElement("p");
+  status.className="feed-load-more-status";
+  status.setAttribute("role","status");
+  status.setAttribute("aria-live","polite");
+  status.textContent="Scroll down to load more posts.";
+  const button=document.createElement("button");
+  button.className="btn";
+  button.type="button";
+  button.textContent="Load more posts";
+  button.onclick=()=>loadMoreFeedPosts();
+  container.append(status,button);
+  feedLoadMoreContainer=container;
+  feedLoadMoreStatus=status;
+  feedLoadMoreButton=button;
+  feedEl.appendChild(container);
+}
+
+function updateFeedLoadMoreControl(message,options={}){
+  ensureFeedLoadMoreControls();
+  const loading=Boolean(options.loading);
+  const retry=Boolean(options.retry);
+  const exhausted=!feedHasMorePages&&renderedFeedPosts>=currentFeedEvents.length;
+  if(exhausted){
+    feedLoadMoreStatus.textContent=renderedFeedPosts?"You've reached the end of the blog.":"No posts found.";
+    feedLoadMoreButton.hidden=true;
+    feedLoadMoreButton.disabled=false;
+    return;
+  }
+  feedLoadMoreButton.hidden=false;
+  feedLoadMoreButton.disabled=loading;
+  feedLoadMoreButton.textContent=loading?"Loading more posts…":retry?"Retry loading posts":"Load more posts";
+  feedLoadMoreStatus.textContent=message||"Scroll down to load more posts.";
+}
+
+async function loadMoreFeedPosts(options={}){
+  const initial=Boolean(options.initial);
+  if(loadingMoreFeed)return;
+  if(!initial&&!feedHasMorePages&&renderedFeedPosts>=currentFeedEvents.length){
+    updateFeedLoadMoreControl();
+    return;
+  }
+
+  loadingMoreFeed=true;
+  ensureFeedLoadMoreControls();
+  updateFeedLoadMoreControl("Loading posts…",{loading:true});
+
+  try{
+    let pagesWithoutNewPosts=0;
+    while(renderedFeedPosts>=currentFeedEvents.length&&feedHasMorePages&&pagesWithoutNewPosts<3){
+      const requestedPage=currentFeedPage+1;
+      const result=await getKind1(PUBKEY_HEX,requestedPage);
+      currentFeedPage=requestedPage;
+      feedHasMorePages=Boolean(result?.hasMore);
+      const nextEvents=(result?.events||[])
+        .slice()
+        .sort((a,b)=>(b.created_at||0)-(a.created_at||0))
+        .filter(ev=>!(ev.tags&&ev.tags.some(t=>t[0]==="e")));
+      let added=0;
+      for(const ev of nextEvents){
+        if(ev.id&&feedEventIds.has(ev.id))continue;
+        if(ev.id)feedEventIds.add(ev.id);
+        currentFeedEvents.push(ev);
+        added++;
+      }
+      pagesWithoutNewPosts=added===0?pagesWithoutNewPosts+1:0;
+    }
+
+    const batch=currentFeedEvents.slice(renderedFeedPosts,renderedFeedPosts+POSTS_PER_BATCH);
+    if(!batch.length){
+      updateFeedLoadMoreControl(
+        feedHasMorePages
+          ?"No new posts appeared in the last few results. Select “Load more posts” to keep looking."
+          :"You've reached the end of the blog."
+      );
+      return;
+    }
+
+    for(const ev of batch){
+      await renderPost(ev,renderedFeedPosts);
+      renderedFeedPosts++;
+    }
+    setupFadeIn();
+    updateFeedLoadMoreControl("Scroll down to load more posts.");
+  }catch(error){
+    console.error("Could not load more blog posts",error);
+    updateFeedLoadMoreControl("Couldn't load more posts. Check your connection and try again.",{retry:true});
+  }finally{
+    loadingMoreFeed=false;
+    if(feedLoadMoreButton&&feedLoadMoreButton.textContent==="Loading more posts…"){
+      updateFeedLoadMoreControl();
+    }
+  }
+}
+
+async function renderPost(ev,renderedPostIndex){
+  const post=document.createElement("article");
+  post.className="post"+(renderedPostIndex===0?" featured-post":"");
+  if(renderedPostIndex===0){
+    const ribbon=document.createElement("div");
+    ribbon.className="featured-label";
+    ribbon.textContent="✦ Latest post · Featured";
+    post.appendChild(ribbon);
+  }
+
+  const header=document.createElement("div");
+  header.className="post-header";
+  const pfp=document.createElement("img");
+  pfp.className="pfp";
+  pfp.src=document.getElementById("pfp").src;
+  pfp.alt="Bitcoin Cats profile";
+  pfp.loading="lazy";
+  pfp.decoding="async";
+  const metaDiv=document.createElement("div");
+  metaDiv.className="post-meta";
+  const name=document.createElement("div");
+  name.className="name";
+  name.textContent=document.getElementById("profName").textContent;
+  const time=document.createElement("div");
+  time.className="time";
+  time.textContent=humanTime(ev.created_at);
+  metaDiv.appendChild(name);
+  metaDiv.appendChild(time);
+  header.appendChild(pfp);
+  header.appendChild(metaDiv);
+
+  const content=document.createElement("div");
+  content.className="content";
+  const textOnly=normalizeNprofileMarkup(stripMediaAndNevent(ev.content||""));
+  content.textContent=textOnly;
+  await replaceNprofileMentions(content);
+  linkifyRemainingTextNodes(content);
+
+  const gallery=document.createElement("div");
+  gallery.className="gallery";
+  const imgs=extractImages(ev.content||"");
+  const vids=extractVideos(ev.content||"");
+  const lives=extractLive(ev.content||"");
+  imgs.forEach(u=>gallery.appendChild(mediaBoxForImage(u)));
+  vids.forEach(u=>gallery.appendChild(mediaBoxForVideo(u)));
+  lives.forEach(u=>gallery.appendChild(mediaBoxForLive(u)));
+  if(gallery.childNodes.length===1)gallery.classList.add("single");
+
+  post.appendChild(header);
+  post.appendChild(content);
+  if(gallery.childNodes.length)post.appendChild(gallery);
+
+  const nevent=findNevent(ev.content||"");
+  if(nevent){
+    const idHex=neventToId(nevent);
+    if(idHex){
+      try{
+        const quoted=await getNoteById(idHex);
+        if(quoted){
+          const qProfile=await getProfile(quoted.pubkey);
+          const quoteDiv=document.createElement("div");
+          quoteDiv.className="quote";
+          const qh=document.createElement("div");
+          qh.className="quote-header";
+          const qp=document.createElement("img");
+          qp.src=qProfile.picture;
+          qp.alt="Quoted Nostr profile";
+          qp.loading="lazy";
+          qp.decoding="async";
+          const qname=document.createElement("div");
+          qname.className="quote-name";
+          qname.textContent=qProfile.name;
+          qh.appendChild(qp);
+          qh.appendChild(qname);
+          const qt=document.createElement("div");
+          qt.className="quote-text";
+          qt.textContent=(quoted.content||"").slice(0,500);
+          quoteDiv.appendChild(qh);
+          quoteDiv.appendChild(qt);
+          post.appendChild(quoteDiv);
+        }
+      }catch(e){console.warn("Failed to render nevent quote",e);}
+    }
+  }
+
+  attachInteractions(post,ev);
+  feedEl.insertBefore(post,feedLoadMoreContainer||null);
+}
+
 function setupFadeIn(){
-  const observer=new IntersectionObserver(entries=>{
-    entries.forEach(entry=>{
-      if(entry.isIntersecting) entry.target.classList.add("visible");
-      else entry.target.classList.remove("visible");
-    });
-  },{threshold:0.2});
-  document.querySelectorAll(".post").forEach(el=>observer.observe(el));
+  if(typeof IntersectionObserver==="undefined"){
+    feedEl.querySelectorAll(".post").forEach(el=>el.classList.add("visible"));
+    return;
+  }
+  if(!feedPostObserver){
+    feedPostObserver=new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting)entry.target.classList.add("visible");
+        else entry.target.classList.remove("visible");
+      });
+    },{threshold:0.2});
+  }
+  feedEl.querySelectorAll(".post:not(.feed-observed)").forEach(el=>{
+    el.classList.add("feed-observed");
+    feedPostObserver.observe(el);
+  });
 }
 
 /* ---------- Page wiring ---------- */
@@ -997,21 +1173,27 @@ function attachInteractions(post, note){
 /* ---------- Boot ---------- */
 async function load(){
   try{
-    const [profileEv, notes] = await Promise.all([getKind0(PUBKEY_HEX), getKind1(PUBKEY_HEX)]);
-    const meta = profileEv ? await getProfile(PUBKEY_HEX) : await getProfile(PUBKEY_HEX);
+    const [firstPage,meta]=await Promise.all([getKind1(PUBKEY_HEX,1),getProfile(PUBKEY_HEX)]);
     applyProfileToBanner(meta);
-    await drawFeed(notes);
+    await drawFeed(firstPage);
 
     // Button wiring
-    document.getElementById("loginBtn").onclick = connectNostr;
-    document.getElementById("homeBtn").onclick = async ()=>{
+    document.getElementById("loginBtn").onclick=connectNostr;
+    document.getElementById("homeBtn").onclick=async()=>{
       overlay.classList.remove("hidden");
-      const latest = await getKind1(PUBKEY_HEX);
-      await drawFeed(latest);
+      try{
+        const latest=await getKind1(PUBKEY_HEX,1);
+        await drawFeed(latest);
+      }catch(error){
+        console.error("Could not refresh blog posts",error);
+        feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Error loading posts. Please try again.</p>";
+      }finally{
+        overlay.classList.add("hidden");
+      }
     };
-    document.getElementById("aboutBtn").onclick = showAbout;
-    document.getElementById("liveBtn").onclick = showLivePage;
-    document.getElementById("zapBtn").onclick = showDonationModal;
+    document.getElementById("aboutBtn").onclick=showAbout;
+    document.getElementById("liveBtn").onclick=showLivePage;
+    document.getElementById("zapBtn").onclick=showDonationModal;
   }catch(e){
     console.error(e);
     feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Error loading posts.</p>";
@@ -1020,7 +1202,7 @@ async function load(){
   }
 }
 
-window.addEventListener("load", load);
+document.addEventListener("DOMContentLoaded",load,{once:true});
 </script>
 </body>
 </html>
