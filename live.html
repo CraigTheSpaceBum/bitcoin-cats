@@ -40,6 +40,29 @@
     video{display:block;width:100%;height:100%;position:absolute;inset:0;object-fit:contain;background:#030306}
     .video-empty{position:absolute;inset:0;display:grid;place-items:center;padding:28px;text-align:center;background:radial-gradient(ellipse at center,rgba(255,173,85,.07),transparent 55%),#07070c}
     .video-empty-inner{max-width:420px}.play-icon{display:grid;place-items:center;width:58px;height:58px;margin:0 auto 18px;border-radius:18px;background:rgba(255,173,85,.12);border:1px solid rgba(255,173,85,.22);font-size:24px;color:var(--accent)}
+    .offline-poster{position:absolute;inset:-5%;width:110%;height:110%;object-fit:cover;filter:blur(14px);transform:scale(1.04);opacity:.88}
+    .video-wrap.offline video{filter:blur(14px);transform:scale(1.06);opacity:.6}
+    .video-wrap.offline .offline-poster{filter:blur(15px);transform:scale(1.08)}
+    .offline-overlay{position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:24px;text-align:center;background:rgba(5,5,12,.26);backdrop-filter:blur(1px)}
+    .offline-overlay[hidden]{display:none}
+    .offline-badge{display:inline-flex;padding:7px 11px;border-radius:999px;border:1px solid rgba(255,173,85,.35);background:rgba(12,12,20,.72);color:#ffd6aa;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px}
+    .offline-overlay h2{font-size:clamp(19px,2.5vw,28px);margin:0 0 8px}
+    .offline-overlay p{max-width:420px;color:#e0dce9;font-size:13px;line-height:1.6;margin:0}
+    .chat-messages{display:flex;flex:1;flex-direction:column;gap:11px;min-height:0;max-height:610px;overflow:auto;padding:15px;background:rgba(4,4,10,.25);scrollbar-color:#464153 transparent}
+    .chat-empty{margin:auto;color:var(--muted);font-size:12px;line-height:1.7;text-align:center;padding:30px 12px}
+    .chat-message{display:grid;grid-template-columns:30px minmax(0,1fr);gap:9px;min-width:0}
+    .chat-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#222233;border:1px solid rgba(255,173,85,.22)}
+    .chat-message-main{min-width:0}
+    .chat-message-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px}
+    .chat-message-name{font-size:11px;font-weight:800;color:#ffd1a0;overflow-wrap:anywhere}
+    .chat-message-time{font-size:10px;color:#77778d}
+    .chat-message-body{font-size:12px;line-height:1.55;color:#efedf7;overflow-wrap:anywhere;white-space:pre-wrap}
+    .chat-composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:rgba(255,255,255,.02)}
+    .chat-input{min-width:0;flex:1;border:1px solid var(--line);border-radius:10px;background:#0b0b13;color:var(--text);padding:11px 12px;font:12px Inter,system-ui,sans-serif;outline:none}
+    .chat-input:focus{border-color:rgba(255,173,85,.5)}
+    .chat-send{border:0;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#211306;font-weight:800;font-size:12px;padding:0 14px;cursor:pointer}
+    .chat-send:disabled,.chat-input:disabled{opacity:.45;cursor:not-allowed}
+    .chat-state{padding:0 12px 10px;color:var(--muted);font-size:10px;line-height:1.5}
     .video-empty h2{font-size:17px;margin:0 0 9px}.video-empty p{font-size:13px;line-height:1.6;color:var(--muted);margin:0}
     .stream-details{padding:16px 18px 18px}.stream-name{font-size:16px;font-weight:750;margin:0 0 7px}.stream-summary{font-size:13px;line-height:1.6;color:var(--muted);margin:0;overflow-wrap:anywhere}
     .stream-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.tag{font-size:11px;color:#ffd9b0;background:rgba(255,173,85,.08);border:1px solid rgba(255,173,85,.15);padding:5px 8px;border-radius:999px}
@@ -75,15 +98,25 @@
         <div class="panel-head"><div><div class="panel-title">Now playing</div><div class="panel-kicker" id="streamSource">Checking Nostr for the latest stream</div></div><span class="tag">NOSTR · NIP-53</span></div>
         <div class="video-wrap" id="videoWrap">
           <video id="streamVideo" controls playsinline autoplay muted></video>
-          <div class="video-empty" id="videoEmpty"><div class="video-empty-inner"><div class="play-icon">▶</div><h2>Connecting to the live broadcast</h2><p>Looking for the host’s latest live-stream event. If no active stream is published, this area will show a clear status instead of a misleading live indicator.</p></div></div>
+          <img class="offline-poster" id="offlinePoster" alt="" hidden>
+          <div class="video-empty" id="videoEmpty"><div class="video-empty-inner"><div class="play-icon">▶</div><h2>Connecting to the live broadcast</h2><p>Looking for the host’s latest live-stream event.</p></div></div>
+          <div class="offline-overlay" id="offlineOverlay" hidden>
+            <div><span class="offline-badge">Currently offline</span><h2 id="offlineTitle">Stream is offline</h2><p id="offlineSummary">The stream preview is blurred until the host goes live again.</p></div>
+          </div>
         </div>
         <div class="stream-details"><h2 class="stream-name" id="streamTitle">Bitcoin Cats Live Broadcast</h2><p class="stream-summary" id="streamSummary">Waiting for stream information from Nostr relays…</p><div class="stream-tags" id="streamTags"></div></div>
         <div class="status-note" id="streamNote" role="status" aria-live="polite">Connecting to public Nostr relays…</div>
       </article>
       <aside class="panel chat-panel">
-        <div class="panel-head"><div><div class="panel-title">Live chat</div><div class="panel-kicker">Conversation for this Nostr host</div></div><span class="tag">CHAT</span></div>
-        <iframe class="chat-frame" title="Bitcoin Cats Nostr live chat" src="https://zap.stream/chat/npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95" referrerpolicy="origin" loading="lazy" allow="clipboard-read; clipboard-write"></iframe>
-        <div class="chat-foot">Chat is linked to the host profile configured for this page.</div>
+        <div class="panel-head"><div><div class="panel-title">Live chat</div><div class="panel-kicker" id="chatSubtitle">Chat for the selected Nostr stream</div></div><span class="tag" id="chatStatus">SYNCING</span></div>
+        <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text">
+          <div class="chat-empty">Finding the host’s current stream so chat can sync to that exact broadcast…</div>
+        </div>
+        <form class="chat-composer" id="chatForm">
+          <input class="chat-input" id="chatInput" type="text" maxlength="2000" autocomplete="off" placeholder="Connect a Nostr signer to chat…" aria-label="Write a live chat message" disabled>
+          <button class="chat-send" id="chatSend" type="submit" disabled>Send</button>
+        </form>
+        <div class="chat-state" id="chatState">Chat messages are scoped to this stream’s NIP-53 activity, rather than just the host profile.</div>
       </aside>
     </section>
     <footer class="footer"><span>Bitcoin Cats · Built for the open web</span><span>Powered by <a href="https://sifaka.live/" target="_blank" rel="noopener noreferrer">Sifaka Live</a> design inspiration and public Nostr relays.</span></footer>
@@ -93,121 +126,293 @@
     const HOST_NPUB = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95';
     const RELAYS = ['wss://nos.lol','wss://relay.damus.io','wss://purplerelay.com','wss://relay.primal.net'];
     const $ = id => document.getElementById(id);
-    const pill = $('livePill');
-    const label = $('liveLabel');
-    const note = $('streamNote');
-    const video = $('streamVideo');
-    const empty = $('videoEmpty');
-    let hlsInstance = null;
+    const pill = $('livePill'), label = $('liveLabel'), note = $('streamNote');
+    const video = $('streamVideo'), empty = $('videoEmpty'), videoWrap = $('videoWrap');
+    const poster = $('offlinePoster'), offlineOverlay = $('offlineOverlay');
+    const chatList = $('chatMessages'), chatForm = $('chatForm'), chatInput = $('chatInput');
+    const chatSend = $('chatSend'), chatStatus = $('chatStatus'), chatState = $('chatState');
+    let hlsInstance = null, pool = null, hostPubkey = '', activityAddress = '';
+    let activityStatus = 'offline', currentEventId = '', streamRefreshRunning = false;
+    let chatRefreshRunning = false, chatRequestId = 0, lastPlaybackEventId = '';
+    const profileCache = new Map();
 
-    function setStatus(kind, text) {
-      pill.className = 'live-pill ' + kind;
-      label.textContent = text;
+    function setStatus(kind,text){pill.className='live-pill '+kind;label.textContent=text;}
+    function getTag(event,name){const found=(event.tags||[]).find(tag=>tag[0]===name&&tag[1]);return found?found[1]:'';}
+    function hexFromKey(value){
+      if(typeof value==='string')return value.toLowerCase();
+      if(value instanceof Uint8Array||Array.isArray(value))return Array.from(value).map(b=>Number(b).toString(16).padStart(2,'0')).join('');
+      return '';
     }
-    function getTag(event, name) {
-      const found = (event.tags || []).find(tag => tag[0] === name && tag[1]);
-      return found ? found[1] : '';
+    function isSecureUrl(url){try{return new URL(url).protocol==='https:';}catch{return false;}}
+    function reportHeight(){
+      try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'bitcoin-cats-live-height',height:document.documentElement.scrollHeight},window.location.origin);}catch{}
     }
-    function clearPlayer() {
-      if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-      empty.hidden = false;
+    function setOfflineOverlay(title,summary){
+      $('offlineTitle').textContent=title||'Stream is offline';
+      $('offlineSummary').textContent=summary||'The preview is blurred until the host goes live again.';
+      offlineOverlay.hidden=false;empty.hidden=true;videoWrap.classList.add('offline');
     }
-    async function playUrl(url) {
-      if (!url || !/^https:\/\//i.test(url)) throw new Error('The stream event does not contain a secure HTTPS playback URL.');
-      empty.hidden = true;
-      if (/\.m3u8(?:$|\?)/i.test(url)) {
-        if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = url;
-        } else {
-          const HlsModule = await import('https://esm.sh/hls.js@1.5.17');
-          const Hls = HlsModule.default;
-          if (!Hls.isSupported()) throw new Error('HLS playback is not supported by this browser.');
-          hlsInstance = new Hls({enableWorker:true,lowLatencyMode:true});
-          hlsInstance.loadSource(url);
-          hlsInstance.attachMedia(video);
-          hlsInstance.on(Hls.Events.ERROR, (_event, data) => {
-            if (data.fatal) { note.textContent = 'The stream was found, but playback failed. The host may need to check the stream URL or CORS settings.'; }
+    function stopPlayback(){
+      if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+      video.pause();video.removeAttribute('src');video.load();
+    }
+    function showOffline(event,reason){
+      stopPlayback();
+      const image=event?getTag(event,'image'):'';
+      if(image&&isSecureUrl(image)){poster.src=image;poster.hidden=false;}
+      else{poster.removeAttribute('src');poster.hidden=true;}
+      videoWrap.classList.add('offline');
+      setOfflineOverlay('Stream is offline',reason||'The preview is blurred until the host goes live again.');
+      setStatus('','Host offline');
+      $('streamSource').textContent=event?'Last Nostr broadcast · offline preview':'No recent NIP-53 broadcast found';
+      note.textContent=reason||'The host is offline. The preview is blurred and chat stays linked to the last known stream.';
+      setChatComposerState();reportHeight();
+    }
+    async function playUrl(url){
+      if(!url||!isSecureUrl(url))throw new Error('The stream event does not contain a secure HTTPS playback URL.');
+      videoWrap.classList.remove('offline');offlineOverlay.hidden=true;poster.hidden=true;empty.hidden=true;
+      if(/\.m3u8(?:$|\?)/i.test(url)){
+        if(video.canPlayType('application/vnd.apple.mpegurl'))video.src=url;
+        else{
+          const HlsModule=await import('https://esm.sh/hls.js@1.5.17');
+          const Hls=HlsModule.default;
+          if(!Hls.isSupported())throw new Error('HLS playback is not supported by this browser.');
+          if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+          hlsInstance=new Hls({enableWorker:true,lowLatencyMode:true});
+          hlsInstance.loadSource(url);hlsInstance.attachMedia(video);
+          hlsInstance.on(Hls.Events.ERROR,(_event,data)=>{
+            if(data.fatal)note.textContent='The stream was found, but playback failed. The host may need to check the stream URL or CORS settings.';
           });
         }
-      } else {
-        video.src = url;
+      }else video.src=url;
+      video.load();reportHeight();
+    }
+    function eventAgeSeconds(event){return Math.max(0,Math.floor(Date.now()/1000)-(event.created_at||0));}
+    function latestVersionPerActivity(events){
+      const sorted=(events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
+      const latest=new Map();
+      for(const event of sorted){
+        const d=getTag(event,'d');
+        const key=d?(event.pubkey+':'+d):event.id;
+        if(!latest.has(key))latest.set(key,event);
       }
-      video.load();
+      return [...latest.values()].sort((a,b)=>(b.created_at||0)-(a.created_at||0));
     }
-    function chooseStream(events) {
-      const sorted = events.slice().sort((a,b) => b.created_at - a.created_at);
-      return sorted.find(event => {
-        const status = getTag(event, 'status').toLowerCase();
-        return status === 'live' || status === '';
-      }) || null;
+    function chooseStream(events){
+      const activities=latestVersionPerActivity(events);
+      const fresh=activities.filter(event=>eventAgeSeconds(event)<=3600);
+      const live=fresh.filter(event=>getTag(event,'status').toLowerCase()==='live');
+      if(live.length)return live[0];
+      const legacyLive=fresh.find(event=>!getTag(event,'status'));
+      return legacyLive||activities[0]||null;
     }
-    async function start() {
-      try {
-        const { nip19, SimplePool } = await import('https://esm.sh/nostr-tools@2.10.4');
-        const decoded = nip19.decode(HOST_NPUB);
-        if (decoded.type !== 'npub') throw new Error('The configured host identifier is not a valid npub.');
-        const pubkey = decoded.data;
-        const pool = new SimplePool();
-        $('streamSource').textContent = 'Discovering host events on public relays';
-        const results = await Promise.race([
-          pool.querySync(RELAYS, { kinds:[30311], authors:[pubkey], limit:20 }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Relay lookup timed out.')), 12000))
-        ]);
-        const event = chooseStream(results);
-        pool.close(RELAYS);
-        if (!event) {
-          clearPlayer();
-          setStatus('', 'No active stream');
-          $('streamSource').textContent = 'No active NIP-53 event found';
-          $('streamTitle').textContent = 'No active broadcast found';
-          $('streamSummary').textContent = 'The host has not published a current live-stream event to the relays checked. Try again later.';
-          note.textContent = 'No active stream event was found. The chat remains available for this host.';
-          return;
-        }
-        const title = getTag(event, 'title') || 'Bitcoin Cats Live Broadcast';
-        const summary = getTag(event, 'summary') || 'Live broadcast published on Nostr.';
-        const streamUrl = getTag(event, 'streaming') || getTag(event, 'url');
-        const status = getTag(event, 'status').toLowerCase();
-        $('streamTitle').textContent = title;
-        $('streamSummary').textContent = summary;
-        $('streamSource').textContent = 'Nostr event · ' + event.id.slice(0, 12) + '…';
-        const hashtags = (event.tags || []).filter(tag => tag[0] === 't' && tag[1]).slice(0,12);
-        $('streamTags').replaceChildren(...hashtags.map(tag => {
-          const span = document.createElement('span');
-          span.className = 'tag';
-          span.textContent = '#' + tag[1];
-          return span;
-        }));
-        if (status === 'live' || !status) setStatus('live', 'Live stream found');
-        else setStatus('', status === 'ended' ? 'Stream ended' : 'Stream scheduled');
-        if (streamUrl) {
-          try {
-            await playUrl(streamUrl);
-            note.textContent = 'Stream URL loaded from the host’s Nostr event. Press play if playback does not start automatically.';
-          } catch (error) {
-            clearPlayer();
-            note.textContent = error.message;
-            $('streamSummary').textContent += ' The published playback URL could not be opened here.';
+    function classifyActivity(event){
+      if(!event)return 'offline';
+      const status=getTag(event,'status').toLowerCase(),age=eventAgeSeconds(event);
+      if(status==='live'&&age<=3600)return 'live';
+      if(!status&&age<=900)return 'live';
+      return 'offline';
+    }
+    function setStreamMetadata(event){
+      $('streamTitle').textContent=getTag(event,'title')||'Bitcoin Cats Live Broadcast';
+      $('streamSummary').textContent=getTag(event,'summary')||'Live broadcast published on Nostr.';
+      $('streamSource').textContent='Nostr event · '+(event.id||'').slice(0,12)+'…';
+      const tags=(event.tags||[]).filter(tag=>tag[0]==='t'&&tag[1]).slice(0,12);
+      $('streamTags').replaceChildren(...tags.map(tag=>{const span=document.createElement('span');span.className='tag';span.textContent='#'+tag[1];return span;}));
+    }
+    async function fetchProfile(pubkey){
+      if(profileCache.has(pubkey))return profileCache.get(pubkey);
+      const fallback={name:pubkey?pubkey.slice(0,8)+'…'+pubkey.slice(-4):'Nostr user',picture:''};
+      const pending=(async()=>{
+        try{
+          const events=await Promise.race([
+            pool.querySync(RELAYS,{kinds:[0],authors:[pubkey],limit:20}),
+            new Promise((_,reject)=>setTimeout(()=>reject(new Error('Profile lookup timeout')),5000))
+          ]);
+          const latest=(events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
+          for(const event of latest){
+            let meta={};try{meta=JSON.parse(event.content||'{}');}catch{}
+            if(meta.name||meta.display_name||meta.picture)return {name:meta.display_name||meta.name||fallback.name,picture:meta.picture||''};
           }
-        } else {
-          clearPlayer();
-          note.textContent = 'The host’s Nostr event was found, but it did not include a browser playback URL.';
+        }catch{}
+        return fallback;
+      })();
+      profileCache.set(pubkey,pending);
+      const profile=await pending;profileCache.set(pubkey,Promise.resolve(profile));return profile;
+    }
+    function formatTime(timestamp){
+      try{return new Date(timestamp*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch{return '';}
+    }
+    function setChatComposerState(){
+      const canChat=!!activityAddress&&activityStatus==='live';
+      chatInput.disabled=!canChat;chatSend.disabled=!canChat;
+      chatInput.placeholder=canChat?'Write to this live stream…':'Chat is read-only while the host is offline…';
+      chatStatus.textContent=activityAddress?(canChat?'LIVE CHAT':'OFFLINE HISTORY'):'WAITING';
+      $('chatSubtitle').textContent=activityAddress?'Synced to stream '+activityAddress.split(':').slice(-1)[0]:'Waiting for the host’s stream activity';
+      if(!activityAddress)chatState.textContent='Chat will sync automatically when a stream activity is discovered.';
+      else if(canChat)chatState.textContent='Messages are scoped to this broadcast’s NIP-53 activity. A Nostr browser signer is needed to send messages.';
+      else chatState.textContent='Showing chat history for the last known broadcast. Sending is disabled while the host is offline.';
+    }
+    async function loadChatForCurrentActivity(){
+      const address=activityAddress,requestId=++chatRequestId;
+      if(!address||!pool){
+        chatList.replaceChildren();
+        const msg=document.createElement('div');msg.className='chat-empty';
+        msg.textContent='Chat will appear here when the host’s Nostr stream event is available.';
+        chatList.appendChild(msg);setChatComposerState();reportHeight();return;
+      }
+      if(chatRefreshRunning)return;
+      chatRefreshRunning=true;
+      try{
+        const events=await Promise.race([
+          pool.querySync(RELAYS,{kinds:[1311],'#a':[address],limit:100}),
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error('Chat lookup timed out')),9000))
+        ]);
+        if(requestId!==chatRequestId||activityAddress!==address)return;
+        const unique=new Map();
+        for(const event of events||[]){
+          if((event.tags||[]).some(tag=>tag[0]==='a'&&tag[1]===address))unique.set(event.id,event);
         }
-      } catch (error) {
-        clearPlayer();
-        setStatus('', 'Stream unavailable');
-        $('streamSource').textContent = 'Nostr discovery unavailable';
-        $('streamSummary').textContent = 'Could not load stream details from public Nostr relays right now.';
-        note.textContent = error.message || 'Could not connect to Nostr relays. Please refresh to retry.';
+        const messages=[...unique.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0)).slice(-50);
+        if(!messages.length){
+          chatList.replaceChildren();
+          const msg=document.createElement('div');msg.className='chat-empty';msg.textContent='No messages in this stream’s chat yet.';
+          chatList.appendChild(msg);setChatComposerState();reportHeight();return;
+        }
+        chatList.replaceChildren();
+        const authorElements=[];
+        for(const event of messages){
+          const row=document.createElement('article');row.className='chat-message';
+          const avatar=document.createElement('img');avatar.className='chat-avatar';avatar.alt='';avatar.loading='lazy';
+          avatar.src='https://api.dicebear.com/7.x/identicon/svg?seed='+encodeURIComponent(event.pubkey||'nostr');
+          const main=document.createElement('div');main.className='chat-message-main';
+          const head=document.createElement('div');head.className='chat-message-head';
+          const name=document.createElement('span');name.className='chat-message-name';
+          name.textContent=event.pubkey?event.pubkey.slice(0,8)+'…'+event.pubkey.slice(-4):'Nostr user';
+          const time=document.createElement('time');time.className='chat-message-time';time.textContent=formatTime(event.created_at||0);
+          if(event.created_at)time.dateTime=new Date(event.created_at*1000).toISOString();
+          const body=document.createElement('div');body.className='chat-message-body';body.textContent=event.content||'';
+          head.append(name,time);main.append(head,body);row.append(avatar,main);chatList.appendChild(row);
+          authorElements.push({pubkey:event.pubkey,avatar,name});
+        }
+        const pubkeys=[...new Set(authorElements.map(item=>item.pubkey).filter(Boolean))];
+        const profiles=await Promise.all(pubkeys.map(async pubkey=>[pubkey,await fetchProfile(pubkey)]));
+        if(requestId!==chatRequestId||activityAddress!==address)return;
+        const profileMap=new Map(profiles);
+        for(const item of authorElements){
+          const profile=profileMap.get(item.pubkey);if(!profile)continue;
+          item.name.textContent=profile.name||item.name.textContent;
+          if(profile.picture&&isSecureUrl(profile.picture))item.avatar.src=profile.picture;
+        }
+        chatList.scrollTop=chatList.scrollHeight;setChatComposerState();reportHeight();
+      }catch(error){
+        if(requestId===chatRequestId)chatState.textContent='Could not refresh this stream’s chat from public Nostr relays. Retrying automatically…';
+      }finally{chatRefreshRunning=false;}
+    }
+    async function refreshStream(){
+      if(streamRefreshRunning||!pool||!hostPubkey)return;
+      streamRefreshRunning=true;
+      try{
+        const events=await Promise.race([
+          pool.querySync(RELAYS,{kinds:[30311],authors:[hostPubkey],limit:50}),
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error('Relay lookup timed out')),12000))
+        ]);
+        const event=chooseStream(events);
+        if(!event){
+          activityAddress='';activityStatus='offline';currentEventId='';
+          setStatus('','Host offline');$('streamTitle').textContent='Bitcoin Cats Live Broadcast';
+          $('streamSummary').textContent='No recent stream activity was found for the configured Nostr host. The preview is blurred while the host is offline.';
+          $('streamTags').replaceChildren();showOffline(null,'No recent NIP-53 stream activity is available. The preview will remain blurred until the host publishes a stream.');
+          await loadChatForCurrentActivity();return;
+        }
+        setStreamMetadata(event);
+        const previousAddress=activityAddress,d=getTag(event,'d');
+        activityAddress=d?'30311:'+event.pubkey+':'+d:'';
+        activityStatus=classifyActivity(event);currentEventId=event.id||'';
+        if(activityStatus==='live'){
+          const url=getTag(event,'streaming')||getTag(event,'url');
+          if(currentEventId!==lastPlaybackEventId){
+            lastPlaybackEventId=currentEventId;
+            try{
+              if(url){
+                stopPlayback();await playUrl(url);setStatus('live','Live stream');
+                note.textContent='Live broadcast loaded from the host’s latest Nostr stream activity.';
+              }else{
+                showOffline(event,'The stream is marked live, but no HTTPS playback URL is published.');
+                setStatus('live','Stream announced');
+              }
+            }catch(error){
+              stopPlayback();videoWrap.classList.add('offline');
+              const image=getTag(event,'image');
+              if(image&&isSecureUrl(image)){poster.src=image;poster.hidden=false;}
+              setOfflineOverlay('Stream unavailable',error.message||'The published stream could not be played.');
+              note.textContent=error.message||'The host stream could not be played.';setStatus('live','Stream found');
+            }
+          }else{
+            videoWrap.classList.remove('offline');offlineOverlay.hidden=true;setStatus('live','Live stream');
+          }
+          setChatComposerState();
+        }else{
+          lastPlaybackEventId=currentEventId;
+          showOffline(event,getTag(event,'status').toLowerCase()==='ended'?'The latest broadcast has ended. Its preview is blurred until the host goes live again.':'The host is offline or the stream announcement is stale. Its preview stays blurred.');
+          $('streamSource').textContent='Last Nostr broadcast · '+(getTag(event,'status')||'stale status');
+        }
+        if(previousAddress!==activityAddress){
+          chatList.replaceChildren();
+          const msg=document.createElement('div');msg.className='chat-empty';
+          msg.textContent=activityAddress?'Syncing chat for this broadcast…':'This stream event has no activity identifier, so a stream-specific chat cannot be selected.';
+          chatList.appendChild(msg);
+          await loadChatForCurrentActivity();
+        }
+        reportHeight();
+      }catch(error){
+        activityStatus='offline';showOffline(null,'Could not refresh the host’s stream from public Nostr relays. The preview is blurred while reconnecting.');
+        setStatus('','Reconnecting');$('streamSource').textContent='Nostr discovery temporarily unavailable';
+        $('streamSummary').textContent='Unable to load the host’s latest stream announcement right now. The page will retry automatically.';
+      }finally{streamRefreshRunning=false;}
+    }
+    async function sendChatMessage(text){
+      const content=text.trim();
+      if(!content||!activityAddress||activityStatus!=='live')return;
+      if(!window.nostr){chatState.textContent='To send chat messages, enable a NIP-07-compatible Nostr signer in your browser.';return;}
+      chatSend.disabled=true;
+      try{
+        const unsigned={kind:1311,created_at:Math.floor(Date.now()/1000),tags:[['a',activityAddress,'','root'],['p',hostPubkey]],content};
+        const signed=await window.nostr.signEvent(unsigned);
+        const results=await Promise.allSettled(pool.publish(RELAYS,signed));
+        if(!results.some(result=>result.status==='fulfilled'))throw new Error('No relay accepted the message. Please try again.');
+        chatInput.value='';chatState.textContent='Message published. Syncing the stream chat…';
+        await loadChatForCurrentActivity();
+      }catch(error){chatState.textContent=error.message||'Could not publish chat message.';}
+      finally{chatSend.disabled=activityStatus!=='live'||!activityAddress;}
+    }
+    chatForm.addEventListener('submit',event=>{event.preventDefault();void sendChatMessage(chatInput.value);});
+    chatInput.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatForm.requestSubmit();}});
+    video.addEventListener('playing',()=>{empty.hidden=true;});
+    video.addEventListener('error',()=>{
+      if(video.currentSrc&&activityStatus==='live')note.textContent='The stream URL was found, but the browser could not play it. Check the stream format and cross-origin settings.';
+    });
+    async function start(){
+      try{
+        const {nip19,SimplePool}=await import('https://esm.sh/nostr-tools@2.10.4');
+        const decoded=nip19.decode(HOST_NPUB);
+        if(decoded.type!=='npub')throw new Error('The configured host identifier is not a valid npub.');
+        hostPubkey=hexFromKey(decoded.data);
+        if(!/^[0-9a-f]{64}$/.test(hostPubkey))throw new Error('Could not decode the configured Nostr host public key.');
+        pool=new SimplePool();$('streamSource').textContent='Discovering the host’s latest Nostr stream';
+        await refreshStream();
+        setInterval(()=>{void refreshStream();},30000);
+        setInterval(()=>{if(!streamRefreshRunning)void loadChatForCurrentActivity();},10000);
+        const observer=new ResizeObserver(reportHeight);observer.observe(document.body);reportHeight();
+      }catch(error){
+        showOffline(null,'Could not initialize Nostr stream discovery. The preview will stay blurred while reconnecting.');
+        setStatus('','Stream unavailable');$('streamSource').textContent='Nostr discovery unavailable';
+        $('streamSummary').textContent=error.message||'Unable to connect to public Nostr relays.';
+        chatState.textContent='Chat will synchronize when a stream activity can be discovered.';
       }
     }
-    video.addEventListener('playing', () => { empty.hidden = true; });
-    video.addEventListener('error', () => {
-      if (video.currentSrc) note.textContent = 'A stream URL was found, but the browser could not play it. The host may need to check the format or cross-origin settings.';
-    });
+    window.addEventListener('beforeunload',()=>{try{if(pool)pool.close(RELAYS);}catch{}});
+    window.addEventListener('load',reportHeight);
     start();
   </script>
 </body>
