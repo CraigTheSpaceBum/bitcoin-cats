@@ -223,6 +223,44 @@
       from { opacity: 0; transform: translateY(15px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* Modern blog refresh */
+    body{background:radial-gradient(ellipse at 10% 0%,rgba(255,164,71,.10),transparent 35%),linear-gradient(rgba(5,5,9,.90),rgba(5,5,9,.94)),url('BackgroundLoop.webp') center/cover fixed}
+    .container{max-width:1440px;padding:clamp(14px,2.5vw,32px)}
+    .banner{background:linear-gradient(135deg,rgba(25,25,39,.96),rgba(18,18,28,.94));border:1px solid rgba(255,255,255,.10);border-radius:24px;padding:24px 24px 24px 130px;backdrop-filter:blur(18px)}
+    .id-name{font-family:system-ui,sans-serif;font-size:clamp(1.5rem,3vw,2.15rem);letter-spacing:-.04em;color:#f8f5ff}
+    .id-npub{color:#c5c1d5;background:rgba(0,0,0,.24);border-color:rgba(255,255,255,.1);font-size:.78rem}
+    .btn{font-family:inherit;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);color:#f3f0fa;border-radius:12px;padding:10px 14px;box-shadow:none;font-weight:700;transition:transform .15s,border-color .15s,background .15s}
+    .btn:hover{background:rgba(255,164,71,.10);border-color:rgba(255,164,71,.45);transform:translateY(-1px)}
+    .btn.primary{background:linear-gradient(135deg,#ffb45f,#ff842e);color:#241507;border-color:transparent}
+    main.feed{grid-template-columns:repeat(auto-fit,minmax(min(100%,390px),1fr));gap:18px;padding:8px 0 80px}
+    article.post{min-height:0;padding:20px;background:linear-gradient(155deg,rgba(22,22,34,.96),rgba(13,13,22,.97));border:1px solid rgba(255,255,255,.09);border-radius:20px;box-shadow:0 14px 40px rgba(0,0,0,.24);opacity:1;transform:none;transition:border-color .2s,transform .2s}
+    article.post:hover{border-color:rgba(255,164,71,.28);transform:translateY(-2px)}
+    .post-header{padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:14px}
+    .pfp{width:44px;height:44px}
+    .name{color:#ffb76c;font-size:14px}
+    .time{font-size:12px;margin-top:3px}
+    .content{font-size:15px;line-height:1.8;color:#e9e6f2;margin:4px 0 12px}
+    .gallery{flex:none;min-height:0;margin:10px 0}
+    .media-box{border-radius:14px;border-color:rgba(255,255,255,.1)}
+    .post-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+    .post-action{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:#d9d5e5;font:600 12px system-ui,sans-serif;cursor:pointer}
+    .post-action:hover,.post-action.active{color:#ffd19e;border-color:rgba(255,164,71,.45);background:rgba(255,164,71,.09)}
+    .post-action:disabled{opacity:.5;cursor:not-allowed}
+    .post-interactions{margin-top:12px}
+    .comment-list{display:grid;gap:9px;margin:10px 0}
+    .comment-item{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
+    .comment-author{font-size:12px;font-weight:750;color:#ffb76c;margin-bottom:4px}
+    .comment-body{font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+    .comment-form{display:flex;gap:8px;margin-top:10px}
+    .comment-input{min-width:0;flex:1;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:11px 12px;color:var(--text);font:13px system-ui,sans-serif;outline:none}
+    .comment-input:focus{border-color:rgba(255,164,71,.6)}
+    .interaction-note{color:var(--muted);font-size:11px;line-height:1.5;margin-top:8px}
+    .blog-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 18px}
+    .blog-heading{font-size:clamp(22px,3vw,30px);font-weight:850;letter-spacing:-.04em}
+    .blog-subtitle{font-size:13px;color:var(--muted);margin-top:6px}
+    @media(max-width:700px){.container{padding:12px}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{margin:0;gap:7px}.btn{padding:9px 10px;font-size:12px}.post-actions{gap:6px}.post-action{padding:8px}.comment-form{flex-direction:column}.comment-form .btn{align-self:flex-end}}
+
   </style>
 </head>
 <body>
@@ -246,14 +284,16 @@
           <div class="id-npub" id="profNpub">npub…</div>
         </div>
         <div class="actions">
-          <button class="btn" id="homeBtn">🏠 Blog</button>
+          <button class="btn primary" id="homeBtn">✍️ Blog</button>
           <button class="btn" id="aboutBtn">ℹ️ About</button>
           <button class="btn" id="liveBtn">📺 Live Stream</button>
           <button class="btn" id="zapBtn">⚡ Zap</button>
+          <button class="btn" id="loginBtn" type="button">🔑 Login with Nostr</button>
         </div>
       </div>
     </header>
 
+    <section class="blog-toolbar"><div><div class="blog-heading">The Blog</div><div class="blog-subtitle">Long-form thoughts, notes, and conversations from Nostr.</div></div><span class="tag" id="blogStatus">Read-only · Sign in to interact</span></section>
     <main class="feed" id="feed"></main>
   </div>
 
@@ -540,6 +580,7 @@ async function drawFeed(events){
       }
     }
 
+    attachInteractions(post, ev);
     feedEl.appendChild(post);
   }
 
@@ -644,6 +685,111 @@ async function showLivePage() {
   }
 }
 
+
+/* ---------- Nostr interactions: NIP-07 + relay-backed comments/reactions ---------- */
+const WRITE_RELAYS = ["wss://nos.lol","wss://relay.damus.io","wss://purplerelay.com","wss://relay.primal.net"];
+let signedInPubkey = null;
+let nostrPool = null;
+let nostrTools = null;
+const reactionEmoji = ["❤️","🔥","😂","😻","🚀","💜"];
+
+async function getNostrTools(){
+  if(!nostrTools) nostrTools = await import("https://esm.sh/nostr-tools@2.10.4");
+  return nostrTools;
+}
+function npubShort(hex){return hex ? hex.slice(0,8)+"…"+hex.slice(-4) : "";}
+async function connectNostr(){
+  if(!window.nostr){
+    alert("No Nostr browser signer was found. Install or enable a NIP-07 compatible Nostr extension, then try again.");
+    return;
+  }
+  try{
+    signedInPubkey = await window.nostr.getPublicKey();
+    const profile = await getProfile(signedInPubkey);
+    document.getElementById("loginBtn").textContent = "✓ " + (profile.name || npubShort(signedInPubkey));
+    document.getElementById("blogStatus").textContent = "Signed in · " + npubShort(signedInPubkey);
+    document.getElementById("blogStatus").style.color = "#a8f0c8";
+    document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Write a reply…");
+  }catch(error){
+    console.error("Nostr login failed",error);
+    alert("Could not connect to your Nostr signer. Please unlock it and approve the connection.");
+  }
+}
+async function publishNostrEvent(event){
+  if(!window.nostr || !signedInPubkey) throw new Error("Please log in with your Nostr signer first.");
+  const signed = await window.nostr.signEvent(event);
+  const {SimplePool} = await getNostrTools();
+  if(!nostrPool) nostrPool = new SimplePool();
+  const results = await Promise.allSettled(nostrPool.publish(WRITE_RELAYS,signed));
+  if(!results.some(r=>r.status==="fulfilled")) throw new Error("Your signer signed the event, but no relay confirmed publishing. Try again.");
+  return signed;
+}
+async function publishReaction(note, emoji){
+  if(!signedInPubkey){await connectNostr();if(!signedInPubkey)return;}
+  const event = {kind:7,created_at:Math.floor(Date.now()/1000),tags:[["e",note.id],["p",note.pubkey]],content:emoji};
+  await publishNostrEvent(event);
+}
+async function publishComment(note, text){
+  if(!signedInPubkey){await connectNostr();if(!signedInPubkey)return;}
+  const event = {kind:1,created_at:Math.floor(Date.now()/1000),tags:[["e",note.id,"","reply"],["p",note.pubkey]],content:text};
+  await publishNostrEvent(event);
+}
+async function loadNoteInteractions(note, container){
+  const list = container.querySelector(".comment-list");
+  const stats = container.querySelector(".interaction-stats");
+  try{
+    const {SimplePool} = await getNostrTools();
+    if(!nostrPool) nostrPool = new SimplePool();
+    const events = await Promise.race([
+      nostrPool.querySync(WRITE_RELAYS,{kinds:[1,7],"#e":[note.id],limit:100}),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout")),9000))
+    ]);
+    const replies = events.filter(e=>e.kind===1 && (e.tags||[]).some(t=>t[0]==="e"&&t[1]===note.id));
+    const reactions = events.filter(e=>e.kind===7);
+    stats.textContent = replies.length + " replies · " + reactions.length + " reactions";
+    list.replaceChildren();
+    for(const reply of replies.sort((a,b)=>a.created_at-b.created_at).slice(-12)){
+      const item=document.createElement("div");item.className="comment-item";
+      const author=document.createElement("div");author.className="comment-author";author.textContent=npubShort(reply.pubkey);
+      const body=document.createElement("div");body.className="comment-body";body.textContent=reply.content;
+      item.append(author,body);list.appendChild(item);
+    }
+  }catch(error){stats.textContent="Replies and reactions load when relays respond.";}
+}
+function attachInteractions(post, note){
+  const actions=document.createElement("div");actions.className="post-actions";
+  const like=document.createElement("button");like.className="post-action";like.type="button";like.textContent="❤️ Like";
+  like.onclick=async()=>{like.disabled=true;try{await publishReaction(note,"❤️");like.classList.add("active");like.textContent="❤️ Liked";}catch(e){alert(e.message||"Could not publish reaction.");}finally{like.disabled=false;}};
+  actions.appendChild(like);
+  reactionEmoji.filter(e=>e!=="❤️").forEach(emoji=>{
+    const btn=document.createElement("button");btn.className="post-action";btn.type="button";btn.textContent=emoji;btn.title="React "+emoji;
+    btn.onclick=async()=>{btn.disabled=true;try{await publishReaction(note,emoji);btn.classList.add("active");}catch(e){alert(e.message||"Could not publish reaction.");}finally{btn.disabled=false;}};
+    actions.appendChild(btn);
+  });
+  const commentJump=document.createElement("button");commentJump.className="post-action";commentJump.type="button";commentJump.textContent="💬 Comment";
+  actions.appendChild(commentJump);
+  post.appendChild(actions);
+
+  const interactions=document.createElement("section");interactions.className="post-interactions";
+  const stats=document.createElement("div");stats.className="interaction-note interaction-stats";stats.textContent="Loading replies and reactions…";
+  const list=document.createElement("div");list.className="comment-list";
+  const form=document.createElement("form");form.className="comment-form";
+  const input=document.createElement("input");input.className="comment-input";input.type="text";input.maxLength=2000;input.placeholder="Sign in to write a reply…";input.setAttribute("aria-label","Write a comment");
+  const submit=document.createElement("button");submit.className="btn primary";submit.type="submit";submit.textContent="Reply";
+  form.append(input,submit);
+  const noteLine=document.createElement("div");noteLine.className="interaction-note";noteLine.textContent="Reactions and replies are public Nostr events. A NIP-07 signer is required to publish.";
+  form.onsubmit=async e=>{
+    e.preventDefault();const text=input.value.trim();if(!text)return;
+    submit.disabled=true;
+    try{await publishComment(note,text);input.value="";noteLine.textContent="Reply published to Nostr relays.";await loadNoteInteractions(note,interactions);}
+    catch(error){noteLine.textContent=error.message||"Could not publish reply.";}
+    finally{submit.disabled=false;}
+  };
+  commentJump.onclick=()=>{input.focus();interactions.scrollIntoView({behavior:"smooth",block:"nearest"});};
+  interactions.append(stats,list,form,noteLine);post.appendChild(interactions);
+  loadNoteInteractions(note,interactions);
+}
+
 /* ---------- Boot ---------- */
 async function load(){
   try{
@@ -653,6 +799,7 @@ async function load(){
     await drawFeed(notes);
 
     // Button wiring
+    document.getElementById("loginBtn").onclick = connectNostr;
     document.getElementById("homeBtn").onclick = async ()=>{
       overlay.classList.remove("hidden");
       const latest = await getKind1(PUBKEY_HEX);
