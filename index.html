@@ -827,6 +827,16 @@ async function loadMoreFeedPosts(options={}){
   }
 }
 
+
+function maybeLoadMoreFeedOnScroll(){
+  if(window.scrollY<=0||loadingMoreFeed||!feedLoadMoreContainer||!feedLoadMoreContainer.isConnected||!feedLoadMoreButton||feedLoadMoreButton.hidden)return;
+  const bounds=feedLoadMoreContainer.getBoundingClientRect();
+  if(bounds.top<window.innerHeight+180&&bounds.bottom>0){
+    loadMoreFeedPosts();
+  }
+}
+window.addEventListener("scroll",maybeLoadMoreFeedOnScroll,{passive:true});
+
 async function renderPost(ev,renderedPostIndex){
   const post=document.createElement("article");
   post.className="post"+(renderedPostIndex===0?" featured-post":"");
