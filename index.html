@@ -259,7 +259,37 @@
     .blog-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 18px}
     .blog-heading{font-size:clamp(22px,3vw,30px);font-weight:850;letter-spacing:-.04em}
     .blog-subtitle{font-size:13px;color:var(--muted);margin-top:6px}
-    @media(max-width:700px){.container{padding:12px}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{margin:0;gap:7px}.btn{padding:9px 10px;font-size:12px}.post-actions{gap:6px}.post-action{padding:8px}.comment-form{flex-direction:column}.comment-form .btn{align-self:flex-end}}
+    /* Editorial blog layout: feature the newest post, then a clean reading grid */
+    .blog-toolbar{padding:20px 22px;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:linear-gradient(120deg,rgba(255,164,71,.08),rgba(20,20,32,.88));}
+    .blog-heading{font-size:clamp(26px,4vw,38px)}
+    .blog-subtitle{max-width:680px;line-height:1.6}
+    .tag{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);color:#d8d3e5;font-size:11px}
+    main.feed{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px}
+    article.post.featured-post{grid-column:1/-1;padding:clamp(22px,4vw,42px);background:radial-gradient(ellipse at 100% 0%,rgba(255,164,71,.12),transparent 45%),linear-gradient(145deg,rgba(28,27,42,.98),rgba(13,13,22,.98));border-color:rgba(255,164,71,.3);position:relative;overflow:hidden}
+    .featured-label{display:inline-flex;align-items:center;gap:7px;margin-bottom:18px;padding:7px 10px;border:1px solid rgba(255,164,71,.28);border-radius:999px;color:#ffc58b;background:rgba(255,164,71,.08);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .featured-post .content{font-size:clamp(16px,1.6vw,19px);line-height:1.9;max-width:1000px}
+    .featured-post .post-header{border-bottom:0;margin-bottom:8px}
+    .featured-post .pfp{width:52px;height:52px}
+    .featured-post .gallery{margin:18px 0 8px}
+    .featured-post .media-box{height:clamp(230px,38vw,480px);min-width:min(100%,300px)}
+    .featured-post .gallery.single .media-box{height:clamp(230px,38vw,480px)}
+    .post-ribbon{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;margin:0 0 12px}
+    article.post:not(.featured-post){min-height:100%;padding:22px}
+    .post-header .name{font-size:14px}
+    .donation-backdrop{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:18px;background:rgba(3,3,8,.82);backdrop-filter:blur(14px)}
+    .donation-dialog{width:min(900px,100%);max-height:min(92vh,900px);overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:linear-gradient(145deg,#191927,#0c0c14);box-shadow:0 30px 100px rgba(0,0,0,.65)}
+    .donation-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:22px 24px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .donation-head h2{font-size:22px;letter-spacing:-.03em}.donation-head p{color:var(--muted);font-size:13px;line-height:1.6;margin-top:6px}
+    .donation-close{flex:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--text);border-radius:10px;padding:8px 12px;cursor:pointer}
+    .donation-methods{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px}
+    .donation-method{min-width:0;padding:18px;border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(255,255,255,.025)}
+    .donation-method h3{font-size:15px;margin-bottom:6px}.donation-method p{font-size:12px;line-height:1.6;color:var(--muted);margin-bottom:14px}
+    .donation-qr{display:block;width:210px;height:210px;max-width:100%;margin:10px auto 14px;border-radius:12px;background:#fff;padding:8px;object-fit:contain}
+    .donation-address{padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(0,0,0,.24);font:12px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;color:#f4e7d9}
+    .donation-copy{width:100%;margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,164,71,.28);background:rgba(255,164,71,.09);color:#ffd2a5;font-weight:750;cursor:pointer}
+    .donation-checkout{width:100%;height:430px;border:0;border-radius:12px;background:#fff}
+    .donation-unavailable{padding:20px 12px;border:1px dashed rgba(255,255,255,.15);border-radius:12px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
+    @media(max-width:700px){.container{padding:12px}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{margin:0;gap:7px}.btn{padding:9px 10px;font-size:12px}.post-actions{gap:6px}.post-action{padding:8px}.comment-form{flex-direction:column}.comment-form .btn{align-self:flex-end}main.feed{grid-template-columns:1fr}.donation-methods{grid-template-columns:1fr;padding:14px}.donation-head{padding:18px}.donation-method{padding:15px}.donation-checkout{height:390px}}
 
   </style>
 </head>
@@ -287,7 +317,7 @@
           <button class="btn primary" id="homeBtn">✍️ Blog</button>
           <button class="btn" id="aboutBtn">ℹ️ About</button>
           <button class="btn" id="liveBtn">📺 Live Stream</button>
-          <button class="btn" id="zapBtn">⚡ Zap</button>
+          <button class="btn primary" id="zapBtn">₿ Donate</button>
           <button class="btn" id="loginBtn" type="button">🔑 Login with Nostr</button>
         </div>
       </div>
@@ -302,6 +332,7 @@ const API = "https://api.nostr.wine/search";
 const PUBKEY_HEX = "3ab4c8ea97cd164d17f68990c1006e21e87f31a919a7013ecf2dae2e416938fd";
 const DEFAULT_LIMIT = 100;
 const feedEl = document.getElementById("feed");
+let donationLightningAddress = "";
 const overlay = document.getElementById("loadingOverlay");
 
 /* ---------- Utils ---------- */
@@ -520,16 +551,19 @@ async function replaceNprofileMentions(container){
 /* ---------- Feed ---------- */
 async function drawFeed(events){
   feedEl.innerHTML="";
+  events = (events || []).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
   if(!events?.length){
     feedEl.innerHTML="<p style='color:var(--muted);text-align:center;'>No posts found.</p>";
     overlay.classList.add("hidden");
     return;
   }
-  for(const ev of events){
-    if(ev.tags && ev.tags.some(t=>t[0]==="e")) continue;
-
+  const topLevelEvents = events.filter(ev=>!(ev.tags && ev.tags.some(t=>t[0]==="e")));
+  let renderedPostIndex = 0;
+  for(const ev of topLevelEvents){
     const post=document.createElement("article");
-    post.className="post";
+    post.className="post" + (renderedPostIndex===0 ? " featured-post" : "");
+    if(renderedPostIndex===0){const ribbon=document.createElement("div");ribbon.className="featured-label";ribbon.textContent="✦ Latest post · Featured";post.appendChild(ribbon);}
+    renderedPostIndex++;
 
     const header=document.createElement("div"); header.className="post-header";
     const pfp=document.createElement("img"); pfp.className="pfp"; pfp.src=document.getElementById("pfp").src;
@@ -602,6 +636,7 @@ function applyProfileToBanner(meta){
   document.getElementById("pfp").src = meta.picture;
   document.getElementById("profName").textContent = meta.name;
   document.getElementById("profNpub").textContent = pubkeyToNpub(PUBKEY_HEX);
+  donationLightningAddress = meta.lud16 || "";
 }
 
 /* About page */
@@ -628,39 +663,39 @@ async function showAbout() {
   }
 }
 
-/* Zap page (BTCPay app in iframe, same style as About) */
-async function showZapPage() {
-  try {
-    overlay.classList.remove("hidden");
-
-    const zapHTML = `
-      <center>
-        <h2 style="margin:20px 0; color:#ffd099;">⚡ Support Bitcoin Cats</h2>
-      </center>
-      <iframe
-        src="https://zap.bitcoin-cats.ca"
-        style="
-          width:100%;
-          height:80vh;
-          border:none;
-          border-radius:16px;
-          box-shadow:0 0 20px rgba(0,0,0,0.5);
-          background:#000;
-        ">
-      </iframe>
-    `;
-
-    feedEl.innerHTML = `
-      <div id="zapPage" class="about-page hidden">${zapHTML}</div>
-    `;
-
-    setTimeout(() => {
-      const zapPage = document.getElementById("zapPage");
-      zapPage.classList.remove("hidden");
-    }, 50);
-  } finally {
-    overlay.classList.add("hidden");
+/* Donation modal: on-chain checkout plus the profile's published Lightning address. */
+function showDonationModal(){
+  document.getElementById("donationModal")?.remove();
+  const backdrop=document.createElement("div");backdrop.id="donationModal";backdrop.className="donation-backdrop";
+  backdrop.innerHTML=`
+    <section class="donation-dialog" role="dialog" aria-modal="true" aria-labelledby="donationTitle">
+      <header class="donation-head"><div><h2 id="donationTitle">₿ Support Bitcoin Cats</h2><p>Choose your preferred Bitcoin network. Double-check the destination in your wallet before sending.</p></div><button class="donation-close" type="button" aria-label="Close donations">✕</button></header>
+      <div class="donation-methods">
+        <section class="donation-method"><h3>₿ On-chain Bitcoin</h3><p>Scan the QR code in the secure BTCPay checkout to display the current receiving address and payment details.</p>
+          <iframe class="donation-checkout" title="Bitcoin Cats on-chain donation checkout" src="https://zap.bitcoin-cats.ca/i/QU4a17WGBWBaCCAt3nbkLt/BTC-CHAIN" loading="lazy"></iframe>
+          <p style="margin:10px 0 0">The checkout supplies the current address and QR; confirm it in your wallet before paying.</p>
+        </section>
+        <section class="donation-method"><h3>⚡ Lightning</h3><p>Scan the QR with a Lightning wallet or copy the Lightning address.</p>
+          <div id="lightningDonationContent"></div>
+        </section>
+      </div>
+    </section>`;
+  document.body.appendChild(backdrop);
+  const close=()=>backdrop.remove();
+  backdrop.querySelector(".donation-close").onclick=close;
+  backdrop.addEventListener("click",e=>{if(e.target===backdrop)close();});
+  document.addEventListener("keydown",function esc(e){if(e.key==="Escape"&&document.getElementById("donationModal")){close();document.removeEventListener("keydown",esc);}});
+  const content=backdrop.querySelector("#lightningDonationContent");
+  if(donationLightningAddress){
+    const qr=document.createElement("img");qr.className="donation-qr";qr.alt="Lightning address QR code";qr.src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data="+encodeURIComponent(donationLightningAddress);
+    const addr=document.createElement("div");addr.className="donation-address";addr.textContent=donationLightningAddress;
+    const copy=document.createElement("button");copy.className="donation-copy";copy.type="button";copy.textContent="Copy Lightning address";
+    copy.onclick=async()=>{try{await navigator.clipboard.writeText(donationLightningAddress);copy.textContent="✓ Copied";}catch{copy.textContent="Select and copy the address above";}};
+    content.append(qr,addr,copy);
+  }else{
+    content.innerHTML='<div class="donation-unavailable">No Lightning address is published in the Bitcoin Cats Nostr profile yet. Add a <code>lud16</code> Lightning address to profile metadata to enable the QR and copy button here.</div>';
   }
+  backdrop.querySelector(".donation-close").focus();
 }
 
 /* Live Stream page (loads live.html like About) */
@@ -807,7 +842,7 @@ async function load(){
     };
     document.getElementById("aboutBtn").onclick = showAbout;
     document.getElementById("liveBtn").onclick = showLivePage;
-    document.getElementById("zapBtn").onclick = showZapPage;
+    document.getElementById("zapBtn").onclick = showDonationModal;
   }catch(e){
     console.error(e);
     feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Error loading posts.</p>";
