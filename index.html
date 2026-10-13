@@ -336,7 +336,6 @@
       </div>
     </header>
 
-    <section class="blog-toolbar"><div><div class="blog-heading">The Blog</div><div class="blog-subtitle">Long-form thoughts, notes, and conversations from Nostr.</div></div><span class="tag" id="blogStatus">Read-only · Sign in to interact</span></section>
     <main class="feed" id="feed"></main>
   </div>
 
@@ -375,7 +374,8 @@ function findNevent(text){
   return m ? m[0] : null;
 }
 function findAllNprofiles(text){
-  return text.match(/nostr:nprofile1[0-9a-z]+/ig) || [];
+  // Accept canonical Nostr URIs, escaped URI colons, and bare nprofile identifiers.
+  return text.match(/(?:nostr\\?:)?nprofile1[0-9a-z]+/ig) || [];
 }
 function stripMediaAndNevent(text){
   let t = text.replace(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)/gi, '');
@@ -416,7 +416,8 @@ function neventToId(nevent){
 }
 function nprofileToPubkey(nprofile){
   try{
-    const dec=bech32Decode(nprofile);
+    const normalized=String(nprofile||"").replace(/^nostr\\?:/i,"");
+    const dec=bech32Decode(normalized);
     if(!dec || dec.hrp!=="nprofile") return null;
     const bytes = new Uint8Array(convertBits(dec.words,5,8,false));
     for(let i=0;i<bytes.length;){
@@ -437,23 +438,90 @@ async function getNoteById(idHex){
   const j = await r.json();
   return (j && (j.data?.[0]||j[0]))||null;
 }
-async function getProfile(pubkeyHex){
-  const url=`${API}?pubkey=${pubkeyHex}&kind=0&sort=time&order=descending&limit=1`;
-  const r=await fetch(url,{mode:"cors"});
-  if(!r.ok) return {name: shortKey(pubkeyHex), picture:"https://api.dicebear.com/7.x/identicon/svg?seed="+pubkeyHex};
-  const j=await r.json();
-  const ev=(j && (j.data?.[0]||j[0]))||null;
-  if(!ev) return {name: shortKey(pubkeyHex), picture:"https://api.dicebear.com/7.x/identicon/svg?seed="+pubkeyHex};
-  let meta={};
-  try{meta=JSON.parse(ev.content||"{}");}catch{}
+const profileCache = new Map();
+function fallbackProfile(pubkeyHex){
   return {
-    name: meta.display_name || meta.name || shortKey(pubkeyHex),
-    picture: meta.picture || "https://api.dicebear.com/7.x/identicon/svg?seed="+pubkeyHex,
-    lud16: meta.lud16 || "",
-    lud06: meta.lud06 || ""
+    name: shortKey(pubkeyHex) || "Nostr user",
+    picture: "https://api.dicebear.com/7.x/identicon/svg?seed=" + encodeURIComponent(pubkeyHex || "nostr-user"),
+    lud16: "",
+    lud06: ""
   };
 }
-function shortKey(k){return k.slice(0,8)+"…"+k.slice(-4);}
+function profileMetadataFromEvent(ev){
+  if(!ev) return {};
+  if(ev.content && typeof ev.content === "object") return ev.content;
+  if(typeof ev.content === "string"){
+    try { return JSON.parse(ev.content || "{}") || {}; } catch {}
+  }
+  if(ev.metadata && typeof ev.metadata === "object") return ev.metadata;
+  if(ev.profile && typeof ev.profile === "object") return ev.profile;
+  if(ev.name || ev.display_name || ev.picture || ev.lud16 || ev.lud06) return ev;
+  return {};
+}
+async function getProfile(pubkeyHex){
+  const key=String(pubkeyHex||"").toLowerCase();
+  const fallback=fallbackProfile(key);
+  if(!/^[0-9a-f]{64}$/.test(key)) return fallback;
+  if(profileCache.has(key)) return profileCache.get(key);
+
+  const pending=(async()=>{
+    let apiMeta={};
+    try{
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),4500);
+      try{
+        const url=`${API}?pubkey=${key}&kind=0&sort=time&order=descending&limit=10`;
+        const r=await fetch(url,{mode:"cors",signal:controller.signal});
+        if(r.ok){
+          const j=await r.json();
+          const rows=Array.isArray(j?.data)?j.data:(Array.isArray(j)?j:[]);
+          const ordered=rows.filter(ev=>!ev?.pubkey||String(ev.pubkey).toLowerCase()===key)
+            .sort((a,b)=>(b.created_at||0)-(a.created_at||0));
+          for(const ev of ordered){
+            const meta=profileMetadataFromEvent(ev);
+            if(meta&&(meta.name||meta.display_name||meta.picture||meta.lud16||meta.lud06)){
+              apiMeta=meta;
+              if(meta.name||meta.display_name) break;
+            }
+          }
+        }
+      }finally{clearTimeout(timeout);}
+    }catch(error){
+      console.warn("Profile index lookup failed; trying Nostr relays",error);
+    }
+
+    let relayMeta={};
+    if(!(apiMeta.name||apiMeta.display_name)||!apiMeta.picture){
+      try{
+        const {SimplePool}=await getNostrTools();
+        if(!nostrPool) nostrPool=new SimplePool();
+        const relayEvents=await Promise.race([
+          nostrPool.querySync(WRITE_RELAYS,{kinds:[0],authors:[key],limit:20}),
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error("profile relay lookup timeout")),6500))
+        ]);
+        const ordered=(relayEvents||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
+        for(const ev of ordered){
+          const meta=profileMetadataFromEvent(ev);
+          if(meta&&(meta.name||meta.display_name||meta.picture||meta.lud16||meta.lud06)){
+            relayMeta=meta;
+            if((meta.name||meta.display_name)&&meta.picture) break;
+          }
+        }
+      }catch(error){
+        console.warn("Relay profile lookup failed",error);
+      }
+    }
+    return {
+      name:apiMeta.display_name||apiMeta.name||relayMeta.display_name||relayMeta.name||fallback.name,
+      picture:apiMeta.picture||relayMeta.picture||fallback.picture,
+      lud16:apiMeta.lud16||relayMeta.lud16||"",
+      lud06:apiMeta.lud06||relayMeta.lud06||""
+    };
+  })();
+  profileCache.set(key,pending);
+  try{return await pending;}catch(error){profileCache.delete(key);return fallback;}
+}
+function shortKey(k){return k?k.slice(0,8)+"…"+k.slice(-4):"";}
 
 async function getKind0(pubkeyHex){
   const url=`${API}?pubkey=${pubkeyHex}&kind=0&sort=time&order=descending&limit=1`;
@@ -507,58 +575,76 @@ function mediaBoxForLive(url){
   return box;
 }
 
-/* ---------- Mentions (fixed & robust) ---------- */
-async function replaceNprofileMentions(container){
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-  const nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-
-  for (const node of nodes) {
-    const text = node.textContent;
-    const matches = findAllNprofiles(text);
-    if (!matches.length) continue;
-
-    const frag = document.createDocumentFragment();
-    let lastIndex = 0;
-
-    for (const token of matches) {
-      const index = text.indexOf(token, lastIndex);
-      if (index > lastIndex) {
-        frag.appendChild(document.createTextNode(text.slice(lastIndex, index)));
+/* ---------- Mentions: normalize escaped/markdown Nostr profile links ---------- */
+function normalizeNprofileMarkup(input){
+  let text=String(input||"").replace(/nostr\\:/gi,"nostr:");
+  text=text.replace(/\*{0,2}\[(?:\*{0,2})?(nostr:nprofile1[0-9a-z]+)(?:\*{0,2})?\]\(\s*https?:\/\/njump\.me\/(?:nostr:)?nprofile1[0-9a-z]+[^)]*\)\*{0,2}/gi,"$1");
+  text=text.replace(/\*{1,2}(nostr:nprofile1[0-9a-z]+)\*{1,2}/gi,"$1");
+  text=text.replace(/(nostr:nprofile1[0-9a-z]+)(?:\s*\1)+/gi,"$1");
+  return text;
+}
+function linkifyRemainingTextNodes(container){
+  const walker=document.createTreeWalker(container,NodeFilter.SHOW_TEXT);
+  const nodes=[];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  const urlRe=/https?:\/\/[^\s]+/g;
+  for(const node of nodes){
+    if(!node.parentNode||node.parentElement?.closest("a")) continue;
+    const text=node.textContent;
+    const matches=[...text.matchAll(urlRe)];
+    if(!matches.length) continue;
+    const frag=document.createDocumentFragment();
+    let last=0;
+    for(const match of matches){
+      let url=match[0];
+      let end=match.index+url.length;
+      while(/[.,!?;:]$/.test(url)){url=url.slice(0,-1);end--;}
+      if(match.index>last) frag.appendChild(document.createTextNode(text.slice(last,match.index)));
+      if(url){
+        const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=url;
+        frag.appendChild(a);
       }
-
-      const placeholder = document.createElement("span");
-      placeholder.className = "mention";
-      placeholder.textContent = "…";
-      frag.appendChild(placeholder);
-
-      (async () => {
-        const pubkey = nprofileToPubkey(token);
-        const profile = pubkey
-          ? await getProfile(pubkey)
-          : {name: token, picture:"https://api.dicebear.com/7.x/identicon/svg?seed=p"};
-
-        const a = document.createElement("a");
-        a.href = "https://njump.me/" + token;
-        a.target = "_blank"; a.rel="noopener noreferrer";
-        a.className = "mention visible";
-
-        const img = document.createElement("img"); img.src = profile.picture; img.alt = profile.name;
-        const label = document.createElement("span"); label.className="label"; label.textContent = profile.name;
-
-        a.appendChild(img); a.appendChild(label);
-        placeholder.replaceWith(a);
-      })();
-
-      lastIndex = index + token.length;
+      if(end<match.index+match[0].length) frag.appendChild(document.createTextNode(text.slice(end,match.index+match[0].length)));
+      last=match.index+match[0].length;
     }
-
-    if (lastIndex < text.length) {
-      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
-    }
-
-    node.parentNode.replaceChild(frag, node);
+    if(last<text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag,node);
   }
+}
+async function replaceNprofileMentions(container){
+  const walker=document.createTreeWalker(container,NodeFilter.SHOW_TEXT);
+  const nodes=[];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  const tasks=[];
+  for(const node of nodes){
+    const text=node.textContent;
+    const matches=findAllNprofiles(text);
+    if(!matches.length) continue;
+    const frag=document.createDocumentFragment();
+    let lastIndex=0;
+    for(const rawToken of matches){
+      const index=text.indexOf(rawToken,lastIndex);
+      if(index<0) continue;
+      if(index>lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex,index)));
+      const canonical=rawToken.replace(/^nostr:/i,"");
+      const placeholder=document.createElement("span");
+      placeholder.className="mention";placeholder.textContent="Loading…";frag.appendChild(placeholder);
+      tasks.push((async()=>{
+        const pubkey=nprofileToPubkey(canonical);
+        const profile=pubkey?await getProfile(pubkey):fallbackProfile("");
+        const a=document.createElement("a");
+        a.href="https://njump.me/"+canonical;a.target="_blank";a.rel="noopener noreferrer";a.className="mention visible";
+        const img=document.createElement("img");img.src=profile.picture;img.alt=profile.name;img.loading="lazy";
+        const label=document.createElement("span");label.className="label";label.textContent=profile.name;
+        a.append(img,label);
+        if(placeholder.isConnected) placeholder.replaceWith(a);
+      })());
+      lastIndex=index+rawToken.length;
+    }
+    if(lastIndex<text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+    if(node.parentNode) node.parentNode.replaceChild(frag,node);
+  }
+  await Promise.allSettled(tasks);
 }
 
 /* ---------- Feed ---------- */
@@ -587,9 +673,10 @@ async function drawFeed(events){
     header.appendChild(pfp); header.appendChild(metaDiv);
 
     const content=document.createElement("div"); content.className="content";
-    const textOnly = stripMediaAndNevent(ev.content||"");
-    content.innerHTML = linkify(textOnly);
+    const textOnly = normalizeNprofileMarkup(stripMediaAndNevent(ev.content||""));
+    content.textContent = textOnly;
     await replaceNprofileMentions(content);
+    linkifyRemainingTextNodes(content);
 
     const gallery=document.createElement("div"); gallery.className="gallery";
     const imgs=extractImages(ev.content||"");
@@ -755,8 +842,6 @@ async function connectNostr(){
     signedInPubkey = await window.nostr.getPublicKey();
     const profile = await getProfile(signedInPubkey);
     document.getElementById("loginBtn").textContent = "✓ " + (profile.name || npubShort(signedInPubkey));
-    document.getElementById("blogStatus").textContent = "Signed in · " + npubShort(signedInPubkey);
-    document.getElementById("blogStatus").style.color = "#a8f0c8";
     document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Write a reply…");
   }catch(error){
     console.error("Nostr login failed",error);
@@ -799,10 +884,10 @@ async function loadNoteInteractions(note, container){
     for(const reply of replies.sort((a,b)=>a.created_at-b.created_at).slice(-12)){
       const item=document.createElement("div");item.className="comment-item";
       const authorRow=document.createElement("div");authorRow.className="comment-author-row";
-      const authorPic=document.createElement("img");authorPic.className="comment-pfp";authorPic.alt="";authorPic.loading="lazy";
+      const authorPic=document.createElement("img");authorPic.className="comment-pfp";authorPic.alt="Nostr profile";authorPic.loading="lazy";authorPic.src=fallbackProfile(reply.pubkey).picture;
       const author=document.createElement("div");author.className="comment-author";author.textContent="Loading profile…";
       authorRow.append(authorPic,author);
-      const body=document.createElement("div");body.className="comment-body";body.textContent=reply.content;
+      const body=document.createElement("div");body.className="comment-body";body.textContent=normalizeNprofileMarkup(reply.content);
       item.append(authorRow,body);list.appendChild(item);
       getProfile(reply.pubkey).then(profile=>{
         author.textContent=profile.name || shortKey(reply.pubkey);
@@ -813,6 +898,7 @@ async function loadNoteInteractions(note, container){
         authorPic.src="https://api.dicebear.com/7.x/identicon/svg?seed="+reply.pubkey;
       });
       await replaceNprofileMentions(body);
+      linkifyRemainingTextNodes(body);
     }
   }catch(error){stats.textContent="Replies and reactions load when relays respond.";}
 }
