@@ -299,6 +299,8 @@
     .donation-method h3{font-size:15px;margin-bottom:6px}.donation-method p{font-size:12px;line-height:1.6;color:var(--muted);margin-bottom:14px}
     .donation-qr{display:block;width:210px;height:210px;max-width:100%;margin:10px auto 14px;border-radius:12px;background:#fff;padding:8px;object-fit:contain}
     .donation-address{padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(0,0,0,.24);font:12px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;color:#f4e7d9}
+    .donation-recipient{margin-top:12px;color:var(--muted);font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+    .donation-recipient code{color:#ded7ed;font-family:ui-monospace,monospace}
     .donation-copy{width:100%;margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,164,71,.28);background:rgba(255,164,71,.09);color:#ffd2a5;font-weight:750;cursor:pointer}
     .donation-checkout{width:100%;height:430px;border:0;border-radius:12px;background:#fff}
     .donation-unavailable{padding:20px 12px;border:1px dashed rgba(255,255,255,.15);border-radius:12px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
@@ -405,6 +407,24 @@ function hexToBytes(hex){const out=new Uint8Array(hex.length/2);for(let i=0;i<ou
 function pubkeyToNpub(hex){
   const data = convertBits(Array.from(hexToBytes(hex)),8,5,true);
   return bech32Encode("npub", data);
+}
+// Encode a v1 SegWit witness program with Bech32m, using the same direct x-only
+// Nostr public-key-to-Taproot receive-address model shown by Sifaka.Live.
+function bech32mEncode(hrp, words){
+  const values=hrpExpand(hrp).concat(words,[0,0,0,0,0,0]);
+  const mod=(bech32Polymod(values)^0x2bc830a3)>>>0;
+  const checksum=[];
+  for(let p=0;p<6;p++) checksum.push((mod>>>(5*(5-p)))&31);
+  return hrp+"1"+words.concat(checksum).map(v=>CHARSET[v]).join("");
+}
+function deriveNostrTaprootAddress(pubkeyHex){
+  const key=String(pubkeyHex||"").toLowerCase();
+  if(!/^[0-9a-f]{64}$/.test(key)) throw new Error("Invalid Nostr public key for Bitcoin address.");
+  const bytes=hexToBytes(key);
+  if(bytes.length!==32) throw new Error("Expected a 32-byte Nostr public key.");
+  const programWords=convertBits(Array.from(bytes),8,5,true);
+  if(!programWords || programWords.length!==52) throw new Error("Could not encode the Nostr public key as a Taproot address.");
+  return bech32mEncode("bc",[1,...programWords]);
 }
 
 /* ---------- TLV helpers for nevent/nprofile ---------- */
@@ -772,36 +792,72 @@ async function showAbout() {
 }
 
 /* Donation modal: on-chain checkout plus the profile's published Lightning address. */
-function showDonationModal(){
+async function showDonationModal(){
   document.getElementById("donationModal")?.remove();
+  const recipientNpub=pubkeyToNpub(PUBKEY_HEX);
   const backdrop=document.createElement("div");backdrop.id="donationModal";backdrop.className="donation-backdrop";
   backdrop.innerHTML=`
     <section class="donation-dialog" role="dialog" aria-modal="true" aria-labelledby="donationTitle">
-      <header class="donation-head"><div><h2 id="donationTitle">₿ Support Bitcoin Cats</h2><p>Choose your preferred Bitcoin network. Double-check the destination in your wallet before sending.</p></div><button class="donation-close" type="button" aria-label="Close donations">✕</button></header>
+      <header class="donation-head"><div><h2 id="donationTitle">₿ Support Bitcoin Cats</h2><p>Both payment options are tied to the same Bitcoin Cats Nostr identity. Verify the destination in your wallet before sending.</p></div><button class="donation-close" type="button" aria-label="Close donations">✕</button></header>
       <div class="donation-methods">
-        <section class="donation-method"><h3>₿ On-chain Bitcoin</h3><p>Scan the QR code in the secure BTCPay checkout to display the current receiving address and payment details.</p>
-          <iframe class="donation-checkout" title="Bitcoin Cats on-chain donation checkout" src="https://zap.bitcoin-cats.ca/i/QU4a17WGBWBaCCAt3nbkLt/BTC-CHAIN" loading="lazy"></iframe>
-          <p style="margin:10px 0 0">The checkout supplies the current address and QR; confirm it in your wallet before paying.</p>
+        <section class="donation-method">
+          <h3>₿ On-chain Bitcoin</h3>
+          <p>A native Taproot receive address derived from the Bitcoin Cats Nostr public key.</p>
+          <div id="onchainDonationContent"><div class="donation-unavailable">Preparing the on-chain address…</div></div>
+          <div class="donation-recipient">Nostr recipient: <code></code></div>
         </section>
-        <section class="donation-method"><h3>⚡ Lightning</h3><p>Scan the QR with a Lightning wallet or copy the Lightning address.</p>
-          <div id="lightningDonationContent"></div>
+        <section class="donation-method">
+          <h3>⚡ Lightning</h3>
+          <p>Uses the Lightning address or LNURL published by the same Nostr profile.</p>
+          <div id="lightningDonationContent"><div class="donation-unavailable">Loading Lightning details for the matching Nostr profile…</div></div>
+          <div class="donation-recipient">Nostr recipient: <code></code></div>
         </section>
       </div>
     </section>`;
   document.body.appendChild(backdrop);
+  backdrop.querySelectorAll(".donation-recipient code").forEach(el=>{el.textContent=recipientNpub;});
   const close=()=>backdrop.remove();
   backdrop.querySelector(".donation-close").onclick=close;
   backdrop.addEventListener("click",e=>{if(e.target===backdrop)close();});
   document.addEventListener("keydown",function esc(e){if(e.key==="Escape"&&document.getElementById("donationModal")){close();document.removeEventListener("keydown",esc);}});
-  const content=backdrop.querySelector("#lightningDonationContent");
-  if(donationLightningAddress){
-    const qr=document.createElement("img");qr.className="donation-qr";qr.alt="Lightning address QR code";qr.src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data="+encodeURIComponent(donationLightningAddress);
-    const addr=document.createElement("div");addr.className="donation-address";addr.textContent=donationLightningAddress;
-    const copy=document.createElement("button");copy.className="donation-copy";copy.type="button";copy.textContent="Copy Lightning address";
-    copy.onclick=async()=>{try{await navigator.clipboard.writeText(donationLightningAddress);copy.textContent="✓ Copied";}catch{copy.textContent="Select and copy the address above";}};
-    content.append(qr,addr,copy);
-  }else{
-    content.innerHTML='<div class="donation-unavailable">No Lightning address is published in the Bitcoin Cats Nostr profile yet. Add a <code>lud16</code> Lightning address to profile metadata to enable the QR and copy button here.</div>';
+
+  const onchainContent=backdrop.querySelector("#onchainDonationContent");
+  try{
+    const address=deriveNostrTaprootAddress(PUBKEY_HEX);
+    const qr=document.createElement("img");
+    qr.className="donation-qr";qr.alt="On-chain Bitcoin Taproot address QR code";
+    qr.src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data="+encodeURIComponent("bitcoin:"+address);
+    const addr=document.createElement("div");addr.className="donation-address";addr.textContent=address;
+    const copy=document.createElement("button");copy.className="donation-copy";copy.type="button";copy.textContent="Copy on-chain address";
+    copy.onclick=async()=>{try{await navigator.clipboard.writeText(address);copy.textContent="✓ Copied";}catch{copy.textContent="Select and copy the address above";}};
+    onchainContent.replaceChildren(qr,addr,copy);
+  }catch(error){
+    console.error("Could not derive the Bitcoin Cats Taproot address",error);
+    onchainContent.innerHTML='<div class="donation-unavailable">The on-chain address could not be derived. No alternate wallet is shown to avoid sending funds to the wrong destination.</div>';
+  }
+
+  const lightningContent=backdrop.querySelector("#lightningDonationContent");
+  try{
+    // Resolve metadata from the exact same public key used for the on-chain address.
+    const recipientProfile=await getProfile(PUBKEY_HEX);
+    if(!backdrop.isConnected)return;
+    donationLightningAddress=String(recipientProfile.lud16||"").trim();
+    const lightningValue=donationLightningAddress || String(recipientProfile.lud06||"").trim();
+    if(lightningValue){
+      const qr=document.createElement("img");qr.className="donation-qr";
+      qr.alt=donationLightningAddress?"Lightning address QR code":"Lightning LNURL QR code";
+      qr.src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data="+encodeURIComponent(lightningValue);
+      const addr=document.createElement("div");addr.className="donation-address";addr.textContent=lightningValue;
+      const copy=document.createElement("button");copy.className="donation-copy";copy.type="button";
+      copy.textContent=donationLightningAddress?"Copy Lightning address":"Copy Lightning LNURL";
+      copy.onclick=async()=>{try{await navigator.clipboard.writeText(lightningValue);copy.textContent="✓ Copied";}catch{copy.textContent="Select and copy the value above";}};
+      lightningContent.replaceChildren(qr,addr,copy);
+    }else{
+      lightningContent.innerHTML='<div class="donation-unavailable">No Lightning address or LNURL is published by this Nostr profile. No different recipient is substituted.</div>';
+    }
+  }catch(error){
+    console.error("Could not load Lightning details for the Bitcoin Cats Nostr profile",error);
+    if(backdrop.isConnected)lightningContent.innerHTML='<div class="donation-unavailable">Lightning details could not be loaded for this Nostr profile. Please try again.</div>';
   }
   backdrop.querySelector(".donation-close").focus();
 }
