@@ -366,6 +366,9 @@
 
 <script>
 const API = "https://api.nostr.wine/search";
+const FEED_RELAYS = ["wss://nos.lol","wss://relay.damus.io","wss://purplerelay.com","wss://relay.primal.net"];
+const FEED_RELAY_LIMIT = 100;
+const INITIAL_POSTS_VISIBLE = 12;
 const PUBKEY_HEX = "3ab4c8ea97cd164d17f68990c1006e21e87f31a919a7013ecf2dae2e416938fd";
 const DEFAULT_LIMIT = 12;
 const POSTS_PER_BATCH = 6;
@@ -584,14 +587,53 @@ async function getKind0(pubkeyHex){
   const j=await r.json();
   return (j && (j.data?.[0]||j[0]))||null;
 }
+function withTimeout(promise,milliseconds,message){
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),milliseconds);})
+  ]).finally(()=>clearTimeout(timer));
+}
+
+async function getRelayKind1(pubkeyHex){
+  const {SimplePool}=await getNostrTools();
+  if(!nostrPool) nostrPool=new SimplePool();
+  const events=await withTimeout(
+    nostrPool.querySync(FEED_RELAYS,{kinds:[1],authors:[pubkeyHex],limit:FEED_RELAY_LIMIT}),
+    9000,
+    "Nostr relay post lookup timed out."
+  );
+  return Array.isArray(events)?events:[];
+}
+
 async function getKind1(pubkeyHex,page=1){
   const url=API+"?pubkey="+encodeURIComponent(pubkeyHex)+"&kind=1&sort=time&order=descending&limit="+DEFAULT_LIMIT+"&page="+page;
-  const r=await fetch(url,{mode:"cors"});
-  if(!r.ok) throw new Error("Could not load blog posts ("+r.status+").");
-  const j=await r.json();
-  const events=Array.isArray(j?.data)?j.data:(Array.isArray(j)?j:[]);
-  const lastPage=j?.pagination?.last_page;
-  return {events,hasMore:typeof lastPage==="boolean"?!lastPage:events.length>=DEFAULT_LIMIT};
+  const apiRequest=withTimeout((async()=>{
+    const r=await fetch(url,{mode:"cors"});
+    if(!r.ok) throw new Error("Could not load blog posts ("+r.status+").");
+    return await r.json();
+  })(),9000,"Post index lookup timed out.");
+  const relayRequest=page===1?getRelayKind1(pubkeyHex):Promise.resolve([]);
+  const [apiResult,relayResult]=await Promise.allSettled([apiRequest,relayRequest]);
+  if(apiResult.status==="rejected"&&(page!==1||relayResult.status==="rejected")) throw apiResult.reason;
+  if(apiResult.status==="rejected") console.warn("Post index unavailable; using recent Nostr relay events.",apiResult.reason);
+  if(page===1&&relayResult.status==="rejected") console.warn("Could not refresh posts directly from Nostr relays.",relayResult.reason);
+
+  const payload=apiResult.status==="fulfilled"?apiResult.value:{};
+  const apiEvents=Array.isArray(payload?.data)?payload.data:(Array.isArray(payload)?payload:[]);
+  const relayEvents=page===1&&relayResult.status==="fulfilled"?relayResult.value:[];
+  const merged=new Map();
+  for(const event of [...apiEvents,...relayEvents]){
+    if(event?.id) merged.set(event.id,event);
+  }
+  const events=(merged.size?[...merged.values()]:[...apiEvents,...relayEvents])
+    .sort((a,b)=>(b.created_at||0)-(a.created_at||0));
+  const lastPage=payload?.pagination?.last_page;
+  const apiHasMore=apiResult.status==="fulfilled"
+    ?(typeof lastPage==="boolean"?!lastPage:apiEvents.length>=DEFAULT_LIMIT)
+    :false;
+  const relaysMayHaveMore=relayEvents.length>=FEED_RELAY_LIMIT;
+  return {events,hasMore:apiHasMore||relaysMayHaveMore};
 }
 
 /* ---------- Media helpers ---------- */
@@ -703,12 +745,16 @@ async function replaceNprofileMentions(container){
   await Promise.allSettled(tasks);
 }
 
+function isReplyEvent(event){
+  return (event.tags||[]).some(tag=>tag[0]==="e"&&String(tag[3]||"").toLowerCase()==="reply");
+}
+
 /* ---------- Feed ---------- */
 async function drawFeed(pageResult){
   if(feedPostObserver){feedPostObserver.disconnect();feedPostObserver=null;}
   feedEl.replaceChildren();
   const events=(pageResult?.events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
-  currentFeedEvents=events.filter(ev=>!(ev.tags&&ev.tags.some(t=>t[0]==="e")));
+  currentFeedEvents=events.filter(ev=>!isReplyEvent(ev));
   currentFeedPage=1;
   renderedFeedPosts=0;
   feedHasMorePages=Boolean(pageResult?.hasMore);
@@ -789,7 +835,7 @@ async function loadMoreFeedPosts(options={}){
       const nextEvents=(result?.events||[])
         .slice()
         .sort((a,b)=>(b.created_at||0)-(a.created_at||0))
-        .filter(ev=>!(ev.tags&&ev.tags.some(t=>t[0]==="e")));
+        .filter(ev=>!isReplyEvent(ev));
       let added=0;
       for(const ev of nextEvents){
         if(ev.id&&feedEventIds.has(ev.id))continue;
@@ -800,7 +846,8 @@ async function loadMoreFeedPosts(options={}){
       pagesWithoutNewPosts=added===0?pagesWithoutNewPosts+1:0;
     }
 
-    const batch=currentFeedEvents.slice(renderedFeedPosts,renderedFeedPosts+POSTS_PER_BATCH);
+    const batchSize=initial?INITIAL_POSTS_VISIBLE:POSTS_PER_BATCH;
+    const batch=currentFeedEvents.slice(renderedFeedPosts,renderedFeedPosts+batchSize);
     if(!batch.length){
       updateFeedLoadMoreControl(
         feedHasMorePages
