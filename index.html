@@ -598,12 +598,22 @@ function withTimeout(promise,milliseconds,message){
 async function getRelayKind1(pubkeyHex){
   const {SimplePool}=await getNostrTools();
   if(!nostrPool) nostrPool=new SimplePool();
-  const events=await withTimeout(
-    nostrPool.querySync(FEED_RELAYS,{kinds:[1],authors:[pubkeyHex],limit:FEED_RELAY_LIMIT},{maxWait:7000}),
-    9000,
+  const results=await Promise.allSettled(FEED_RELAYS.map(relay=>withTimeout(
+    nostrPool.querySync([relay],{kinds:[1],authors:[pubkeyHex],limit:FEED_RELAY_LIMIT},{maxWait:4000}),
+    5000,
     "Nostr relay post lookup timed out."
-  );
-  return Array.isArray(events)?events:[];
+  )));
+  const events=new Map();
+  let responders=0;
+  for(const result of results){
+    if(result.status!=="fulfilled") continue;
+    responders++;
+    for(const event of result.value||[]){
+      if(event?.id&&event.kind===1&&String(event.pubkey||"").toLowerCase()===String(pubkeyHex).toLowerCase()) events.set(event.id,event);
+    }
+  }
+  if(!responders) throw new Error("No Nostr relay returned a result.");
+  return [...events.values()];
 }
 
 async function getKind1(pubkeyHex,page=1){
@@ -620,7 +630,8 @@ async function getKind1(pubkeyHex,page=1){
   if(page===1&&relayResult.status==="rejected") console.warn("Could not refresh posts directly from Nostr relays.",relayResult.reason);
 
   const payload=apiResult.status==="fulfilled"?apiResult.value:{};
-  const apiEvents=Array.isArray(payload?.data)?payload.data:(Array.isArray(payload)?payload:[]);
+  const apiRows=Array.isArray(payload?.data)?payload.data:(Array.isArray(payload)?payload:[]);
+  const apiEvents=apiRows.filter(event=>event?.kind===1&&String(event.pubkey||"").toLowerCase()===String(pubkeyHex).toLowerCase());
   const relayEvents=page===1&&relayResult.status==="fulfilled"?relayResult.value:[];
   const merged=new Map();
   for(const event of [...apiEvents,...relayEvents]){
