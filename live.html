@@ -220,15 +220,33 @@
       const tags=(event.tags||[]).filter(tag=>tag[0]==='t'&&tag[1]).slice(0,12);
       $('streamTags').replaceChildren(...tags.map(tag=>{const span=document.createElement('span');span.className='tag';span.textContent='#'+tag[1];return span;}));
     }
-    async function fetchProfile(pubkey){
+    async function queryRelays(filter,maxWait,milliseconds,message){
+  const results=await Promise.allSettled(RELAYS.map(relay=>{
+    const relayFilter={...filter};
+    for(const key of Object.keys(relayFilter)) if(Array.isArray(relayFilter[key])) relayFilter[key]=relayFilter[key].slice();
+    let timer;
+    return Promise.race([
+      pool.querySync([relay],relayFilter,{maxWait}),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),milliseconds);})
+    ]).finally(()=>clearTimeout(timer));
+  }));
+  const events=new Map();
+  let responders=0;
+  for(const result of results){
+    if(result.status!=="fulfilled") continue;
+    responders++;
+    for(const event of result.value||[]) if(event?.id) events.set(event.id,event);
+  }
+  if(!responders) throw new Error(message);
+  return [...events.values()];
+}
+
+async function fetchProfile(pubkey){
       if(profileCache.has(pubkey))return profileCache.get(pubkey);
       const fallback={name:pubkey?pubkey.slice(0,8)+'…'+pubkey.slice(-4):'Nostr user',picture:''};
       const pending=(async()=>{
         try{
-          const events=await Promise.race([
-            pool.querySync(RELAYS,{kinds:[0],authors:[pubkey],limit:20},{maxWait:4000}),
-            new Promise((_,reject)=>setTimeout(()=>reject(new Error('Profile lookup timeout')),5000))
-          ]);
+          const events=await queryRelays({kinds:[0],authors:[pubkey],limit:20},4000,5000,'Profile lookup timeout');
           const latest=(events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
           for(const event of latest){
             let meta={};try{meta=JSON.parse(event.content||'{}');}catch{}
@@ -264,10 +282,7 @@
       if(chatRefreshRunning)return;
       chatRefreshRunning=true;
       try{
-        const events=await Promise.race([
-          pool.querySync(RELAYS,{kinds:[1311],'#a':[address],limit:100},{maxWait:7000}),
-          new Promise((_,reject)=>setTimeout(()=>reject(new Error('Chat lookup timed out')),9000))
-        ]);
+        const events=await queryRelays({kinds:[1311],'#a':[address],limit:100},7000,8000,'Chat lookup timed out');
         if(requestId!==chatRequestId||activityAddress!==address)return;
         const unique=new Map();
         for(const event of events||[]){
@@ -313,10 +328,7 @@
       if(streamRefreshRunning||!pool||!hostPubkey)return;
       streamRefreshRunning=true;
       try{
-        const events=await Promise.race([
-          pool.querySync(RELAYS,{kinds:[30311],authors:[hostPubkey],limit:50},{maxWait:9000}),
-          new Promise((_,reject)=>setTimeout(()=>reject(new Error('Relay lookup timed out')),12000))
-        ]);
+        const events=await queryRelays({kinds:[30311],authors:[hostPubkey],limit:50},9000,10000,'Relay lookup timed out');
         const event=chooseStream(events);
         if(!event){
           activityAddress='';activityStatus='offline';currentEventId='';
