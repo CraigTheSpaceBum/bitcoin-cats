@@ -226,7 +226,7 @@
       const pending=(async()=>{
         try{
           const events=await Promise.race([
-            pool.querySync(RELAYS,{kinds:[0],authors:[pubkey],limit:20}),
+            pool.querySync(RELAYS,{kinds:[0],authors:[pubkey],limit:20},{maxWait:4000}),
             new Promise((_,reject)=>setTimeout(()=>reject(new Error('Profile lookup timeout')),5000))
           ]);
           const latest=(events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
@@ -265,7 +265,7 @@
       chatRefreshRunning=true;
       try{
         const events=await Promise.race([
-          pool.querySync(RELAYS,{kinds:[1311],'#a':[address],limit:100}),
+          pool.querySync(RELAYS,{kinds:[1311],'#a':[address],limit:100},{maxWait:7000}),
           new Promise((_,reject)=>setTimeout(()=>reject(new Error('Chat lookup timed out')),9000))
         ]);
         if(requestId!==chatRequestId||activityAddress!==address)return;
@@ -314,7 +314,7 @@
       streamRefreshRunning=true;
       try{
         const events=await Promise.race([
-          pool.querySync(RELAYS,{kinds:[30311],authors:[hostPubkey],limit:50}),
+          pool.querySync(RELAYS,{kinds:[30311],authors:[hostPubkey],limit:50},{maxWait:9000}),
           new Promise((_,reject)=>setTimeout(()=>reject(new Error('Relay lookup timed out')),12000))
         ]);
         const event=chooseStream(events);
