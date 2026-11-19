@@ -599,7 +599,7 @@ async function getRelayKind1(pubkeyHex){
   const {SimplePool}=await getNostrTools();
   if(!nostrPool) nostrPool=new SimplePool();
   const events=await withTimeout(
-    nostrPool.querySync(FEED_RELAYS,{kinds:[1],authors:[pubkeyHex],limit:FEED_RELAY_LIMIT}),
+    nostrPool.querySync(FEED_RELAYS,{kinds:[1],authors:[pubkeyHex],limit:FEED_RELAY_LIMIT},{maxWait:7000}),
     9000,
     "Nostr relay post lookup timed out."
   );
