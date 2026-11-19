@@ -1230,6 +1230,7 @@ function attachInteractions(post, note){
 /* ---------- Boot ---------- */
 async function load(){
   try{
+    if(location.hash.toLowerCase()==="#donate") void showDonationModal();
     const [firstPage,meta]=await Promise.all([getKind1(PUBKEY_HEX,1),getProfile(PUBKEY_HEX)]);
     applyProfileToBanner(meta);
     await drawFeed(firstPage);
