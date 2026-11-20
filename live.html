@@ -815,6 +815,11 @@ permalink: /live
       }
     }
     async function refreshYouTubeViewerCount(){
+      if(activityStatus!=='live'){
+        $('youtubeViewerCount').textContent='0';
+        $('youtubeViewerNote').textContent='No active Bitcoin Cats live stream';
+        return;
+      }
       if(!YOUTUBE_API_KEY){
         $('youtubeViewerCount').textContent='—';
         $('youtubeViewerNote').textContent='YouTube API key not configured';
@@ -1746,7 +1751,7 @@ permalink: /live
         void refreshTwitchViewerCount();
         void refreshYouTubeViewerCount();
         setInterval(()=>{void refreshTwitchViewerCount();},300000);
-        setInterval(()=>{void refreshYouTubeViewerCount();},60000);
+        setInterval(()=>{void refreshYouTubeViewerCount();},300000);
         const observer=new ResizeObserver(reportHeight);observer.observe(document.body);reportHeight();
       }catch(error){
         showOffline(null,'Could not initialize Nostr stream discovery. The preview will stay blurred while reconnecting.');
