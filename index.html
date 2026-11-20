@@ -277,6 +277,23 @@
     .blog-subtitle{max-width:680px;line-height:1.6}
     .tag{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);color:#d8d3e5;font-size:11px}
     main.feed{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px}
+    .blog-page-banner {
+      grid-column:1 / -1;
+      width:100%;
+      margin:4px 0 2px;
+      overflow:hidden;
+      border:1px solid rgba(255,164,71,.24);
+      border-radius:18px;
+      background:rgba(12,12,20,.72);
+      box-shadow:0 14px 40px rgba(0,0,0,.24);
+    }
+    .blog-page-banner img {
+      display:block;
+      width:100%;
+      height:auto;
+      max-width:100%;
+      object-fit:contain;
+    }
     article.post.featured-post{grid-column:1/-1;padding:clamp(22px,4vw,42px);background:radial-gradient(ellipse at 100% 0%,rgba(255,164,71,.12),transparent 45%),linear-gradient(145deg,rgba(28,27,42,.98),rgba(13,13,22,.98));border-color:rgba(255,164,71,.3);position:relative;overflow:hidden}
     .featured-label{display:inline-flex;align-items:center;gap:7px;margin-bottom:18px;padding:7px 10px;border:1px solid rgba(255,164,71,.28);border-radius:999px;color:#ffc58b;background:rgba(255,164,71,.08);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
     .featured-post .content{font-size:clamp(16px,1.6vw,19px);line-height:1.9;max-width:1000px}
@@ -776,6 +793,17 @@ function isReplyEvent(event){
 async function drawFeed(pageResult){
   if(feedPostObserver){feedPostObserver.disconnect();feedPostObserver=null;}
   feedEl.replaceChildren();
+
+  // Keep the blog artwork above the Nostr posts on every feed refresh.
+  const blogBanner=document.createElement("div");
+  blogBanner.className="blog-page-banner";
+  const blogBannerImage=document.createElement("img");
+  blogBannerImage.src="/assets/blog.webp";
+  blogBannerImage.alt="Bitcoin Cats blog";
+  blogBannerImage.loading="eager";
+  blogBannerImage.decoding="async";
+  blogBanner.appendChild(blogBannerImage);
+  feedEl.appendChild(blogBanner);
   const events=(pageResult?.events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
   currentFeedEvents=events.filter(ev=>!isReplyEvent(ev));
   currentFeedPage=1;
