@@ -101,6 +101,32 @@ permalink: /live
     .stream-action:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
     .stream-action.watch{border-color:rgba(255,255,255,.14)}
     .stream-action.donate{border-color:rgba(255,173,85,.23);color:#ffd3a8;background:rgba(255,173,85,.055)}
+    .watcher-section{padding:17px 16px 18px;border-top:1px solid var(--line);background:linear-gradient(145deg,rgba(167,139,250,.035),rgba(255,255,255,.012))}
+    .watcher-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:13px}
+    .watcher-title{font-size:14px;font-weight:850;letter-spacing:-.01em}
+    .watcher-caption{margin-top:4px;color:var(--muted);font-size:10px;line-height:1.5}
+    .watcher-live-state{display:inline-flex;align-items:center;gap:7px;flex:none;padding:6px 9px;border:1px solid rgba(94,230,168,.2);border-radius:999px;background:rgba(94,230,168,.06);color:#c8ffe2;font-size:10px;font-weight:800}
+    .watcher-live-dot{width:7px;height:7px;border-radius:50%;background:#5ee6a8;box-shadow:0 0 9px rgba(94,230,168,.7)}
+    .watcher-live-state.offline{border-color:var(--line);background:rgba(255,255,255,.03);color:var(--muted)}
+    .watcher-live-state.offline .watcher-live-dot{background:#77778b;box-shadow:none}
+    .watcher-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+    .watcher-stat{min-width:0;padding:11px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(0,0,0,.18)}
+    .watcher-stat-label{font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+    .watcher-stat-value{margin-top:5px;font:850 21px/1.15 Inter,system-ui,sans-serif;color:#f7f3ff;font-variant-numeric:tabular-nums}
+    .watcher-stat-note{margin-top:4px;color:#77778d;font-size:9px;line-height:1.4;overflow-wrap:anywhere}
+    .watcher-list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:17px 0 9px}
+    .watcher-list-title{font-size:11px;font-weight:850;color:#eee9fb}
+    .watcher-updated{font-size:9px;color:#77778d;text-align:right}
+    .watcher-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+    .watcher-card{display:flex;align-items:center;gap:9px;min-width:0;padding:9px;border:1px solid rgba(167,139,250,.14);border-radius:11px;background:rgba(139,92,246,.035)}
+    .watcher-avatar{width:38px;height:38px;flex:none;object-fit:cover;border:1px solid rgba(167,139,250,.32);border-radius:9px;background:#211c32}
+    .watcher-profile{min-width:0;display:grid;gap:4px}
+    .watcher-name{font-size:11px;font-weight:850;color:#f5efff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .watcher-identity{display:flex;align-items:center;gap:5px;min-width:0;color:#b9aecb;font:9px/1.4 ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .watcher-verified{display:inline-grid;place-items:center;width:13px;height:13px;flex:none;border-radius:50%;background:#a78bfa;color:#160d25;font:900 9px/1 system-ui}
+    .watcher-empty{padding:18px 12px;border:1px dashed rgba(255,255,255,.1);border-radius:11px;color:var(--muted);font-size:11px;line-height:1.6;text-align:center}
+    .watcher-footnote{margin-top:12px;color:#737287;font-size:9px;line-height:1.5}
+    .watcher-warning{color:#d2b8ff}
     .bitcoin-donation-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(3,3,8,.82);backdrop-filter:blur(12px)}
     .bitcoin-donation-dialog{position:relative;width:min(520px,100%);max-height:min(88vh,760px);overflow:auto;border:1px solid rgba(255,173,85,.3);border-radius:20px;background:linear-gradient(145deg,#191927,#0c0c14);box-shadow:0 24px 90px rgba(0,0,0,.65),0 0 35px rgba(255,173,85,.13);padding:24px}
     .bitcoin-donation-dialog h2{font-size:19px;margin:0 42px 8px 0;letter-spacing:-.025em}
@@ -165,8 +191,8 @@ permalink: /live
     .donation-verified{padding:12px;border:1px solid rgba(94,230,168,.3);border-radius:10px;background:rgba(94,230,168,.08);color:#c9ffe3;font-size:11px;line-height:1.5}
     .footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;color:var(--muted);font-size:11px;line-height:1.6}.footer a{color:#ffd1a0}
     body.signed-in .container{padding-top:82px}
-    @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}}
-    @media(max-width:700px){.container{padding-top:12px}body.signed-in .container{padding-top:82px}.login-dialog{padding:20px}.login-grid{grid-template-columns:1fr}.signed-in-overlay{top:8px;right:8px;padding:7px 9px}.signed-in-avatar{width:36px;height:36px}.donation-presets{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}.watcher-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:700px){.container{padding-top:12px}body.signed-in .container{padding-top:82px}.login-dialog{padding:20px}.login-grid{grid-template-columns:1fr}.signed-in-overlay{top:8px;right:8px;padding:7px 9px}.signed-in-avatar{width:36px;height:36px}.donation-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-section{padding:14px 11px}.watcher-heading{align-items:flex-start}.watcher-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-stat:first-child{grid-column:span 2}.watcher-stat-value{font-size:19px}.watcher-list{grid-template-columns:1fr}.watcher-live-state{font-size:9px;padding:5px 7px}}
     @media(max-width:700px){.container{padding:12px}.profile{margin:24px 0}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{width:100%;margin:0;justify-content:flex-start;gap:7px}.btn{padding:9px 10px;font-size:12px}.page{padding:0}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
   </style>
@@ -222,6 +248,28 @@ permalink: /live
           <button class="stream-action donate" id="bitcoinMainchainButton" type="button">₿ Donation (Bitcoin Mainchain)</button>
           <button class="stream-action donate" id="bitcoinLightningButton" type="button">⚡ Donation (Bitcoin Lightning)</button>
         </nav>
+        <section class="watcher-section" id="watcherSection" aria-labelledby="watcherTitle">
+          <div class="watcher-heading">
+            <div>
+              <div class="watcher-title" id="watcherTitle">Watching Bitcoin Cats Live</div>
+              <div class="watcher-caption">People currently watching this page. Signed-in Nostr accounts are listed below; guests are included in the total.</div>
+            </div>
+            <span class="watcher-live-state offline" id="watcherLiveState"><span class="watcher-live-dot"></span><span id="watcherLiveLabel">Waiting for stream</span></span>
+          </div>
+          <div class="watcher-stats" aria-live="polite">
+            <div class="watcher-stat"><div class="watcher-stat-label">Total viewers here</div><div class="watcher-stat-value" id="watcherTotalCount">—</div><div class="watcher-stat-note">Signed-in accounts + guests</div></div>
+            <div class="watcher-stat"><div class="watcher-stat-label">Nostr accounts</div><div class="watcher-stat-value" id="watcherNostrCount">—</div><div class="watcher-stat-note">Unique accounts watching</div></div>
+            <div class="watcher-stat"><div class="watcher-stat-label">Guests</div><div class="watcher-stat-value" id="watcherGuestCount">—</div><div class="watcher-stat-note">Not signed in</div></div>
+            <div class="watcher-stat"><div class="watcher-stat-label">Twitch viewers</div><div class="watcher-stat-value" id="twitchViewerCount">—</div><div class="watcher-stat-note" id="twitchViewerNote">Checking Twitch…</div></div>
+            <div class="watcher-stat"><div class="watcher-stat-label">YouTube viewers</div><div class="watcher-stat-value" id="youtubeViewerCount">—</div><div class="watcher-stat-note" id="youtubeViewerNote">Checking YouTube…</div></div>
+          </div>
+          <div class="watcher-list-head">
+            <div class="watcher-list-title">Nostr accounts watching</div>
+            <div class="watcher-updated" id="watcherUpdatedAt">Waiting for relay presence…</div>
+          </div>
+          <div class="watcher-list" id="watcherList" aria-live="polite"><div class="watcher-empty">Watcher information will appear when the host goes live.</div></div>
+          <div class="watcher-footnote" id="watcherFootnote">Presence refreshes every few seconds. Viewers who leave are removed after their short heartbeat expires. Twitch and YouTube counts are independent platform-reported figures.</div>
+        </section>
         <div class="status-note" id="streamNote" role="status" aria-live="polite" hidden></div>
       </article>
       <aside class="panel chat-panel">
