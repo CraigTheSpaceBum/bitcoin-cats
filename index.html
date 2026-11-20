@@ -1027,7 +1027,7 @@ function applyProfileToBanner(meta){
 let activeContentPage = "home";
 
 function isDonationRoute(){
-  const path=window.location.pathname.replace(/\\/+$/,"");
+  const path=window.location.pathname.replace(/\/+$/, "");
   const query=new URLSearchParams(window.location.search);
   return path==="/donation" || query.get("page")==="donation" || window.location.hash.toLowerCase()==="#donate";
 }
