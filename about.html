@@ -168,84 +168,33 @@
       .about-top {flex-direction: column;}
     }
 
-    /* Sifaka.Live project feature */
+    /* Sifaka.Live image feature */
     .sifaka-feature {
       margin: 24px 0 8px;
-      border: 1px solid rgba(255,164,71,.35);
-      border-radius: 20px;
       overflow: hidden;
-      background: radial-gradient(ellipse at 100% 0%, rgba(255,164,71,.13), transparent 48%),
-                  linear-gradient(140deg, rgba(25,25,39,.96), rgba(12,12,20,.96));
+      border-radius: 16px;
       box-shadow: var(--shadow);
-      transition: border-color .2s ease, transform .2s ease;
     }
-    .sifaka-feature:hover {
-      border-color: rgba(255,164,71,.7);
-      transform: translateY(-2px);
-    }
-    a.sifaka-feature-link {
+    .sifaka-feature-link {
       display: block;
-      color: var(--text);
-      padding: clamp(22px, 4vw, 38px);
-      text-decoration: none;
+      border-radius: 16px;
+      line-height: 0;
     }
-    a.sifaka-feature-link:focus-visible {
+    .sifaka-feature-link:focus-visible {
       outline: 3px solid var(--orange);
-      outline-offset: -5px;
+      outline-offset: 4px;
     }
-    .sifaka-feature-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 18px;
+    .sifaka-feature-image {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border-radius: 16px;
+      transition: opacity .2s ease, transform .2s ease;
     }
-    .sifaka-kicker {
-      color: #ffc58b;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-    }
-    .sifaka-visit {
-      color: #241507;
-      background: linear-gradient(135deg, #ffb45f, #ff842e);
-      padding: 9px 13px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 800;
-    }
-    .sifaka-feature h2 {
-      margin: 0 0 14px;
-      color: var(--orange);
-      font-family: "Press Start 2P", monospace;
-      font-size: clamp(.8rem, 1.5vw, 1rem);
-      line-height: 1.8;
-    }
-    .sifaka-feature p {
-      color: var(--text);
-      font-size: 15px;
-      line-height: 1.75;
-      max-width: 1000px;
-      margin-bottom: 16px;
-    }
-    .sifaka-features {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 9px;
-      margin-top: 18px;
-    }
-    .sifaka-features span {
-      display: inline-flex;
-      align-items: center;
-      border: 1px solid rgba(255,164,71,.22);
-      border-radius: 999px;
-      background: rgba(255,164,71,.07);
-      color: #f1dfce;
-      padding: 8px 11px;
-      font-size: 12px;
-      line-height: 1.4;
+    .sifaka-feature-link:hover .sifaka-feature-image {
+      opacity: .96;
+      transform: scale(1.01);
     }
   </style>
 </head>
@@ -260,23 +209,14 @@
           <p><em>Bitcoin Maximalist, Node Runner & Nostr Maniac</em></p>
         </div>
 
-        <section class="sifaka-feature" aria-labelledby="sifakaFeatureTitle">
+        <section class="sifaka-feature" aria-label="Sifaka.Live">
           <a class="sifaka-feature-link" href="https://sifaka.live" aria-label="Visit Sifaka.Live">
-            <div class="sifaka-feature-top">
-              <span class="sifaka-kicker">Created by Craig</span>
-              <span class="sifaka-visit">Visit Sifaka.Live ↗</span>
-            </div>
-            <h2 id="sifakaFeatureTitle">Sifaka.Live</h2>
-            <p>Sifaka.Live is a free, Nostr-powered live-streaming website where you can watch and share streams, chat with others, and send or receive Bitcoin tips. You can use it right in your browser—no app download, email address, or phone number is required to get started.</p>
-            <p>The project is completely free and powered by the open Nostr protocol. You can run your own self-hosted instance or use an available third-party hosted option.</p>
-            <div class="sifaka-features" aria-label="Sifaka.Live features">
-              <span>📺 Live streaming & theater mode</span>
-              <span>💬 Live chat & direct messages</span>
-              <span>⚡ Send & receive Bitcoin tips</span>
-              <span>🌐 Self-hosted or third-party hosted</span>
-              <span>👤 Nostr profiles, feeds & videos</span>
-              <span>🎙️ Podcast Radio & games</span>
-            </div>
+            <img
+              class="sifaka-feature-image"
+              src="/assets/Sifaka.live.jpg?v=20261120"
+              alt="Sifaka.Live"
+              loading="lazy"
+              decoding="async">
           </a>
         </section>
       </div>
