@@ -111,12 +111,15 @@
     }
 
     /* Gallery */
-    h2.gallery-title {
-      color: var(--orange);
-      font-family: "Press Start 2P", monospace;
-      font-size: 0.9rem;
-      margin: 2.5em 0 1.2em;
-      text-align: center;
+    .gallery-title-banner {
+      display:block;
+      width:100%;
+      max-width:100%;
+      height:auto;
+      margin:2.5em 0 1.2em;
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      object-fit:contain;
     }
 
     .about-gallery {
@@ -278,7 +281,7 @@
       </div>
     </div>
 
-    <h2 class="gallery-title">Gallery</h2>
+    <img class="gallery-title-banner" src="/assets/Gallery.jpg?v=20261120" alt="Gallery" loading="lazy" decoding="async">
     <div class="about-gallery">
       <div class="gallery-item"><img src="https://bitcoin-cats.ca/photo/MyClawMachine.png" alt="Bitcoin Consultation Event 1"></div>
       <div class="gallery-item"><video src="https://bitcoin-cats.ca/photo/video_2024-12-08_15-49-31.mp4" controls muted></video></div>
