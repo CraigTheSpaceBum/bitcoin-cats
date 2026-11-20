@@ -289,8 +289,13 @@ permalink: /live
     let hlsInstance = null, pool = null, hostPubkey = '', activityAddress = '';
     let activityStatus = 'offline', currentEventId = '', streamRefreshRunning = false;
     let signedInPubkey = '';
+    let activeLocalSecret = null, activeRemoteSigner = null, activeSignerKind = '', signedInProfile = null;
+    let remoteLoginAbort = null, remoteClientSecret = null;
     let chatRefreshRunning = false, chatRequestId = 0, lastPlaybackKey = '';
     const profileCache = new Map();
+    const lnurlPayCache = new Map();
+    const postedOnchainDonationTxids = new Set();
+    let nostrPurePromise = null, nip46Promise = null, qrCodePromise = null;
 
     function setStatus(kind,text){pill.className='live-pill '+kind;label.textContent=text;}
     function getTag(event,name){const found=(event.tags||[]).find(tag=>tag[0]===name&&tag[1]);return found?found[1]:'';}
@@ -397,41 +402,244 @@ permalink: /live
   return [...events.values()];
 }
 
-    async function connectNostr(){
-      if(!window.nostr){
-        chatState.textContent='No Nostr browser signer was found. Enable a NIP-07-compatible extension, then try again.';
-        alert('No Nostr browser signer was found. Install or enable a NIP-07 compatible Nostr extension, then try again.');
+    async function getNostrPure(){
+      nostrPurePromise ||= import('https://esm.sh/nostr-tools@2.10.4/pure');
+      return nostrPurePromise;
+    }
+    async function getNip46(){
+      nip46Promise ||= import('https://esm.sh/nostr-tools@2.10.4/nip46');
+      return nip46Promise;
+    }
+    async function getQrCode(){
+      qrCodePromise ||= import('https://esm.sh/qrcode@1.5.4');
+      return qrCodePromise;
+    }
+    async function signUserEvent(unsigned){
+      if(!signedInPubkey)throw new Error('Sign in with Nostr before continuing.');
+      let signed;
+      if(activeRemoteSigner){
+        signed=await activeRemoteSigner.signEvent(unsigned);
+      }else if(activeLocalSecret){
+        const pure=await getNostrPure();
+        signed=pure.finalizeEvent(unsigned,activeLocalSecret);
+      }else if(activeSignerKind==='nip07'&&window.nostr&&typeof window.nostr.signEvent==='function'){
+        signed=await window.nostr.signEvent(unsigned);
+      }else{
+        throw new Error('Your Nostr signer is no longer available. Please sign in again.');
+      }
+      if(!signed||signed.pubkey!==signedInPubkey)throw new Error('The signer returned an event for a different Nostr account.');
+      return signed;
+    }
+    async function verifyNip05(identifier,pubkey){
+      const value=String(identifier||'').trim();
+      const at=value.lastIndexOf('@');
+      if(at<1||at===value.length-1)return false;
+      const name=value.slice(0,at).toLowerCase();
+      const domain=value.slice(at+1).toLowerCase();
+      if(!/^[a-z0-9._-]+$/.test(name)||!/^[a-z0-9.-]+$/.test(domain))return false;
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),6500);
+      try{
+        const url='https://'+domain+'/.well-known/nostr.json?name='+encodeURIComponent(name);
+        const response=await fetch(url,{method:'GET',mode:'cors',credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json'}});
+        if(!response.ok||response.redirected)return false;
+        const data=await response.json();
+        return typeof data?.names?.[name]==='string'&&data.names[name].toLowerCase()===pubkey.toLowerCase();
+      }catch{return false;}
+      finally{clearTimeout(timeout);}
+    }
+    function showLoginPanel(panelId){
+      ['hardwareLoginPanel','remoteLoginPanel','newIdentityPanel'].forEach(id=>$(id).hidden=id!==panelId);
+      $('loginChoiceGrid').hidden=!!panelId;
+      $('manualKeyPanel').hidden=!!panelId;
+      $('loginStatus').textContent='';
+    }
+    function openLogin(){
+      if(signedInPubkey)return;
+      showLoginPanel('');
+      $('remoteLoginStatus').textContent='';
+      $('loginModal').hidden=false;
+      document.body.style.overflow='hidden';
+      $('extensionSignInButton').focus();
+    }
+    function closeLogin(){
+      $('loginModal').hidden=true;
+      document.body.style.overflow='';
+      $('loginBtn').focus();
+    }
+    async function updateSignedInOverlay(profile){
+      const name=String(profile?.name||'').trim()||(signedInPubkey.slice(0,8)+'…'+signedInPubkey.slice(-4));
+      $('signedInName').textContent=name;
+      const avatar=$('signedInAvatar');
+      avatar.onerror=()=>{avatar.onerror=null;avatar.src='/logo.png';};
+      avatar.src=profile?.picture&&isSecureUrl(profile.picture)?profile.picture:'/logo.png';
+      const nip05=String(profile?.nip05||'').trim();
+      const valid=!!nip05&&await verifyNip05(nip05,signedInPubkey);
+      const {nip19}=await nostrModulePromise;
+      $('signedInIdentity').textContent=valid?nip05:nip19.npubEncode(signedInPubkey);
+      $('signedInVerified').hidden=!valid;
+      $('signedInOverlay').hidden=false;
+      document.body.classList.add('signed-in');
+    }
+    async function completeLogin(pubkey,options={}){
+      await ensureNostrReady();
+      signedInPubkey=hexFromKey(pubkey);
+      if(!/^[0-9a-f]{64}$/.test(signedInPubkey))throw new Error('The signer returned an invalid Nostr public key.');
+      const profile=options.profile||await fetchProfile(signedInPubkey);
+      signedInProfile=profile;
+      if(options.method)activeSignerKind=options.method;
+      await updateSignedInOverlay(profile);
+      $('loginBtn').textContent='Sign Out';
+      $('loginModal').hidden=true;
+      document.body.style.overflow='';
+      setChatComposerState();
+      chatState.textContent='Signed in as '+(profile.name||signedInPubkey.slice(0,8)+'…')+'. You can now send messages in this live chat.';
+      return signedInPubkey;
+    }
+    async function signInWithExtension(){
+      $('loginStatus').textContent='Requesting access from your Nostr signer…';
+      if(!window.nostr||typeof window.nostr.getPublicKey!=='function'){
+        $('loginStatus').textContent='No NIP-07 signer was found. Enable a Nostr signer extension or use Remote Nostr Login.';
         return;
       }
       try{
-        signedInPubkey=hexFromKey(await window.nostr.getPublicKey());
-        if(!/^[0-9a-f]{64}$/.test(signedInPubkey))throw new Error('The signer returned an invalid public key.');
-        const profile=await fetchProfile(signedInPubkey);
-        const displayName=String(profile.name||'').trim()||(signedInPubkey.slice(0,8)+'…'+signedInPubkey.slice(-4));
-        $('loginBtn').textContent='✓ '+displayName;
-        chatInput.placeholder='Write a message…';
-        chatState.textContent='Connected to Nostr as '+displayName+'. Messages are published to the current stream activity.';
+        activeRemoteSigner=null;activeLocalSecret=null;activeSignerKind='nip07';
+        await completeLogin(await window.nostr.getPublicKey(),{method:'nip07'});
       }catch(error){
-        signedInPubkey='';
-        chatState.textContent=error.message||'Could not connect to your Nostr signer.';
-        alert('Could not connect to your Nostr signer. Please unlock it and approve the connection.');
+        activeSignerKind='';
+        $('loginStatus').textContent=error.message||'The signer request was cancelled or rejected.';
       }
     }
-async function fetchProfile(pubkey){
+    async function createNewIdentity(){
+      try{
+        const [{nip19},pure]=await Promise.all([nostrModulePromise,getNostrPure()]);
+        activeLocalSecret=pure.generateSecretKey();
+        $('generatedNsec').textContent=nip19.nsecEncode(activeLocalSecret);
+        $('savedGeneratedNsecCheck').checked=false;
+        $('continueNewIdentityButton').disabled=true;
+        showLoginPanel('newIdentityPanel');
+      }catch(error){$('loginStatus').textContent=error.message||'Could not create a Nostr identity.';}
+    }
+    async function continueNewIdentity(){
+      if(!activeLocalSecret||!$('savedGeneratedNsecCheck').checked)return;
+      const pure=await getNostrPure();
+      const pubkey=pure.getPublicKey(activeLocalSecret);
+      await completeLogin(pubkey,{method:'local',profile:{name:'New Nostr identity',picture:'',nip05:''}});
+    }
+    async function signInWithNsec(){
+      try{
+        const value=$('nsecLoginInput').value.trim();
+        const {nip19}=await nostrModulePromise;
+        const decoded=nip19.decode(value);
+        if(decoded.type!=='nsec')throw new Error('Enter a valid nsec key.');
+        activeLocalSecret=decoded.data;activeRemoteSigner=null;activeSignerKind='local';
+        $('nsecLoginInput').value='';
+        const pure=await getNostrPure();
+        await completeLogin(pure.getPublicKey(activeLocalSecret),{method:'local'});
+      }catch(error){$('loginStatus').textContent=error.message||'Could not read that Nostr key.';}
+    }
+    function makeLoginSecret(){
+      const bytes=new Uint8Array(24);crypto.getRandomValues(bytes);
+      return Array.from(bytes).map(value=>value.toString(16).padStart(2,'0')).join('');
+    }
+    async function startRemoteLogin(){
+      try{
+        const [nip46,pure,qr]=await Promise.all([getNip46(),getNostrPure(),getQrCode()]);
+        if(!nip46.BunkerSigner||typeof nip46.BunkerSigner.fromURI!=='function'||typeof nip46.createNostrConnectURI!=='function'){
+          throw new Error('Remote Nostr login is not supported by the loaded signer library. Try a NIP-07 extension or bunker URI.');
+        }
+        if(!pool)await ensureNostrReady();
+        remoteClientSecret=pure.generateSecretKey();
+        const clientPubkey=pure.getPublicKey(remoteClientSecret);
+        const uri=nip46.createNostrConnectURI({
+          clientPubkey,
+          relays:RELAYS.slice(0,3),
+          secret:makeLoginSecret(),
+          name:'Bitcoin Cats',
+          url:'https://bitcoin-cats.ca',
+          perms:['sign_event:1311','sign_event:9734']
+        });
+        $('remoteLoginUri').value=uri;
+        $('remoteLoginQrImage').src=await qr.default.toDataURL(uri,{width:240,margin:2});
+        $('remoteLoginQrImage').hidden=false;
+        $('remoteLoginStatus').textContent='Waiting for your signer to approve the connection…';
+        remoteLoginAbort=new AbortController();
+        const signer=await nip46.BunkerSigner.fromURI(remoteClientSecret,uri,{pool},remoteLoginAbort.signal);
+        if(remoteLoginAbort.signal.aborted){try{await signer.close();}catch{}return;}
+        activeRemoteSigner=signer;activeLocalSecret=null;activeSignerKind='nip46';
+        remoteClientSecret=null;
+        await completeLogin(await signer.getPublicKey(),{method:'nip46'});
+      }catch(error){
+        if(!remoteLoginAbort?.signal.aborted)$('remoteLoginStatus').textContent=error.message||'The remote signer connection failed or timed out.';
+      }finally{remoteLoginAbort=null;}
+    }
+    function cancelRemoteLogin(){
+      if(remoteLoginAbort)remoteLoginAbort.abort();
+      remoteLoginAbort=null;
+      if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+      remoteClientSecret=null;
+      $('remoteLoginQrImage').hidden=true;
+      $('remoteLoginUri').value='';
+      $('remoteLoginStatus').textContent='Remote login cancelled.';
+    }
+    async function connectHardwareBunker(){
+      const uri=$('bunkerInput').value.trim();
+      if(!uri.toLowerCase().startsWith('bunker://')){
+        $('loginStatus').textContent='Enter a valid bunker:// connection URI.';
+        return;
+      }
+      try{
+        const [nip46,pure]=await Promise.all([getNip46(),getNostrPure()]);
+        const parsed=await nip46.parseBunkerInput(uri);
+        if(!parsed)throw new Error('That bunker URI could not be parsed. Check it with your signer.');
+        if(!pool)await ensureNostrReady();
+        const clientSecret=pure.generateSecretKey();
+        const signer=nip46.BunkerSigner.fromBunker(clientSecret,parsed,{pool});
+        $('loginStatus').textContent='Connecting to your hardware or remote signer…';
+        await signer.connect();
+        activeRemoteSigner=signer;activeLocalSecret=null;activeSignerKind='nip46';
+        await completeLogin(await signer.getPublicKey(),{method:'nip46'});
+      }catch(error){$('loginStatus').textContent=error.message||'Could not connect to the bunker signer.';}
+    }
+    async function signOut(){
+      try{if(activeRemoteSigner&&typeof activeRemoteSigner.close==='function')await activeRemoteSigner.close();}catch{}
+      activeRemoteSigner=null;
+      if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
+      if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+      activeLocalSecret=null;remoteClientSecret=null;activeSignerKind='';
+      signedInPubkey='';signedInProfile=null;
+      $('signedInOverlay').hidden=true;
+      document.body.classList.remove('signed-in');
+      $('loginBtn').textContent='🔑 Login with Nostr';
+      $('loginModal').hidden=true;document.body.style.overflow='';
+      setChatComposerState();
+      chatState.textContent='You have signed out. Sign in with Nostr to send live chat messages or donations.';
+    }
+    async function copyLoginValue(value,buttonId){
+      try{await navigator.clipboard.writeText(value);if(buttonId)$(buttonId).textContent='✓ Copied';}
+      catch{if(buttonId)$(buttonId).textContent='Select and copy the text above';}
+    }
+    function connectNostr(){
+      if(signedInPubkey)void signOut();
+      else openLogin();
+    }
+
+    async function fetchProfile(pubkey){
       if(profileCache.has(pubkey))return profileCache.get(pubkey);
-      const fallback={name:pubkey?pubkey.slice(0,8)+'…'+pubkey.slice(-4):'Nostr user',picture:'',lud16:'',lud06:''};
+      const fallback={name:pubkey?pubkey.slice(0,8)+'…'+pubkey.slice(-4):'Nostr user',picture:'',lud16:'',lud06:'',nip05:''};
       const pending=(async()=>{
         try{
           const events=await queryRelays({kinds:[0],authors:[pubkey],limit:20},4000,5000,'Profile lookup timeout');
           const latest=(events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
           for(const event of latest){
             let meta={};try{meta=JSON.parse(event.content||'{}');}catch{}
-            if(meta.name||meta.display_name||meta.picture||meta.lud16||meta.lud06){
+            if(meta.name||meta.display_name||meta.picture||meta.lud16||meta.lud06||meta.nip05){
               return {
                 name:meta.display_name||meta.name||fallback.name,
                 picture:meta.picture||'',
                 lud16:meta.lud16||'',
-                lud06:meta.lud06||''
+                lud06:meta.lud06||'',
+                nip05:meta.nip05||''
               };
             }
           }
