@@ -79,6 +79,9 @@ permalink: /live
     .chat-message-name{font-size:11px;font-weight:800;color:#ffd1a0;overflow-wrap:anywhere}
     .chat-message-time{font-size:10px;color:#77778d}
     .chat-message-body{font-size:12px;line-height:1.55;color:#efedf7;overflow-wrap:anywhere;white-space:pre-wrap}
+    .chat-message.zap-message{padding:9px;border:1px solid rgba(255,173,85,.24);border-radius:12px;background:linear-gradient(135deg,rgba(255,173,85,.08),rgba(139,92,246,.05))}
+    .chat-zap-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid rgba(255,173,85,.28);border-radius:999px;background:rgba(255,173,85,.1);color:#ffd3a8;font-size:9px;font-weight:900;letter-spacing:.04em}
+    .chat-zap-amount{margin-left:auto;color:#ffd3a8;font:800 10px/1.4 ui-monospace,monospace}
     .chat-composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:rgba(255,255,255,.02)}
     .chat-input{min-width:0;flex:1;border:1px solid var(--line);border-radius:10px;background:#0b0b13;color:var(--text);padding:11px 12px;font:12px Inter,system-ui,sans-serif;outline:none}
     .chat-input:focus{border-color:rgba(255,173,85,.5)}
@@ -712,19 +715,64 @@ permalink: /live
       return btcBech32mEncode('bc',[1,...words]);
     }
 
-    function showDonationDialog(method){
+    function requireSignedIn(actionLabel){
+      if(signedInPubkey)return true;
+      chatState.textContent='Sign in with Nostr to '+actionLabel+'.';
+      openLogin();
+      return false;
+    }
+    function getDonationQrDataUrl(value){
+      return getQrCode().then(module=>module.default.toDataURL(value,{width:240,margin:2}));
+    }
+    function donationSats(){
+      const value=Number($('donationAmount')?.value);
+      if(!Number.isSafeInteger(value)||value<1||value>2100000000000000)throw new Error('Enter a whole-number amount of sats greater than zero.');
+      return value;
+    }
+    function selectedDonationMessage(){
+      return String($('donationMessage')?.value||'').trim().slice(0,300);
+    }
+    function renderDonationPresets(){
+      document.querySelectorAll('#donationPresets [data-sats]').forEach(button=>{
+        button.classList.toggle('active',Number(button.dataset.sats)===Number($('donationAmount').value));
+      });
+    }
+    function setDonationStatus(message,isError=false){
+      const status=$('donationStatus');
+      if(status){status.textContent=message||'';status.style.color=isError?'#ffb0b0':'#c9b8f2';}
+    }
+    async function showDonationDialog(method){
+      if(!requireSignedIn('send a Bitcoin donation'))return;
       const isLightning=method==='lightning';
       document.getElementById('bitcoinDonationModal')?.remove();
       const overlay=document.createElement('div');
       overlay.id='bitcoinDonationModal';
       overlay.className='bitcoin-donation-backdrop';
+      const modalOpenedAt=Math.floor(Date.now()/1000);
       overlay.innerHTML=`
         <section class="bitcoin-donation-dialog" role="dialog" aria-modal="true" aria-labelledby="bitcoinDonationTitle">
           <button class="bitcoin-donation-close" type="button" aria-label="Close donation details">×</button>
-          <h2 id="bitcoinDonationTitle">${isLightning?'⚡ Bitcoin (Lightning)':'₿ Bitcoin (Mainchain)'}</h2>
-          <p>${isLightning?'Pay using the Lightning address or LNURL published by the Bitcoin Cats Nostr profile.':'Send using the Bitcoin mainnet Taproot address derived from the Bitcoin Cats Nostr public key.'}</p>
-          <div class="bitcoin-donation-content"><div class="bitcoin-donation-loading">Loading the donation details…</div></div>
-          <div class="bitcoin-donation-note">Please check the network and recipient carefully before sending. Only use the payment method shown here.</div>
+          <h2 id="bitcoinDonationTitle">${isLightning?'⚡ Bitcoin Lightning Zap':'₿ Bitcoin Mainchain Donation'}</h2>
+          <p>${isLightning?'Create a NIP-57 Lightning zap request. Your wallet pays the invoice, then the recipient service publishes the verified zap receipt to Nostr.':'Choose an amount and pay to the Bitcoin Cats Taproot address. Once the transaction is confirmed, you can publish a signed donation message to this live chat.'}</p>
+          <form class="donation-form" id="donationForm">
+            <div class="donation-label">Amount (sats)
+              <div class="donation-presets" id="donationPresets">
+                <button class="donation-preset" type="button" data-sats="21">21 sats</button>
+                <button class="donation-preset" type="button" data-sats="100">100 sats</button>
+                <button class="donation-preset" type="button" data-sats="500">500 sats</button>
+                <button class="donation-preset" type="button" data-sats="1000">1,000 sats</button>
+                <button class="donation-preset" type="button" data-sats="5000">5,000 sats</button>
+                <button class="donation-preset" type="button" data-sats="10000">10,000 sats</button>
+              </div>
+              <input class="donation-input" id="donationAmount" type="number" min="1" step="1" inputmode="numeric" value="21" required>
+            </div>
+            <label class="donation-label">Message for the live chat (optional)
+              <textarea class="donation-message" id="donationMessage" maxlength="300" rows="3" placeholder="Add a message to your donation…"></textarea>
+            </label>
+            <button class="bitcoin-donation-copy" id="prepareDonationButton" type="submit">${isLightning?'Create Lightning Zap Invoice':'Show Bitcoin Payment QR'}</button>
+          </form>
+          <div class="bitcoin-donation-content donation-payment-panel" id="donationPaymentPanel" hidden></div>
+          <div class="bitcoin-donation-note" id="donationStatus" role="status" aria-live="polite">Signed in as ${String(signedInProfile?.name||'Nostr user').replace(/[&<>"']/g,'')}</div>
         </section>`;
       document.body.appendChild(overlay);
       const close=()=>{overlay.remove();document.removeEventListener('keydown',onKeyDown);};
@@ -732,50 +780,190 @@ permalink: /live
       overlay.querySelector('.bitcoin-donation-close').addEventListener('click',close);
       overlay.addEventListener('click',event=>{if(event.target===overlay)close();});
       document.addEventListener('keydown',onKeyDown);
-
-      void (async()=>{
-        const content=overlay.querySelector('.bitcoin-donation-content');
-        try{
-          await ensureNostrReady();
-          if(!overlay.isConnected)return;
-          let value='',qrValue='',copyLabel='';
-          if(isLightning){
-            const profile=await fetchProfile(hostPubkey);
-            if(!overlay.isConnected)return;
-            value=String(profile.lud16||profile.lud06||'').trim();
-            if(!value)throw new Error('No Lightning address or LNURL is published by the host’s Nostr profile.');
-            qrValue=value;
-            copyLabel=profile.lud16?'Copy Lightning address':'Copy Lightning LNURL';
-          }else{
-            value=deriveNostrTaprootAddress(hostPubkey);
-            qrValue='bitcoin:'+value;
-            copyLabel='Copy Bitcoin address';
-          }
-          const qr=document.createElement('img');
-          qr.className='bitcoin-donation-qr';
-          qr.alt=isLightning?'Bitcoin Lightning payment QR code':'Bitcoin Taproot payment QR code';
-          qr.src='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(qrValue);
-          const address=document.createElement('div');
-          address.className='bitcoin-donation-address';
-          address.textContent=value;
-          const copy=document.createElement('button');
-          copy.type='button';copy.className='bitcoin-donation-copy';copy.textContent=copyLabel;
-          copy.addEventListener('click',async()=>{
-            try{await navigator.clipboard.writeText(value);copy.textContent='✓ Copied';}
-            catch{copy.textContent='Select and copy the value above';}
-          });
-          content.replaceChildren(qr,address,copy);
-        }catch(error){
-          if(overlay.isConnected){
-            const message=document.createElement('div');
-            message.className='bitcoin-donation-error';
-            message.textContent=error.message||'Donation details could not be loaded. Please try again.';
-            content.replaceChildren(message);
-          }
-        }
-      })();
+      const amountInput=overlay.querySelector('#donationAmount');
+      overlay.querySelectorAll('#donationPresets [data-sats]').forEach(button=>{
+        button.addEventListener('click',()=>{amountInput.value=button.dataset.sats;renderDonationPresets();});
+      });
+      amountInput.addEventListener('input',renderDonationPresets);
+      overlay.querySelector('#donationForm').addEventListener('submit',event=>{
+        event.preventDefault();
+        if(isLightning)void prepareLightningZap(overlay,modalOpenedAt);
+        else void prepareOnchainDonation(overlay,modalOpenedAt);
+      });
+      renderDonationPresets();
     }
-
+    async function buildPaymentQr(panel,uri,description){
+      const qr=document.createElement('img');
+      qr.className='bitcoin-donation-qr';qr.alt=description;
+      qr.src=await getDonationQrDataUrl(uri);
+      panel.replaceChildren(qr);
+      return qr;
+    }
+    async function resolveLnurlPayInfo(profile){
+      const cacheKey=String(profile.lud16||profile.lud06||'').trim();
+      if(!cacheKey)throw new Error('The host Nostr profile does not publish a Lightning address.');
+      if(lnurlPayCache.has(cacheKey))return lnurlPayCache.get(cacheKey);
+      let payUrl='';
+      if(profile.lud16){
+        const match=String(profile.lud16).trim().match(/^([^@\s]+)@([^@\s]+)$/);
+        if(!match)throw new Error('The host Lightning address is not valid.');
+        payUrl='https://'+match[2].toLowerCase()+'/.well-known/lnurlp/'+encodeURIComponent(match[1]);
+      }else{
+        payUrl=decodeLnurl(profile.lud06);
+      }
+      if(!isSecureUrl(payUrl))throw new Error('The Lightning endpoint must use HTTPS.');
+      const pending=(async()=>{
+        const response=await fetch(payUrl,{method:'GET',mode:'cors',credentials:'omit',redirect:'error',cache:'no-store'});
+        if(!response.ok||response.redirected)throw new Error('The host Lightning endpoint could not be reached.');
+        const data=await response.json();
+        if(data.tag!=='payRequest')throw new Error('The published Lightning address is not an LNURL-pay endpoint.');
+        if(data.allowsNostr!==true||!/^[0-9a-f]{64}$/i.test(String(data.nostrPubkey||'')))throw new Error('This Lightning address does not support Nostr zaps (NIP-57).');
+        if(String(data.nostrPubkey).toLowerCase()!==hostPubkey.toLowerCase())throw new Error('The Lightning endpoint Nostr key does not match the host profile.');
+        const callback=String(data.callback||'');
+        if(!isSecureUrl(callback))throw new Error('The Lightning invoice callback must use HTTPS.');
+        if(!Number.isFinite(Number(data.minSendable))||!Number.isFinite(Number(data.maxSendable))||Number(data.maxSendable)<Number(data.minSendable))throw new Error('The Lightning endpoint returned invalid amount limits.');
+        return {callback,nostrPubkey:data.nostrPubkey,minSendable:Number(data.minSendable),maxSendable:Number(data.maxSendable),payUrl};
+      })();
+      lnurlPayCache.set(cacheKey,pending);
+      try{return await pending;}catch(error){lnurlPayCache.delete(cacheKey);throw error;}
+    }
+    function decodeLnurl(value){
+      const encoded=String(value||'').trim().toLowerCase();
+      const split=encoded.lastIndexOf('1');
+      if(split<1||encoded.slice(0,split)!=='lnurl')throw new Error('The host Lightning URL is not a valid LNURL.');
+      const words=[];
+      for(const char of encoded.slice(split+1)){
+        const index=BTC_CHARSET.indexOf(char);
+        if(index<0)throw new Error('The host Lightning URL contains an invalid Bech32 character.');
+        words.push(index);
+      }
+      if(words.length<7||btcPolymod(btcHrpExpand('lnurl').concat(words))!==1)throw new Error('The host Lightning URL failed its Bech32 checksum.');
+      const bytes=btcConvertBits(words.slice(0,-6),5,8,false);
+      if(!bytes)throw new Error('The host Lightning URL has invalid encoding.');
+      return new TextDecoder().decode(new Uint8Array(bytes));
+    }
+    function bolt11AmountMsats(invoice){
+      const value=String(invoice||'').toLowerCase();
+      const separator=value.indexOf('1');
+      if(separator<0)return null;
+      const hrp=value.slice(0,separator);
+      const match=hrp.match(/^ln(?:bc|tb|bcrt)(\d+)?([munp])?$/);
+      if(!match||!match[1])return null;
+      const number=Number(match[1]);
+      if(!Number.isFinite(number)||number<=0)return null;
+      const factors={ '':100000000000,'m':100000000,'u':100000,'n':100,'p':0.1 };
+      const msats=number*factors[match[2]||''];
+      return Number.isInteger(msats)?msats:null;
+    }
+    async function prepareLightningZap(overlay,createdAt){
+      if(!signedInPubkey||!overlay.isConnected)return;
+      const panel=overlay.querySelector('#donationPaymentPanel');
+      const button=overlay.querySelector('#prepareDonationButton');
+      button.disabled=true;button.textContent='Creating NIP-57 zap invoice…';panel.hidden=false;panel.replaceChildren();
+      try{
+        const sats=donationSats();
+        const millisats=String(sats*1000);
+        const profile=await fetchProfile(hostPubkey);
+        const lnurl=await resolveLnurlPayInfo(profile);
+        if(Number(millisats)<lnurl.minSendable||Number(millisats)>lnurl.maxSendable)throw new Error('This Lightning address only accepts '+Math.ceil(lnurl.minSendable/1000)+' to '+Math.floor(lnurl.maxSendable/1000)+' sats.');
+        const tags=[
+          ['relays',...RELAYS.slice(0,3)],
+          ['amount',millisats],
+          ['p',hostPubkey],
+          ...(activityAddress?[['a',activityAddress]]:[]),
+          ...(currentEventId?[['e',currentEventId],['k','30311']]:[])
+        ];
+        const zapRequest=await signUserEvent({kind:9734,created_at:Math.floor(Date.now()/1000),tags,content:selectedDonationMessage()});
+        const callback=new URL(lnurl.callback);
+        callback.searchParams.set('amount',millisats);
+        callback.searchParams.set('nostr',JSON.stringify(zapRequest));
+        const response=await fetch(callback.toString(),{method:'GET',mode:'cors',credentials:'omit',redirect:'error',cache:'no-store'});
+        if(!response.ok||response.redirected)throw new Error('The LNURL service could not create a payment invoice.');
+        const invoiceData=await response.json();
+        const invoice=String(invoiceData.pr||'').trim();
+        if(!/^ln(?:bc|tb|bcrt)/i.test(invoice))throw new Error(invoiceData.reason||'The LNURL service did not return a valid Lightning invoice.');
+        const invoiceMsats=bolt11AmountMsats(invoice);
+        if(invoiceMsats!==null&&invoiceMsats!==Number(millisats))throw new Error('The invoice amount does not match your selected donation. No payment has been opened.');
+        const qr=await buildPaymentQr(panel,'lightning:'+invoice,'Lightning invoice QR code');
+        qr.alt='Lightning invoice for '+sats+' sats';
+        const amount=document.createElement('div');amount.className='bitcoin-donation-address';amount.textContent=sats.toLocaleString()+' sats · '+(selectedDonationMessage()||'Bitcoin Cats live-stream zap');
+        const copy=document.createElement('button');copy.type='button';copy.className='bitcoin-donation-copy';copy.textContent='Copy Lightning Invoice';
+        copy.addEventListener('click',async()=>{await copyLoginValue(invoice,null);copy.textContent='✓ Copied';});
+        const wallet=document.createElement('a');wallet.className='donation-wallet-link';wallet.href='lightning:'+invoice;wallet.textContent='Open in Lightning Wallet';
+        const note=document.createElement('div');note.className='donation-help';note.textContent='Pay this invoice in your Lightning wallet. Once the recipient service publishes a valid NIP-57 receipt (kind 9735), the zap amount and message will appear in this live chat. This page does not pay the invoice for you.';
+        panel.append(amount,copy,wallet,note);
+        setDonationStatus('Signed NIP-57 zap request created. Waiting for payment in your wallet.');
+      }catch(error){
+        panel.replaceChildren();
+        setDonationStatus(error.message||'Could not create the Lightning zap invoice.',true);
+      }finally{
+        if(overlay.isConnected){button.disabled=false;button.textContent='Create Lightning Zap Invoice';}
+      }
+    }
+    async function prepareOnchainDonation(overlay,createdAt){
+      if(!signedInPubkey||!overlay.isConnected)return;
+      const panel=overlay.querySelector('#donationPaymentPanel');
+      const button=overlay.querySelector('#prepareDonationButton');
+      button.disabled=true;button.textContent='Preparing Bitcoin payment…';panel.hidden=false;panel.replaceChildren();
+      try{
+        const sats=donationSats();
+        const address=deriveNostrTaprootAddress(hostPubkey);
+        const btc=(sats/100000000).toFixed(8).replace(/0+$/,'').replace(/\.$/,'');
+        const bip21=new URLSearchParams({amount:btc,label:'Bitcoin Cats',message:selectedDonationMessage()||'Bitcoin Cats live-stream donation'});
+        const uri='bitcoin:'+address+'?'+bip21.toString();
+        const qr=await buildPaymentQr(panel,uri,'Bitcoin mainchain donation QR code');
+        qr.alt='Bitcoin payment for '+sats+' sats';
+        const amount=document.createElement('div');amount.className='bitcoin-donation-address';amount.textContent=sats.toLocaleString()+' sats · '+address;
+        const copy=document.createElement('button');copy.type='button';copy.className='bitcoin-donation-copy';copy.textContent='Copy Bitcoin Address';
+        copy.addEventListener('click',async()=>{await copyLoginValue(address,null);copy.textContent='✓ Copied';});
+        const wallet=document.createElement('a');wallet.className='donation-wallet-link';wallet.href=uri;wallet.textContent='Open Bitcoin Wallet';
+        const verifyLabel=document.createElement('label');verifyLabel.className='donation-label';verifyLabel.textContent='Transaction ID (after sending)';
+        const txid=document.createElement('input');txid.className='donation-input';txid.id='donationTxid';txid.type='text';txid.autocomplete='off';txid.spellcheck=false;txid.placeholder='Paste the transaction ID from your wallet';
+        const verify=document.createElement('button');verify.type='button';verify.className='bitcoin-donation-copy';verify.textContent='Verify Confirmed Payment & Post to Chat';
+        verify.addEventListener('click',()=>void verifyOnchainDonation({overlay,createdAt,sats,address,txid:txid.value,button:verify,message:selectedDonationMessage()}));
+        verifyLabel.append(txid);
+        const note=document.createElement('div');note.className='donation-help';note.textContent='Mainchain transfers are not NIP-57 Lightning zaps. After a confirmed transaction paying this address, this page can publish a signed Bitcoin donation note to the current Nostr live chat. The transaction itself does not prove which Nostr account sent it.';
+        panel.append(amount,copy,wallet,verifyLabel,verify,note);
+        setDonationStatus('Payment QR created. Verify the transaction after your wallet confirms it.');
+      }catch(error){
+        panel.replaceChildren();
+        setDonationStatus(error.message||'Could not prepare the Bitcoin payment.',true);
+      }finally{
+        if(overlay.isConnected){button.disabled=false;button.textContent='Show Bitcoin Payment QR';}
+      }
+    }
+    async function verifyOnchainDonation({overlay,createdAt,sats,address,txid,button,message}){
+      const id=String(txid||'').trim().toLowerCase();
+      if(!/^[0-9a-f]{64}$/.test(id)){setDonationStatus('Enter the 64-character transaction ID from your wallet.',true);return;}
+      if(postedOnchainDonationTxids.has(id)){setDonationStatus('This transaction has already been posted to the live chat.',true);return;}
+      button.disabled=true;button.textContent='Checking Bitcoin transaction…';
+      try{
+        const response=await fetch('https://mempool.space/api/tx/'+id,{method:'GET',mode:'cors',credentials:'omit',redirect:'error',cache:'no-store'});
+        if(!response.ok)throw new Error(response.status===404?'That transaction is not visible on the Bitcoin network yet.':'The Bitcoin transaction lookup failed.');
+        const tx=await response.json();
+        const paid=Number(tx?.vout?.filter(output=>output.scriptpubkey_address===address).reduce((sum,output)=>sum+Number(output.value||0),0)||0);
+        if(!tx?.status?.confirmed)throw new Error('The transaction is not confirmed yet. Try again once your wallet shows confirmation.');
+        if(Number(tx?.status?.block_time||0)<createdAt-60)throw new Error('This transaction predates the donation request. Only a recent confirmed payment can be posted from this form.');
+        if(paid<sats)throw new Error('The confirmed transaction does not pay the selected amount to the Bitcoin Cats address.');
+        if(!activityAddress)throw new Error('There is no Nostr stream activity to attach this donation to yet.');
+        const content='₿ Bitcoin Mainchain donation received · '+sats.toLocaleString()+' sats'+(message?' — '+message:'');
+        const event=await signUserEvent({
+          kind:1311,created_at:Math.floor(Date.now()/1000),
+          tags:[['a',activityAddress,'','root'],['p',hostPubkey],...(currentEventId?[['e',currentEventId,'','root']]:[]),['amount',String(sats)],['payment','bitcoin'],['txid',id]],
+          content
+        });
+        const results=await Promise.allSettled(pool.publish(RELAYS,event));
+        if(!results.some(result=>result.status==='fulfilled'))throw new Error('Payment was verified, but no relay confirmed the Nostr chat post. The transaction remains confirmed; retry posting without sending another payment.');
+        postedOnchainDonationTxids.add(id);
+        setDonationStatus('Confirmed payment verified and signed donation message published to the live chat.');
+        button.textContent='✓ Posted to Live Chat';
+        button.disabled=true;
+        await loadChatForCurrentActivity();
+      }catch(error){
+        setDonationStatus(error.message||'Could not verify the Bitcoin transaction.',true);
+        button.disabled=false;button.textContent='Verify Confirmed Payment & Post to Chat';
+      }
+    }
     function openStreamElementsTip(){
       const url='https://streamelements.com/craigthespacebum-987e4/tip';
       const popup=window.open(url,'bitcoinCatsTipWindow','popup=yes,width=560,height=780,resizable=yes,scrollbars=yes');
