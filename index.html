@@ -97,6 +97,11 @@
     .btn:hover{filter:brightness(1.12)}
     .btn[aria-current="page"]{border-color:rgba(255,164,71,.62);color:#ffd19e;background:rgba(255,164,71,.14);box-shadow:0 0 0 1px rgba(255,164,71,.10),0 0 18px rgba(255,164,71,.12)}
     .actions{padding:8px;border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(8,8,14,.42)}
+    .nostr-login-modal[hidden]{display:none!important}
+    .nostr-login-modal{position:fixed;inset:0;z-index:1500;display:grid;place-items:center;padding:clamp(10px,2vw,24px);background:rgba(3,4,12,.82);backdrop-filter:blur(13px)}
+    .nostr-login-modal-panel{width:min(900px,100%);height:min(900px,calc(100dvh - 28px));overflow:hidden;border:1px solid rgba(139,92,246,.42);border-radius:22px;background:#090910;box-shadow:0 28px 100px rgba(0,0,0,.7),0 0 48px rgba(139,92,246,.14)}
+    .nostr-login-frame{display:block;width:100%;height:100%;border:0;background:#090910}
+    @media(max-width:700px){.nostr-login-modal{padding:6px}.nostr-login-modal-panel{height:calc(100dvh - 12px);border-radius:16px}}
     .btn:active{transform:scale(0.98)}
     .btn.ghost{background:transparent}
     .followers-badge{
@@ -393,6 +398,12 @@
     </header>
 
     <main class="feed" id="feed"></main>
+  </div>
+
+  <div class="nostr-login-modal" id="nostrLoginModal" hidden>
+    <div class="nostr-login-modal-panel" role="dialog" aria-modal="true" aria-label="Sign in with Nostr">
+      <iframe class="nostr-login-frame" id="nostrLoginFrame" title="Bitcoin Cats Nostr sign-in" src="about:blank" allow="clipboard-read; clipboard-write"></iframe>
+    </div>
   </div>
 
 <script>
@@ -1136,12 +1147,14 @@ function ensureBitcoinEducationBanner(aboutPage){
     "display:block",
     "visibility:visible",
     "opacity:1",
-    "width:100%",
-    "max-width:100%",
+    "width:calc(100% + 48px)",
+    "max-width:none",
     "height:auto",
-    "margin:0 0 22px",
+    "margin:-24px -24px 22px",
+    "border:0",
     "object-fit:contain",
-    "border-radius:12px"
+    "border-radius:17px 17px 0 0",
+    "box-shadow:none"
   ].join(";");
   banner.onerror=()=>{
     console.error("Bitcoin education banner failed to load:",banner.currentSrc||banner.src);
