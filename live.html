@@ -15,7 +15,22 @@ permalink: /live
   <style>
     :root{color-scheme:dark;--bg:#090910;--panel:#11111b;--panel2:#151522;--line:rgba(255,255,255,.09);--text:#f4f3fa;--muted:#a4a3b8;--accent:#ffad55;--accent2:#ff7b36;--green:#5ee6a8}
     *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 10% 0%,rgba(255,137,57,.10),transparent 34%),radial-gradient(ellipse at 100% 20%,rgba(129,86,255,.10),transparent 32%),var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 10% 0%,rgba(255,164,71,.10),transparent 35%),linear-gradient(rgba(5,5,9,.90),rgba(5,5,9,.94)),url('/BackgroundLoop.webp') center/cover fixed;color:var(--text);font-family:Inter,system-ui,sans-serif}
+    .site-shell{width:min(1440px,100%);margin:0 auto;padding:clamp(14px,2.5vw,32px)}
+    .site-profile{position:relative;margin:0 0 22px;animation:siteHeaderFade .7s ease both}
+    @keyframes siteHeaderFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .site-banner{position:relative;display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:112px;padding:20px 22px 20px 116px;border:1px solid rgba(255,255,255,.10);border-radius:24px;background:linear-gradient(135deg,rgba(25,25,39,.96),rgba(18,18,28,.94));backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.28)}
+    .site-pfp-wrap{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:78px;height:78px;overflow:hidden;border:3px solid rgba(255,164,71,.6);border-radius:50%;background:#171722;box-shadow:0 8px 25px rgba(0,0,0,.48)}
+    .site-pfp-wrap img{display:block;width:100%;height:100%;object-fit:cover}
+    .site-identity{display:flex;flex:1;min-width:140px;flex-direction:column;gap:8px}
+    .site-name{font-family:system-ui,sans-serif;font-size:clamp(1.35rem,2.6vw,2rem);font-weight:850;letter-spacing:-.04em;color:#f8f5ff;overflow-wrap:anywhere}
+    .site-npub{display:inline-block;max-width:100%;width:max-content;max-width:min(100%,430px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 10px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(0,0,0,.24);color:#c5c1d5;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+    .site-nav{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+    .site-nav-link{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:10px 13px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.045);color:#f3f0fa;font:700 12px/1.3 Inter,system-ui,sans-serif;text-decoration:none;white-space:nowrap;transition:transform .15s,border-color .15s,background .15s}
+    .site-nav-link:hover{background:rgba(255,164,71,.10);border-color:rgba(255,164,71,.45);transform:translateY(-1px);text-decoration:none}
+    .site-nav-link.primary{background:linear-gradient(135deg,#ffb45f,#ff842e);color:#241507;border-color:transparent}
+    .site-nav-link[aria-current="page"]{border-color:rgba(255,164,71,.5);background:rgba(255,164,71,.12);color:#ffd19e}
+    .site-nav-link.primary[aria-current="page"]{background:linear-gradient(135deg,#ffb45f,#ff842e);color:#241507;border-color:transparent}
     a{color:inherit;text-decoration:none}
     .page{width:min(1600px,100%);margin:auto;padding:clamp(14px,2.5vw,32px)}
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:24px}
@@ -96,12 +111,29 @@ permalink: /live
     .bitcoin-donation-loading,.bitcoin-donation-error{padding:18px 12px;border:1px dashed rgba(255,255,255,.16);border-radius:12px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
     .footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;color:var(--muted);font-size:11px;line-height:1.6}.footer a{color:#ffd1a0}
     @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}}
-    @media(max-width:560px){.page{padding:12px}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
+    @media(max-width:900px){.site-banner{align-items:flex-start;flex-wrap:wrap;padding-right:18px}.site-identity{flex-basis:calc(100% - 120px)}.site-nav{width:100%;justify-content:flex-start;margin-top:4px}}
+    @media(max-width:560px){.site-shell{padding:12px}.site-profile{margin-bottom:16px}.site-banner{gap:12px;min-height:0;padding:14px;border-radius:18px}.site-pfp-wrap{position:static;transform:none;width:58px;height:58px;flex:none;margin:0}.site-identity{min-width:0;flex:1;flex-basis:calc(100% - 76px);gap:5px}.site-name{font-size:1.35rem}.site-npub{max-width:100%;font-size:9px;padding:3px 8px}.site-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:2px}.site-nav-link{min-width:0;min-height:42px;padding:9px 7px;font-size:11px}.page{padding:0}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
   </style>
 </head>
 <body>
-  <main class="page">
+  <div class="site-shell">
+    <header class="site-profile" aria-label="Bitcoin Cats navigation">
+      <div class="site-banner">
+        <div class="site-pfp-wrap"><img id="siteProfilePicture" src="/logo.png" alt="Bitcoin Cats profile"></div>
+        <div class="site-identity">
+          <div class="site-name" id="siteProfileName">Craig</div>
+          <div class="site-npub" id="siteProfileNpub">npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95</div>
+        </div>
+        <nav class="site-nav" aria-label="Main navigation">
+          <a class="site-nav-link" href="/">✍️ Blog</a>
+          <a class="site-nav-link" href="/about.html">ℹ️ About</a>
+          <a class="site-nav-link" href="/live" aria-current="page">📺 Live Stream</a>
+          <a class="site-nav-link primary" href="/donation">₿ Donate</a>
+        </nav>
+      </div>
+    </header>
+    <main class="page">
     <section class="intro" aria-label="Live stream banner">
       <img class="live-banner" src="assets/twitchbanner.webp" alt="Bitcoin Cats live stream banner">
       <div class="live-pill loading" id="livePill" role="status" aria-live="polite"><span class="dot"></span><span id="liveLabel">Checking host…</span></div>
@@ -141,7 +173,8 @@ permalink: /live
         <div class="chat-state" id="chatState">Chat messages are scoped to this stream’s NIP-53 activity, rather than just the host profile.</div>
       </aside>
     </section>
-  </main>
+    </main>
+  </div>
 
   <script type="module">
     const HOST_NPUB = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95';
@@ -576,6 +609,16 @@ async function fetchProfile(pubkey){
     async function start(){
       try{
         await ensureNostrReady();
+        $('siteProfileNpub').textContent=HOST_NPUB;
+        void fetchProfile(hostPubkey).then(profile=>{
+          const name=String(profile.name||'Craig').trim();
+          $('siteProfileName').textContent=name||'Craig';
+          if(profile.picture){
+            const picture=$('siteProfilePicture');
+            picture.src=profile.picture;
+            picture.onerror=()=>{picture.onerror=null;picture.src='/logo.png';};
+          }
+        }).catch(error=>console.warn('Could not load the Bitcoin Cats profile for navigation',error));
         $('streamSource').textContent='Discovering the host’s latest Nostr stream';
         await refreshStream();
         setInterval(()=>{void refreshStream();},30000);
