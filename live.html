@@ -731,6 +731,7 @@ permalink: /live
         while(bits>=toBits){bits-=toBits;out.push((acc>>>bits)&max);}
       }
       if(pad&&bits)out.push((acc<<(toBits-bits))&max);
+      else if(bits>=fromBits||((acc<<(toBits-bits))&max))return null;
       return out;
     }
     function btcHexToBytes(hex){
@@ -870,7 +871,7 @@ permalink: /live
     }
     function decodeLnurl(value){
       const encoded=String(value||'').trim().toLowerCase();
-      const split=encoded.lastIndexOf('1');
+      const split=encoded.indexOf('1');
       if(split<1||encoded.slice(0,split)!=='lnurl')throw new Error('The host Lightning URL is not a valid LNURL.');
       const words=[];
       for(const char of encoded.slice(split+1)){
@@ -949,6 +950,7 @@ permalink: /live
       const button=overlay.querySelector('#prepareDonationButton');
       button.disabled=true;button.textContent='Preparing Bitcoin payment…';panel.hidden=false;panel.replaceChildren();
       try{
+        const paymentRequestedAt=Math.floor(Date.now()/1000);
         const sats=donationSats();
         if(!activityAddress)throw new Error('The current Nostr stream activity is not available yet, so this donation cannot be posted to live chat.');
         const address=deriveNostrTaprootAddress(hostPubkey);
@@ -964,7 +966,7 @@ permalink: /live
         const verifyLabel=document.createElement('label');verifyLabel.className='donation-label';verifyLabel.textContent='Transaction ID (after sending)';
         const txid=document.createElement('input');txid.className='donation-input';txid.id='donationTxid';txid.type='text';txid.autocomplete='off';txid.spellcheck=false;txid.placeholder='Paste the transaction ID from your wallet';
         const verify=document.createElement('button');verify.type='button';verify.className='bitcoin-donation-copy';verify.textContent='Verify Confirmed Payment & Post to Chat';
-        verify.addEventListener('click',()=>void verifyOnchainDonation({overlay,createdAt,sats,address,txid:txid.value,button:verify,message:selectedDonationMessage()}));
+        verify.addEventListener('click',()=>void verifyOnchainDonation({overlay,createdAt:paymentRequestedAt,sats,address,txid:txid.value,button:verify,message:selectedDonationMessage()}));
         verifyLabel.append(txid);
         const note=document.createElement('div');note.className='donation-help';note.textContent='Mainchain transfers are not NIP-57 Lightning zaps. After a confirmed transaction paying this address, this page can publish a signed Bitcoin donation note to the current Nostr live chat. The transaction itself does not prove which Nostr account sent it.';
         panel.append(amount,copy,wallet,verifyLabel,verify,note);
