@@ -1077,25 +1077,81 @@ function setPageHistory(page,{replace=false}={}){
 }
 
 /* About page */
+async function fetchAboutPageMarkup(){
+  // about.html sets a Jekyll permalink to /about, so try the generated
+  // permalink first. Fall back to the source filename for non-Jekyll hosts.
+  const candidates=["/about","/about/","/about.html"];
+  let lastError=null;
+  for(const path of candidates){
+    try{
+      const url=new URL(path,window.location.origin);
+      url.searchParams.set("_",String(Date.now()));
+      const response=await fetch(url.href,{mode:"same-origin",cache:"no-store"});
+      if(!response.ok)continue;
+      const html=await response.text();
+      // A SPA fallback may return index.html with a 200 status. Accept only
+      // the actual About document, not the shell page.
+      if(html.includes('class="about-wrapper"')&&html.includes("Our Services"))return html;
+    }catch(error){lastError=error;}
+  }
+  throw lastError||new Error("Could not load the About page from /about or about.html.");
+}
+
+function ensureBitcoinEducationBanner(aboutPage){
+  const box=aboutPage.querySelector(".about-box");
+  if(!box)return;
+  const servicesHeading=[...box.querySelectorAll("h2")].find(
+    heading=>heading.textContent.trim().toLowerCase()==="our services"
+  );
+  if(!servicesHeading)return;
+
+  let banner=box.querySelector(".bitcoin-education-banner");
+  if(!banner){
+    banner=document.createElement("img");
+    banner.className="bitcoin-education-banner";
+    box.insertBefore(banner,servicesHeading);
+  }else if(banner!==servicesHeading.previousElementSibling){
+    box.insertBefore(banner,servicesHeading);
+  }
+  banner.src="/assets/Bitcoin%20Education.jpg?v=20261120";
+  banner.alt="Bitcoin education banner";
+  banner.loading="eager";
+  banner.decoding="async";
+  banner.style.cssText=[
+    "display:block",
+    "visibility:visible",
+    "opacity:1",
+    "width:100%",
+    "max-width:100%",
+    "height:auto",
+    "margin:0 0 22px",
+    "object-fit:contain",
+    "border-radius:12px"
+  ].join(";");
+  banner.onerror=()=>{
+    console.error("Bitcoin education banner failed to load:",banner.currentSrc||banner.src);
+    banner.alt="Bitcoin education banner could not be loaded.";
+  };
+}
+
 async function showAbout({navigate=true}={}) {
   if(navigate)setPageHistory("about");
   else activeContentPage="about";
+  overlay.classList.remove("hidden");
   try {
-    overlay.classList.remove("hidden");
-    const r = await fetch("about.html", { mode: "cors" });
-    const html = r.ok
-      ? await r.text()
-      : "<p style='color:#f77'>about.html not found.</p>";
-
+    const html=await fetchAboutPageMarkup();
     feedEl.innerHTML = `
       <div id="aboutPage" class="about-page hidden">${html}</div>
     `;
-
-    setTimeout(() => {
-      const aboutPage = document.getElementById("aboutPage");
-      if(aboutPage)aboutPage.classList.remove("hidden");
-    }, 50);
-  } finally {
+    const aboutPage=document.getElementById("aboutPage");
+    if(aboutPage){
+      ensureBitcoinEducationBanner(aboutPage);
+      requestAnimationFrame(()=>aboutPage.classList.remove("hidden"));
+    }
+  }catch(error){
+    console.error("Could not load the About page",error);
+    feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Could not load the About page. Please refresh and try again.</p>";
+  }finally{
     overlay.classList.add("hidden");
   }
 }
