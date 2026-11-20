@@ -43,7 +43,12 @@ permalink: /live
     .link-btn:hover{background:rgba(255,255,255,.08);border-color:rgba(255,173,85,.45)}
     .link-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#211306}
     .intro{position:relative;display:block;margin:0 0 18px}
+    .live-banner-wrap{position:relative}
     .live-banner{display:block;width:100%;height:auto;border:1px solid rgba(255,173,85,.16);border-radius:18px;box-shadow:0 16px 45px rgba(0,0,0,.3)}
+    .banner-links{position:absolute;z-index:2;left:50%;bottom:clamp(8px,1.6vw,18px);transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:8px;max-width:calc(100% - 24px)}
+    .banner-link{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:6px 12px;border:1px solid rgba(255,255,255,.22);border-radius:9px;background:rgba(7,7,14,.82);backdrop-filter:blur(10px);box-shadow:0 5px 16px rgba(0,0,0,.28);color:#fff;font:750 11px/1.2 Inter,system-ui,sans-serif;white-space:nowrap;transition:background .15s,border-color .15s,transform .15s}
+    .banner-link:hover{background:rgba(255,173,85,.2);border-color:rgba(255,173,85,.6);transform:translateY(-1px)}
+    .banner-link:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
     .eyebrow{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
     h1{font-size:clamp(25px,4vw,40px);line-height:1.1;letter-spacing:-.04em;margin:0}
     .intro p{color:var(--muted);font-size:14px;line-height:1.6;margin:10px 0 0;max-width:650px}
@@ -52,7 +57,7 @@ permalink: /live
     .live-pill.live{color:#d8ffeb;border-color:rgba(94,230,168,.28);background:rgba(94,230,168,.08)}.live-pill.live .dot{background:var(--green);box-shadow:0 0 12px rgba(94,230,168,.75)}
     .live-pill.loading .dot{background:var(--accent);animation:pulse 1.2s infinite}
     @keyframes pulse{50%{opacity:.35}}
-    .layout{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,.85fr);gap:18px;align-items:stretch}
+    .layout{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,.85fr);gap:18px;align-items:start}
     .panel{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:linear-gradient(155deg,rgba(23,23,37,.96),rgba(14,14,23,.98));box-shadow:0 18px 55px rgba(0,0,0,.22)}
     .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
     .panel-title{font-size:13px;font-weight:750;letter-spacing:.01em}.panel-kicker{font-size:11px;color:var(--muted);margin-top:4px}
@@ -87,7 +92,7 @@ permalink: /live
     .chat-input:focus{border-color:rgba(255,173,85,.5)}
     .chat-send{border:0;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#211306;font-weight:800;font-size:12px;padding:0 14px;cursor:pointer}
     .chat-send:disabled,.chat-input:disabled{opacity:.45;cursor:not-allowed}
-    .chat-state{padding:0 12px 10px;color:var(--muted);font-size:10px;line-height:1.5}
+    #chatState[hidden]{display:none!important}
     .video-empty h2{font-size:17px;margin:0 0 9px}.video-empty p{font-size:13px;line-height:1.6;color:var(--muted);margin:0}
     .stream-details{padding:16px 18px 18px}.stream-name{font-size:16px;font-weight:750;margin:0 0 7px}.stream-summary{font-size:13px;line-height:1.6;color:var(--muted);margin:0;overflow-wrap:anywhere}
     .stream-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.tag{font-size:11px;color:#ffd9b0;background:rgba(255,173,85,.08);border:1px solid rgba(255,173,85,.15);padding:5px 8px;border-radius:999px}
@@ -109,7 +114,7 @@ permalink: /live
     .watcher-live-dot{width:7px;height:7px;border-radius:50%;background:#5ee6a8;box-shadow:0 0 9px rgba(94,230,168,.7)}
     .watcher-live-state.offline{border-color:var(--line);background:rgba(255,255,255,.03);color:var(--muted)}
     .watcher-live-state.offline .watcher-live-dot{background:#77778b;box-shadow:none}
-    .watcher-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+    .watcher-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
     .watcher-stat{min-width:0;padding:11px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(0,0,0,.18)}
     .watcher-stat-label{font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
     .watcher-stat-value{margin-top:5px;font:850 21px/1.15 Inter,system-ui,sans-serif;color:#f7f3ff;font-variant-numeric:tabular-nums}
@@ -127,6 +132,18 @@ permalink: /live
     .watcher-empty{padding:18px 12px;border:1px dashed rgba(255,255,255,.1);border-radius:11px;color:var(--muted);font-size:11px;line-height:1.6;text-align:center}
     .watcher-footnote{margin-top:12px;color:#737287;font-size:9px;line-height:1.5}
     .watcher-warning{color:#d2b8ff}
+    .chat-column{display:flex;flex-direction:column;gap:18px;min-width:0}
+    .donors-panel{min-width:0}
+    .donor-list{display:grid;gap:8px;padding:12px}
+    .donor-row{display:flex;align-items:center;gap:9px;min-width:0;padding:9px;border:1px solid rgba(255,173,85,.14);border-radius:11px;background:rgba(255,173,85,.035)}
+    .donor-rank{display:grid;place-items:center;width:24px;height:24px;flex:none;border:1px solid rgba(255,173,85,.22);border-radius:8px;color:#ffd6ae;font:850 10px/1 Inter,system-ui,sans-serif}
+    .donor-avatar{width:36px;height:36px;flex:none;object-fit:cover;border:1px solid rgba(255,173,85,.25);border-radius:9px;background:#211c32}
+    .donor-profile{display:grid;gap:4px;min-width:0;flex:1}
+    .donor-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f7f3ff;font-size:11px;font-weight:850}
+    .donor-identity{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a9a0b8;font:9px/1.4 ui-monospace,monospace}
+    .donor-amount{flex:none;color:#ffd3a8;font:850 10px/1.3 ui-monospace,monospace;text-align:right}
+    .donor-empty{padding:17px 12px;border:1px dashed rgba(255,255,255,.1);border-radius:11px;color:var(--muted);font-size:11px;line-height:1.6;text-align:center}
+    .donor-footnote{padding:0 13px 13px;color:#777487;font-size:9px;line-height:1.5}
     .bitcoin-donation-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(3,3,8,.82);backdrop-filter:blur(12px)}
     .bitcoin-donation-dialog{position:relative;width:min(520px,100%);max-height:min(88vh,760px);overflow:auto;border:1px solid rgba(255,173,85,.3);border-radius:20px;background:linear-gradient(145deg,#191927,#0c0c14);box-shadow:0 24px 90px rgba(0,0,0,.65),0 0 35px rgba(255,173,85,.13);padding:24px}
     .bitcoin-donation-dialog h2{font-size:19px;margin:0 42px 8px 0;letter-spacing:-.025em}
@@ -193,7 +210,7 @@ permalink: /live
     body.signed-in .container{padding-top:82px}
     @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}.watcher-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(max-width:700px){.container{padding-top:12px}body.signed-in .container{padding-top:82px}.login-dialog{padding:20px}.login-grid{grid-template-columns:1fr}.signed-in-overlay{top:8px;right:8px;padding:7px 9px}.signed-in-avatar{width:36px;height:36px}.donation-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-section{padding:14px 11px}.watcher-heading{align-items:flex-start}.watcher-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-stat:first-child{grid-column:span 2}.watcher-stat-value{font-size:19px}.watcher-list{grid-template-columns:1fr}.watcher-live-state{font-size:9px;padding:5px 7px}}
-    @media(max-width:700px){.container{padding:12px}.profile{margin:24px 0}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{width:100%;margin:0;justify-content:flex-start;gap:7px}.btn{padding:9px 10px;font-size:12px}.page{padding:0}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
+    @media(max-width:700px){.container{padding:12px}.profile{margin:24px 0}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{width:100%;margin:0;justify-content:flex-start;gap:7px}.btn{padding:9px 10px;font-size:12px}.page{padding:0}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.banner-links{bottom:5px;gap:5px;max-width:calc(100% - 16px)}.banner-link{min-height:24px;padding:4px 8px;border-radius:7px;font-size:9px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.donor-list{padding:10px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
   </style>
 </head>
@@ -224,7 +241,14 @@ permalink: /live
     </aside>
     <main class="page">
     <section class="intro" aria-label="Live stream banner">
-      <img class="live-banner" src="assets/twitchbanner.webp" alt="Bitcoin Cats live stream banner">
+      <div class="live-banner-wrap">
+        <img class="live-banner" src="assets/twitchbanner.webp" alt="Bitcoin Cats live stream banner">
+        <nav class="banner-links" aria-label="Watch Bitcoin Cats on other platforms">
+          <a class="banner-link" href="https://www.twitch.tv/craigthespacebum" target="_blank" rel="noopener noreferrer">◉ Twitch</a>
+          <a class="banner-link" href="https://sifaka.live/" target="_blank" rel="noopener noreferrer">↗ Sifaka.Live</a>
+          <a class="banner-link" href="https://www.youtube.com/@CraigTheSpaceBum/live" target="_blank" rel="noopener noreferrer">▶ YouTube</a>
+        </nav>
+      </div>
       <div class="live-pill loading" id="livePill" role="status" aria-live="polite"><span class="dot"></span><span id="liveLabel">Checking host…</span></div>
     </section>
 
@@ -240,10 +264,7 @@ permalink: /live
           </div>
         </div>
         <div class="stream-details"><h2 class="stream-name" id="streamTitle">Bitcoin Cats Live Broadcast</h2><p class="stream-summary" id="streamSummary">Waiting for stream information from Nostr relays…</p><div class="stream-tags" id="streamTags"></div></div>
-        <nav class="stream-actions" aria-label="Watch and support Bitcoin Cats">
-          <a class="stream-action watch" href="https://www.youtube.com/@CraigTheSpaceBum/live" target="_blank" rel="noopener noreferrer">▶ Watch on YouTube</a>
-          <a class="stream-action watch" href="https://www.twitch.tv/craigthespacebum" target="_blank" rel="noopener noreferrer">◉ Watch on Twitch</a>
-          <a class="stream-action watch" href="https://sifaka.live/" target="_blank" rel="noopener noreferrer">↗ Watch on Sifaka.Live</a>
+        <nav class="stream-actions" aria-label="Support Bitcoin Cats">
           <button class="stream-action donate" id="streamElementsTipButton" type="button">♡ Donation (PayPal / Apple Pay / Card)</button>
           <button class="stream-action donate" id="bitcoinMainchainButton" type="button">₿ Donation (Bitcoin Mainchain)</button>
           <button class="stream-action donate" id="bitcoinLightningButton" type="button">⚡ Donation (Bitcoin Lightning)</button>
@@ -260,18 +281,17 @@ permalink: /live
             <div class="watcher-stat"><div class="watcher-stat-label">Total viewers here</div><div class="watcher-stat-value" id="watcherTotalCount">—</div><div class="watcher-stat-note">Signed-in accounts + guests</div></div>
             <div class="watcher-stat"><div class="watcher-stat-label">Nostr accounts</div><div class="watcher-stat-value" id="watcherNostrCount">—</div><div class="watcher-stat-note">Unique accounts watching</div></div>
             <div class="watcher-stat"><div class="watcher-stat-label">Guests</div><div class="watcher-stat-value" id="watcherGuestCount">—</div><div class="watcher-stat-note">Not signed in</div></div>
-            <div class="watcher-stat"><div class="watcher-stat-label">Twitch viewers</div><div class="watcher-stat-value" id="twitchViewerCount">—</div><div class="watcher-stat-note" id="twitchViewerNote">Checking Twitch…</div></div>
-            <div class="watcher-stat"><div class="watcher-stat-label">YouTube viewers</div><div class="watcher-stat-value" id="youtubeViewerCount">—</div><div class="watcher-stat-note" id="youtubeViewerNote">Checking YouTube…</div></div>
           </div>
           <div class="watcher-list-head">
             <div class="watcher-list-title">Nostr accounts watching</div>
             <div class="watcher-updated" id="watcherUpdatedAt">Waiting for relay presence…</div>
           </div>
           <div class="watcher-list" id="watcherList" aria-live="polite"><div class="watcher-empty">Watcher information will appear when the host goes live.</div></div>
-          <div class="watcher-footnote" id="watcherFootnote">Presence refreshes every few seconds. Viewers who leave are removed after their short heartbeat expires. Twitch and YouTube counts are independent platform-reported figures.</div>
+          <div class="watcher-footnote" id="watcherFootnote">Presence refreshes every few seconds. Viewers who leave are removed after their short heartbeat expires.</div>
         </section>
         <div class="status-note" id="streamNote" role="status" aria-live="polite" hidden></div>
       </article>
+      <div class="chat-column">
       <aside class="panel chat-panel">
         <div class="panel-head"><div><div class="panel-title">Live chat</div><div class="panel-kicker" id="chatSubtitle">Chat for the selected Nostr stream</div></div><span class="tag" id="chatStatus">SYNCING</span></div>
         <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text">
@@ -281,8 +301,22 @@ permalink: /live
           <input class="chat-input" id="chatInput" type="text" maxlength="2000" autocomplete="off" placeholder="Connect a Nostr signer to chat…" aria-label="Write a live chat message" disabled>
           <button class="chat-send" id="chatSend" type="submit" disabled>Send</button>
         </form>
-        <div class="chat-state" id="chatState">Chat messages are scoped to this stream’s NIP-53 activity, rather than just the host profile.</div>
+        <div class="chat-state" id="chatState" hidden aria-hidden="true"></div>
       </aside>
+      <section class="panel donors-panel" aria-labelledby="donorTitle">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title" id="donorTitle">₿ Top Bitcoin Donors</div>
+            <div class="panel-kicker">Verified Lightning zaps and confirmed mainchain donations</div>
+          </div>
+          <span class="tag" id="donorUpdatedAt">Checking…</span>
+        </div>
+        <div class="donor-list" id="donorList" aria-live="polite">
+          <div class="donor-empty">Checking verified Bitcoin donations…</div>
+        </div>
+        <div class="donor-footnote" id="donorFootnote">Rankings use donation history available from connected Nostr relays. Lightning gifts come from verified zap receipts; mainchain gifts are matched to signed Nostr posts and confirmed transactions, but the Bitcoin transaction itself does not identify the sender.</div>
+      </section>
+      </div>
     </section>
     </main>
   </div>
@@ -337,13 +371,6 @@ permalink: /live
     const PRESENCE_HEARTBEAT_MS = 15000;
     const PRESENCE_TTL_SECONDS = 65;
     const PRESENCE_REFRESH_MS = 9000;
-    const TWITCH_VIEWER_API = 'https://decapi.me/twitch/viewercount/craigthespacebum';
-    // YouTube's official concurrent-viewer count requires a YouTube Data API key.
-    // This browser-visible key must be restricted to this site's HTTP referrer
-    // and to YouTube Data API v3 before adding it here.
-    const YOUTUBE_API_KEY = '';
-    // Fallback only: set this if the NIP-53 event does not include a YouTube URL.
-    const YOUTUBE_LIVE_VIDEO_ID = '';
     const $ = id => document.getElementById(id);
     const pill = $('livePill'), label = $('liveLabel'), note = $('streamNote');
     const video = $('streamVideo'), empty = $('videoEmpty'), videoWrap = $('videoWrap');
@@ -360,13 +387,13 @@ permalink: /live
     const nip05VerificationCache = new Map();
     const lnurlPayCache = new Map();
     const postedOnchainDonationTxids = new Set();
+    const onchainDonationVerificationCache = new Map();
+    let donorRefreshRunning = false;
     let nostrPurePromise = null, nip46Promise = null, qrCodePromise = null;
     let presenceSessionSecret = null, presenceSessionPubkey = '', presenceSessionId = '';
     let presenceSessionActivity = '', presenceSessionIdentity = '', presenceIdentityProof = null;
     let presencePublishRunning = false, watcherRefreshRunning = false, watcherRenderVersion = 0;
     let watcherSnapshot = {nostr:[],guests:0,total:0,updatedAt:0};
-    let twitchCountLastFetched = 0, youtubeLiveVideoIdCache = '';
-    let youtubeCountLastFetched = 0;
 
     function setStatus(kind,text){pill.className='live-pill '+kind;label.textContent=text;}
     function getTag(event,name){const found=(event.tags||[]).find(tag=>tag[0]===name&&tag[1]);return found?found[1]:'';}
@@ -792,73 +819,6 @@ permalink: /live
         const guest=document.createElement('div');guest.className='watcher-empty';
         guest.textContent=watcherSnapshot.guests+' additional guest viewer'+(watcherSnapshot.guests===1?'':'s')+' are watching without signing in.';
         list.appendChild(guest);
-      }
-    }
-    async function refreshTwitchViewerCount(){
-      try{
-        const response=await fetch(TWITCH_VIEWER_API,{method:'GET',mode:'cors',credentials:'omit',redirect:'error',cache:'no-store'});
-        if(!response.ok)throw new Error('Twitch count service returned '+response.status);
-        const value=(await response.text()).trim();
-        if(!/^\d+$/.test(value)){
-          const isOffline=value.toLowerCase().includes('offline');
-          $('twitchViewerCount').textContent=isOffline?'0':'—';
-          $('twitchViewerNote').textContent=isOffline?'Channel offline':'Count unavailable';
-        }else{
-          $('twitchViewerCount').textContent=Number(value).toLocaleString();
-          $('twitchViewerNote').textContent='Snapshot · source cache up to 5 min · checked '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        }
-        twitchCountLastFetched=Date.now();
-      }catch(error){
-        $('twitchViewerCount').textContent='—';
-        $('twitchViewerNote').textContent='Twitch count unavailable';
-        console.warn('Could not load Twitch viewer count',error);
-      }
-    }
-    async function refreshYouTubeViewerCount(){
-      if(activityStatus!=='live'){
-        $('youtubeViewerCount').textContent='0';
-        $('youtubeViewerNote').textContent='No active Bitcoin Cats live stream';
-        return;
-      }
-      if(!YOUTUBE_API_KEY){
-        $('youtubeViewerCount').textContent='—';
-        $('youtubeViewerNote').textContent='YouTube API key not configured';
-        return;
-      }
-      const videoId=youtubeLiveVideoIdCache||YOUTUBE_LIVE_VIDEO_ID;
-      if(!/^[A-Za-z0-9_-]{11}$/.test(videoId)){
-        $('youtubeViewerCount').textContent='—';
-        $('youtubeViewerNote').textContent='No YouTube live video ID in the Nostr stream event';
-        return;
-      }
-      try{
-        const videoUrl=new URL('https://www.googleapis.com/youtube/v3/videos');
-        videoUrl.search=new URLSearchParams({part:'liveStreamingDetails,snippet',id:videoId,key:YOUTUBE_API_KEY});
-        const videoResponse=await fetch(videoUrl.toString(),{credentials:'omit',cache:'no-store'});
-        if(!videoResponse.ok)throw new Error('YouTube live viewer lookup failed ('+videoResponse.status+').');
-        const videoData=await videoResponse.json();
-        const item=videoData.items?.[0];
-        if(!item){
-          $('youtubeViewerCount').textContent='—';
-          $('youtubeViewerNote').textContent='YouTube video not found or unavailable';
-          return;
-        }
-        const concurrent=item.liveStreamingDetails?.concurrentViewers;
-        const broadcastState=item.snippet?.liveBroadcastContent;
-        if(broadcastState==='none'){
-          $('youtubeViewerCount').textContent='0';
-          $('youtubeViewerNote').textContent='YouTube broadcast is not live';
-        }else{
-          $('youtubeViewerCount').textContent=concurrent!==undefined?Number(concurrent).toLocaleString():'—';
-          $('youtubeViewerNote').textContent=concurrent!==undefined
-            ?'Live API snapshot · checked '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
-            :'YouTube count hidden or not available yet';
-        }
-        youtubeCountLastFetched=Date.now();
-      }catch(error){
-        $('youtubeViewerCount').textContent='—';
-        $('youtubeViewerNote').textContent='YouTube count unavailable';
-        console.warn('Could not load YouTube viewer count',error);
       }
     }
     function showLoginPanel(panelId){
@@ -1435,6 +1395,7 @@ permalink: /live
         button.textContent='✓ Posted to Live Chat';
         button.disabled=true;
         await loadChatForCurrentActivity();
+        void refreshTopBitcoinDonors();
       }catch(error){
         setDonationStatus(error.message||'Could not verify the Bitcoin transaction.',true);
         button.disabled=false;button.textContent='Verify Confirmed Payment & Post to Chat';
@@ -1463,7 +1424,7 @@ permalink: /live
       if(!activityAddress)chatState.textContent='Chat will sync automatically when a stream activity is discovered.';
       else if(streamCanChat&&!signedInPubkey)chatState.textContent='Sign in with Nostr to send messages and support the stream. You can still read the chat history.';
       else if(canSend)chatState.textContent='You are signed in. Your messages are published to this broadcast’s NIP-53 live chat.';
-      else chatState.textContent='Showing chat history for the last known broadcast. Sending is disabled while the host is offline.';
+      else chatState.textContent='';
     }
     function getEventTag(event,name){
       const found=(event?.tags||[]).find(tag=>tag[0]===name&&tag[1]);
@@ -1481,7 +1442,9 @@ permalink: /live
         const request=JSON.parse(description);
         if(request.kind!==9734||!pure.verifyEvent(request))return null;
         if(!(request.tags||[]).some(tag=>tag[0]==='p'&&tag[1]===hostPubkey))return null;
-        if(!(request.tags||[]).some(tag=>tag[0]==='a'&&tag[1]===address))return null;
+        const donationActivity=getEventTag(request,'a');
+        if(address&&donationActivity!==address)return null;
+        if(!/^[0-9a-f]{64}$/i.test(request.pubkey||''))return null;
         const amountTag=(request.tags||[]).find(tag=>tag[0]==='amount'&&tag[1]);
         const amountMsats=amountTag?Number(amountTag[1]):null;
         const invoiceMsats=bolt11AmountMsats(invoice);
@@ -1490,13 +1453,151 @@ permalink: /live
           ...receipt,
           pubkey:request.pubkey,
           content:String(request.content||''),
-          _zap:{sats:amountMsats/1000,requestId:request.id,requestPubkey:request.pubkey}
+          _zap:{sats:amountMsats/1000,msats:amountMsats,requestId:request.id,requestPubkey:request.pubkey}
         };
       }catch{return null;}
     }
     async function getHostZapProvider(){
       const profile=await fetchProfile(hostPubkey);
       return resolveLnurlPayInfo(profile);
+    }
+    async function verifyOnchainDonorEvent(event,pure){
+      try{
+        if(!event||event.kind!==1311||!pure.verifyEvent(event))return null;
+        if(!(event.tags||[]).some(tag=>tag[0]==='p'&&tag[1]===hostPubkey))return null;
+        const activity=getEventTag(event,'a');
+        if(!activity.startsWith('30311:'+hostPubkey+':'))return null;
+        if(getEventTag(event,'payment')!=='bitcoin')return null;
+        const txid=String(getEventTag(event,'txid')||'').toLowerCase();
+        const sats=Number(getEventTag(event,'amount'));
+        if(!/^[0-9a-f]{64}$/.test(txid)||!Number.isSafeInteger(sats)||sats<1||sats>2100000000000000)return null;
+        if(!/^[0-9a-f]{64}$/i.test(event.pubkey||''))return null;
+        if(onchainDonationVerificationCache.has(txid)){
+          const cached=await onchainDonationVerificationCache.get(txid);
+          return cached&&cached.satsMsat===sats*1000?{...cached,pubkey:event.pubkey}:null;
+        }
+        const pending=(async()=>{
+          const controller=new AbortController();
+          const timeout=setTimeout(()=>controller.abort(),8000);
+          try{
+            const response=await fetch('https://mempool.space/api/tx/'+txid,{method:'GET',mode:'cors',credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal});
+            if(!response.ok)return null;
+            const tx=await response.json();
+            if(!tx?.status?.confirmed)return null;
+            const address=deriveNostrTaprootAddress(hostPubkey);
+            const paid=Number(tx?.vout?.filter(output=>output.scriptpubkey_address===address).reduce((sum,output)=>sum+Number(output.value||0),0)||0);
+            if(paid!==sats)return null;
+            return {satsMsat:sats*1000,txid};
+          }catch{return null;}
+          finally{clearTimeout(timeout);}
+        })();
+        onchainDonationVerificationCache.set(txid,pending);
+        const verified=await pending;
+        if(!verified)onchainDonationVerificationCache.delete(txid);
+        return verified?{...verified,pubkey:event.pubkey}:null;
+      }catch{return null;}
+    }
+    async function mapWithConcurrency(items,concurrency,worker){
+      const results=new Array(items.length);
+      let cursor=0;
+      await Promise.all(Array.from({length:Math.min(concurrency,items.length)},async()=>{
+        while(true){
+          const index=cursor++;
+          if(index>=items.length)return;
+          try{results[index]=await worker(items[index]);}catch{results[index]=null;}
+        }
+      }));
+      return results;
+    }
+    function formatDonorSats(millisats){
+      return (Number(millisats||0)/1000).toLocaleString(undefined,{maximumFractionDigits:2})+' sats';
+    }
+    async function refreshTopBitcoinDonors(){
+      if(donorRefreshRunning||!pool||!hostPubkey)return;
+      donorRefreshRunning=true;
+      const list=$('donorList'),updated=$('donorUpdatedAt');
+      try{
+        const results=await Promise.allSettled([
+          queryRelays({kinds:[9735],'#p':[hostPubkey],limit:500},6500,8000,'Lightning donor lookup timed out'),
+          queryRelays({kinds:[1311],'#p':[hostPubkey],limit:500},6500,8000,'Mainchain donor lookup timed out')
+        ]);
+        if(results.every(result=>result.status==='rejected'))throw new Error('No configured relays returned donor history.');
+        const donors=new Map();
+        const addDonor=(pubkey,millisats)=>{
+          const key=String(pubkey||'').toLowerCase();
+          const amount=Number(millisats);
+          if(!/^[0-9a-f]{64}$/.test(key)||!Number.isSafeInteger(amount)||amount<=0)return;
+          const row=donors.get(key)||{pubkey:key,millisats:0};
+          row.millisats+=amount;donors.set(key,row);
+        };
+        const zapEvents=results[0].status==='fulfilled'?results[0].value:[];
+        if(zapEvents.length){
+          try{
+            const lnurlInfo=await getHostZapProvider();
+            const verified=await Promise.all(zapEvents.map(receipt=>verifyZapReceipt(receipt,'',lnurlInfo)));
+            const seenRequests=new Set();
+            for(const zap of verified){
+              if(!zap?._zap||seenRequests.has(zap._zap.requestId))continue;
+              seenRequests.add(zap._zap.requestId);
+              addDonor(zap._zap.requestPubkey,zap._zap.msats);
+            }
+          }catch(error){console.warn('Could not verify Lightning donor history',error);}
+        }
+        const mainchainEvents=results[1].status==='fulfilled'?results[1].value:[];
+        const uniqueTransactions=new Map();
+        for(const event of mainchainEvents){
+          if(getEventTag(event,'payment')!=='bitcoin')continue;
+          const txid=String(getEventTag(event,'txid')||'').toLowerCase();
+          if(/^[0-9a-f]{64}$/.test(txid)){
+            const previous=uniqueTransactions.get(txid);
+            if(!previous||(event.created_at||0)>(previous.created_at||0))uniqueTransactions.set(txid,event);
+          }
+        }
+        const candidates=[...uniqueTransactions.values()].sort((a,b)=>(b.created_at||0)-(a.created_at||0)).slice(0,50);
+        const pure=await getNostrPure();
+        const verifiedMainchain=await mapWithConcurrency(candidates,8,event=>verifyOnchainDonorEvent(event,pure));
+        for(const donation of verifiedMainchain)if(donation)addDonor(donation.pubkey,donation.satsMsat);
+        const ranked=[...donors.values()].sort((a,b)=>b.millisats-a.millisats).slice(0,10);
+        if(!ranked.length){
+          list.replaceChildren();
+          const empty=document.createElement('div');empty.className='donor-empty';
+          empty.textContent='No verified Bitcoin donations found in the connected relay history yet.';
+          list.appendChild(empty);
+        }else{
+          const profiles=await Promise.all(ranked.map(async row=>{
+            const profile=await fetchProfile(row.pubkey);
+            const valid=profile.nip05?await verifyNip05(profile.nip05,row.pubkey):false;
+            return {...row,profile,valid};
+          }));
+          list.replaceChildren();
+          profiles.forEach((row,index)=>{
+            const item=document.createElement('div');item.className='donor-row';
+            const rank=document.createElement('span');rank.className='donor-rank';rank.textContent='#'+(index+1);
+            const avatar=document.createElement('img');avatar.className='donor-avatar';avatar.alt='';avatar.loading='lazy';
+            avatar.onerror=()=>{avatar.onerror=null;avatar.src='/logo.png';};
+            avatar.src=row.profile.picture&&isSecureUrl(row.profile.picture)?row.profile.picture:'/logo.png';
+            const profile=document.createElement('div');profile.className='donor-profile';
+            const name=document.createElement('div');name.className='donor-name';
+            name.textContent=row.profile.name||row.pubkey.slice(0,8)+'…'+row.pubkey.slice(-4);
+            const identity=document.createElement('div');identity.className='donor-identity';
+            identity.textContent=row.valid?row.profile.nip05:row.pubkey.slice(0,12)+'…'+row.pubkey.slice(-8);
+            profile.append(name,identity);
+            const amount=document.createElement('div');amount.className='donor-amount';amount.textContent=formatDonorSats(row.millisats);
+            item.append(rank,avatar,profile,amount);list.appendChild(item);
+          });
+        }
+        const partial=results.some(result=>result.status==='rejected');
+        updated.textContent=(partial?'Partial relay data · ':'Updated · ')+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      }catch(error){
+        if(!list.querySelector('.donor-row')){
+          list.replaceChildren();
+          const empty=document.createElement('div');empty.className='donor-empty';
+          empty.textContent='Donor history is temporarily unavailable. The page will retry automatically.';
+          list.appendChild(empty);
+        }
+        updated.textContent='Unavailable';
+        console.warn('Could not refresh Top Bitcoin Donors',error);
+      }finally{donorRefreshRunning=false;}
     }
     async function loadChatForCurrentActivity(){
       const address=activityAddress;
@@ -1581,38 +1682,6 @@ permalink: /live
         if(requestId===chatRequestId)chatState.textContent='Could not refresh this stream’s chat from public Nostr relays. Retrying automatically…';
       }finally{chatRefreshRunning=false;}
     }
-    function extractYouTubeVideoId(event){
-      const valid=id=>/^[A-Za-z0-9_-]{11}$/.test(String(id||''));
-      for(const tag of event?.tags||[]){
-        if(['youtube','youtube_video_id','youtube-id'].includes(String(tag[0]||'').toLowerCase())&&valid(tag[1]))return tag[1];
-      }
-      const candidates=[
-        getTag(event,'url'),
-        getTag(event,'streaming'),
-        String(event?.content||''),
-        ...(event?.tags||[]).flatMap(tag=>(tag||[]).slice(1).map(String))
-      ];
-      for(const candidate of candidates){
-        const raw=String(candidate||'').trim();
-        if(!raw)continue;
-        try{
-          const url=new URL(raw);
-          const host=url.hostname.toLowerCase().replace(/^www\./,'');
-          if(host==='youtu.be'){
-            const id=url.pathname.split('/').filter(Boolean)[0]||'';
-            if(valid(id))return id;
-          }
-          if(host==='youtube.com'||host.endsWith('.youtube.com')){
-            const id=url.searchParams.get('v')||url.pathname.match(/^\/(?:live|embed|shorts|v)\/([A-Za-z0-9_-]{11})(?:\/|$)/)?.[1]||'';
-            if(valid(id))return id;
-          }
-        }catch{
-          const match=raw.match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|live\/|embed\/|shorts\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/i);
-          if(match&&valid(match[1]))return match[1];
-        }
-      }
-      return YOUTUBE_LIVE_VIDEO_ID||'';
-    }
     async function refreshStream(){
       if(streamRefreshRunning||!pool||!hostPubkey)return;
       streamRefreshRunning=true;
@@ -1621,7 +1690,6 @@ permalink: /live
         const event=chooseStream(events);
         if(!event){
           activityAddress='';activityStatus='offline';currentEventId='';
-          youtubeLiveVideoIdCache='';
           void syncViewerPresence();
           setStatus('','Host offline');$('streamTitle').textContent='Bitcoin Cats Live Broadcast';
           $('streamSummary').textContent='No recent stream activity was found for the configured Nostr host. The preview is blurred while the host is offline.';
@@ -1632,7 +1700,6 @@ permalink: /live
         const previousAddress=activityAddress,d=getTag(event,'d');
         activityAddress=d?'30311:'+event.pubkey+':'+d:'';
         activityStatus=classifyActivity(event);currentEventId=event.id||'';
-        youtubeLiveVideoIdCache=activityStatus==='live'?extractYouTubeVideoId(event):'';
         void syncViewerPresence();
         if(activityStatus==='live'){
           const url=getTag(event,'streaming')||getTag(event,'url');
@@ -1744,14 +1811,13 @@ permalink: /live
         }).catch(error=>console.warn('Could not load the Bitcoin Cats profile for navigation',error));
         $('streamSource').textContent='Discovering the host’s latest Nostr stream';
         await refreshStream();
+        void refreshTopBitcoinDonors();
         setInterval(()=>{void refreshStream();},30000);
+        setInterval(()=>{void refreshTopBitcoinDonors();},300000);
         setInterval(()=>{if(!streamRefreshRunning)void loadChatForCurrentActivity();},10000);
         setInterval(()=>{void syncViewerPresence();},PRESENCE_HEARTBEAT_MS);
         setInterval(()=>{void refreshViewerRoster();},PRESENCE_REFRESH_MS);
-        void refreshTwitchViewerCount();
-        void refreshYouTubeViewerCount();
-        setInterval(()=>{void refreshTwitchViewerCount();},300000);
-        setInterval(()=>{void refreshYouTubeViewerCount();},300000);
+
         const observer=new ResizeObserver(reportHeight);observer.observe(document.body);reportHeight();
       }catch(error){
         showOffline(null,'Could not initialize Nostr stream discovery. The preview will stay blurred while reconnecting.');
