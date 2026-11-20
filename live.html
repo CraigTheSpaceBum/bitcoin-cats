@@ -26,12 +26,12 @@ permalink: /live
     .link-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04);font-size:13px;font-weight:650;white-space:nowrap;transition:background .2s,border-color .2s}
     .link-btn:hover{background:rgba(255,255,255,.08);border-color:rgba(255,173,85,.45)}
     .link-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#211306}
-    .intro{display:block;margin:0 0 18px}
+    .intro{position:relative;display:block;margin:0 0 18px}
     .live-banner{display:block;width:100%;height:auto;border:1px solid rgba(255,173,85,.16);border-radius:18px;box-shadow:0 16px 45px rgba(0,0,0,.3)}
     .eyebrow{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
     h1{font-size:clamp(25px,4vw,40px);line-height:1.1;letter-spacing:-.04em;margin:0}
     .intro p{color:var(--muted);font-size:14px;line-height:1.6;margin:10px 0 0;max-width:650px}
-    .live-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:9px 12px;color:var(--muted);font-size:12px;font-weight:700;white-space:nowrap;background:rgba(255,255,255,.035)}
+    .live-pill{position:absolute;z-index:3;top:14px;right:14px;display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:9px 12px;color:var(--muted);font-size:12px;font-weight:700;white-space:nowrap;background:rgba(7,7,14,.78);backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(0,0,0,.28)}
     .dot{width:8px;height:8px;border-radius:50%;background:#77778b}
     .live-pill.live{color:#d8ffeb;border-color:rgba(94,230,168,.28);background:rgba(94,230,168,.08)}.live-pill.live .dot{background:var(--green);box-shadow:0 0 12px rgba(94,230,168,.75)}
     .live-pill.loading .dot{background:var(--accent);animation:pulse 1.2s infinite}
@@ -49,7 +49,9 @@ permalink: /live
     .video-wrap.offline .offline-poster{filter:blur(15px);transform:scale(1.08)}
     .offline-overlay{position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:24px;text-align:center;background:rgba(5,5,12,.26);backdrop-filter:blur(1px)}
     .offline-overlay[hidden]{display:none}
-    .offline-badge{display:inline-flex;padding:7px 11px;border-radius:999px;border:1px solid rgba(255,173,85,.35);background:rgba(12,12,20,.72);color:#ffd6aa;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px}
+    .offline-overlay-content{display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:min(100%,520px)}
+    .offline-badge{display:inline-flex;padding:7px 11px;border-radius:999px;border:1px solid rgba(255,173,85,.35);background:rgba(12,12,20,.72);color:#ffd6aa;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
+    .offline-cat{display:block;width:clamp(62px,9vw,92px);height:clamp(62px,9vw,92px);object-fit:contain;margin:0 auto 10px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.4))}
     .offline-overlay h2{font-size:clamp(19px,2.5vw,28px);margin:0 0 8px}
     .offline-overlay p{max-width:420px;color:#e0dce9;font-size:13px;line-height:1.6;margin:0}
     .chat-messages{display:flex;flex:1;flex-direction:column;gap:11px;min-height:0;max-height:610px;overflow:auto;padding:15px;background:rgba(4,4,10,.25);scrollbar-color:#464153 transparent}
@@ -75,36 +77,26 @@ permalink: /live
     .status-note{padding:12px 18px;color:var(--muted);font-size:12px;line-height:1.5;border-top:1px solid var(--line)}
     .footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;color:var(--muted);font-size:11px;line-height:1.6}.footer a{color:#ffd1a0}
     @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}}
-    @media(max-width:560px){.page{padding:12px}.topbar{align-items:flex-start;margin-bottom:22px}.brand-mark{width:38px;height:38px;border-radius:12px}.brand-name{font-size:13px}.brand-sub{font-size:11px}.top-actions{gap:6px}.link-btn{padding:9px 10px;font-size:11px}.intro{align-items:flex-start;flex-direction:column}.live-pill{align-self:flex-start}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}}
+    @media(max-width:560px){.page{padding:12px}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
   </style>
 </head>
 <body>
   <main class="page">
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="Bitcoin Cats home">
-        <span class="brand-mark" aria-hidden="true">₿</span>
-        <span class="brand-copy"><span class="brand-name">BITCOIN CATS</span><span class="brand-sub">Nostr-powered community</span></span>
-      </a>
-      <nav class="top-actions" aria-label="Main navigation">
-        <div class="live-pill loading" id="livePill" role="status" aria-live="polite"><span class="dot"></span><span id="liveLabel">Checking host…</span></div>
-        <a class="link-btn primary" href="https://sifaka.live/" target="_blank" rel="noopener noreferrer">Open Sifaka Live ↗</a>
-      </nav>
-    </header>
-
     <section class="intro" aria-label="Live stream banner">
       <img class="live-banner" src="assets/twitchbanner.webp" alt="Bitcoin Cats live stream banner">
+      <div class="live-pill loading" id="livePill" role="status" aria-live="polite"><span class="dot"></span><span id="liveLabel">Checking host…</span></div>
     </section>
 
     <section class="layout" aria-label="Live stream and chat">
       <article class="panel">
-        <div class="panel-head"><div><div class="panel-title">Now playing</div><div class="panel-kicker" id="streamSource">Checking Nostr for the latest stream</div></div><span class="tag">NOSTR · NIP-53</span></div>
+        <div class="panel-head"><div><div class="panel-title">Now playing</div><div class="panel-kicker" id="streamSource">Checking Nostr for the latest stream</div></div><a class="link-btn primary" href="https://sifaka.live/" target="_blank" rel="noopener noreferrer">Open Sifaka Live ↗</a></div>
         <div class="video-wrap" id="videoWrap">
           <video id="streamVideo" controls playsinline autoplay muted></video>
           <img class="offline-poster" id="offlinePoster" alt="" hidden>
           <div class="video-empty" id="videoEmpty"><div class="video-empty-inner"><div class="play-icon">▶</div><h2>Connecting to the live broadcast</h2><p>Looking for the host’s latest live-stream event.</p></div></div>
           <div class="offline-overlay" id="offlineOverlay" hidden>
-            <div><span class="offline-badge">Currently offline</span><h2 id="offlineTitle">Stream is offline</h2><p id="offlineSummary">The stream preview is blurred until the host goes live again.</p></div>
+            <div class="offline-overlay-content"><span class="offline-badge">Currently offline</span><img class="offline-cat" src="/catstr.gif" alt="Bitcoin Cats loading cat"><h2 id="offlineTitle">Stream is offline</h2><p id="offlineSummary">The stream preview is blurred until the host goes live again.</p></div>
           </div>
         </div>
         <div class="stream-details"><h2 class="stream-name" id="streamTitle">Bitcoin Cats Live Broadcast</h2><p class="stream-summary" id="streamSummary">Waiting for stream information from Nostr relays…</p><div class="stream-tags" id="streamTags"></div></div>

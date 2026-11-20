@@ -1178,25 +1178,6 @@ async function showDonationPage({navigate=true,profile=null}={}){
   }
 }
 
-/* Live Stream page (loads live.html like About) */
-async function showLivePage({navigate=true}={}) {
-  if(navigate)setPageHistory("live");
-  else activeContentPage="live";
-  overlay.classList.remove("hidden");
-  feedEl.innerHTML = '<div id="livePage" class="about-page" style="grid-column:1/-1;width:100%;padding:0;min-height:0;opacity:1;"><iframe id="livePageFrame" title="Bitcoin Cats Live Stream" src="/live" loading="eager" referrerpolicy="strict-origin-when-cross-origin" style="display:block;width:100%;height:1200px;min-height:900px;border:0;border-radius:18px;background:#090910;"></iframe></div>';
-  const frame=document.getElementById("livePageFrame");
-  if(window.__bitcoinCatsLiveResizeHandler) window.removeEventListener("message",window.__bitcoinCatsLiveResizeHandler);
-  window.__bitcoinCatsLiveResizeHandler=(event)=>{
-    if(event.origin!==window.location.origin || event.source!==frame.contentWindow || event.data?.type!=="bitcoin-cats-live-height") return;
-    const height=Number(event.data.height);
-    if(Number.isFinite(height)) frame.style.height=Math.max(900,Math.min(5000,height+8))+"px";
-  };
-  window.addEventListener("message",window.__bitcoinCatsLiveResizeHandler);
-  frame.addEventListener("load",()=>overlay.classList.add("hidden"),{once:true});
-  setTimeout(()=>overlay.classList.add("hidden"),1000);
-}
-
-
 /* ---------- Nostr interactions: NIP-07 + relay-backed comments/reactions ---------- */
 const WRITE_RELAYS = ["wss://nos.lol","wss://relay.damus.io","wss://purplerelay.com","wss://relay.primal.net"];
 let signedInPubkey = null;
@@ -1333,7 +1314,7 @@ async function load(){
     document.getElementById("loginBtn").onclick=connectNostr;
     document.getElementById("homeBtn").onclick=()=>showHomePage();
     document.getElementById("aboutBtn").onclick=()=>showAbout();
-    document.getElementById("liveBtn").onclick=()=>showLivePage();
+    document.getElementById("liveBtn").onclick=()=>{window.location.assign("/live");};
     document.getElementById("zapBtn").onclick=()=>showDonationPage();
 
     // Keep browser Back/Forward synchronized with the visible page.
@@ -1341,7 +1322,6 @@ async function load(){
       const page=event.state?.page || (isDonationRoute()?"donation":"home");
       if(page==="donation")void showDonationPage({navigate:false});
       else if(page==="about")void showAbout({navigate:false});
-      else if(page==="live")void showLivePage({navigate:false});
       else void showHomePage({navigate:false});
     });
   }catch(e){
