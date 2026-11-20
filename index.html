@@ -1303,8 +1303,86 @@ let signedInPubkey = null;
 let nostrPool = null;
 let nostrTools = null;
 let nostrRemoteSigner = null;
+let nostrIframeSignerActive = false;
+let loginFrameReady = false;
+const pendingLoginSignatures = new Map();
 const SHARED_AUTH_KEY="bitcoinCatsAuth";
 function hexBytes(hex){return Uint8Array.from((hex.match(/.{2}/g)||[]).map(value=>parseInt(value,16)));}
+function postToLoginFrame(message){
+  const frame=document.getElementById("nostrLoginFrame");
+  if(frame?.contentWindow)frame.contentWindow.postMessage(message,location.origin);
+}
+function dismissNostrLoginModal({notifyFrame=true}={}){
+  const modal=document.getElementById("nostrLoginModal");
+  if(!modal)return;
+  modal.hidden=true;
+  document.body.style.overflow="";
+  if(notifyFrame&&!nostrIframeSignerActive&&loginFrameReady)postToLoginFrame({type:"bitcoin-cats-close-login"});
+}
+function openNostrLoginModal(){
+  const modal=document.getElementById("nostrLoginModal");
+  const frame=document.getElementById("nostrLoginFrame");
+  if(!modal||!frame)return;
+  modal.hidden=false;
+  document.body.style.overflow="hidden";
+  const frameUrl="/live?login=1&embed=1";
+  if(frame.getAttribute("src")!==frameUrl){
+    loginFrameReady=false;
+    frame.setAttribute("src",frameUrl);
+  }else if(loginFrameReady){
+    postToLoginFrame({type:"bitcoin-cats-open-login"});
+  }
+}
+function signWithLoginFrame(unsignedEvent){
+  if(!nostrIframeSignerActive) return Promise.reject(new Error("The sign-in window is no longer available. Please sign in again."));
+  const requestId="sig-"+Date.now()+"-"+Math.random().toString(36).slice(2);
+  return new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{
+      pendingLoginSignatures.delete(requestId);
+      reject(new Error("The Nostr signer did not respond. Please try again."));
+    },90000);
+    pendingLoginSignatures.set(requestId,{resolve,reject,timer});
+    postToLoginFrame({type:"bitcoin-cats-sign-event",requestId,event:unsignedEvent});
+  });
+}
+const nostrLoginFrame=document.getElementById("nostrLoginFrame");
+nostrLoginFrame.addEventListener("load",()=>{
+  loginFrameReady=true;
+  if(nostrLoginFrame.getAttribute("src")==="/live?login=1&embed=1"){
+    if(document.getElementById("nostrLoginModal").hidden)postToLoginFrame({type:"bitcoin-cats-close-login"});
+    else postToLoginFrame({type:"bitcoin-cats-open-login"});
+  }
+});
+document.getElementById("nostrLoginModal").addEventListener("click",event=>{
+  if(event.target===event.currentTarget)dismissNostrLoginModal();
+});
+document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&!document.getElementById("nostrLoginModal").hidden)dismissNostrLoginModal();
+});
+window.addEventListener("message",event=>{
+  if(event.origin!==location.origin||event.source!==nostrLoginFrame.contentWindow)return;
+  const message=event.data||{};
+  if(message.type==="bitcoin-cats-login-complete"){
+    if(!/^[0-9a-f]{64}$/.test(message.pubkey||""))return;
+    signedInPubkey=message.pubkey;
+    nostrIframeSignerActive=true;
+    if(nostrRemoteSigner&&typeof nostrRemoteSigner.close==="function")void nostrRemoteSigner.close().catch(()=>{});
+    nostrRemoteSigner=null;
+    const profile=message.profile||{};
+    document.getElementById("loginBtn").textContent="✓ "+(profile.name||npubShort(signedInPubkey));
+    document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Write a reply…");
+    dismissNostrLoginModal({notifyFrame:false});
+  }else if(message.type==="bitcoin-cats-login-dismiss"){
+    if(!nostrIframeSignerActive)dismissNostrLoginModal({notifyFrame:false});
+  }else if(message.type==="bitcoin-cats-sign-result"){
+    const pending=pendingLoginSignatures.get(message.requestId);
+    if(!pending)return;
+    clearTimeout(pending.timer);
+    pendingLoginSignatures.delete(message.requestId);
+    if(message.ok&&message.event&&message.event.pubkey===signedInPubkey)pending.resolve(message.event);
+    else pending.reject(new Error(message.error||"The Nostr signer returned an invalid event."));
+  }
+});
 async function restoreSharedNostrSession(){
   let saved;
   try{saved=JSON.parse(sessionStorage.getItem(SHARED_AUTH_KEY)||"null");}catch{}
@@ -1338,21 +1416,25 @@ async function getNostrTools(){
 function npubShort(hex){return hex ? hex.slice(0,8)+"…"+hex.slice(-4) : "";}
 async function connectNostr(){
   if(signedInPubkey){
+    if(nostrIframeSignerActive)postToLoginFrame({type:"bitcoin-cats-sign-out"});
+    nostrIframeSignerActive=false;
     signedInPubkey=null;
     if(nostrRemoteSigner&&typeof nostrRemoteSigner.close==="function")void nostrRemoteSigner.close().catch(()=>{});
     nostrRemoteSigner=null;
-    try{sessionStorage.removeItem("bitcoinCatsAuth");}catch{}
+    try{sessionStorage.removeItem(SHARED_AUTH_KEY);sessionStorage.removeItem("bitcoinCatsLoginReturn");}catch{}
     document.getElementById("loginBtn").textContent="🔑 Login with Nostr";
     document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Sign in to write a reply…");
     return;
   }
-  try{sessionStorage.setItem("bitcoinCatsLoginReturn",location.pathname+location.search+location.hash);}catch{}
-  window.location.assign("/live?login=1");
+  openNostrLoginModal();
 }
 async function publishNostrEvent(event){
   if(!signedInPubkey) throw new Error("Please log in with your Nostr signer first.");
-  const signed = nostrRemoteSigner ? await nostrRemoteSigner.signEvent(event) : (window.nostr&&typeof window.nostr.signEvent==="function" ? await window.nostr.signEvent(event) : null);
-  if(!signed)throw new Error("Your Nostr signer is unavailable. Please sign in again from the Live Stream page.");
+  let signed=null;
+  if(nostrIframeSignerActive)signed=await signWithLoginFrame(event);
+  else if(nostrRemoteSigner)signed=await nostrRemoteSigner.signEvent(event);
+  else if(window.nostr&&typeof window.nostr.signEvent==="function")signed=await window.nostr.signEvent(event);
+  if(!signed||signed.pubkey!==signedInPubkey)throw new Error("Your Nostr signer is unavailable or returned an event for a different account. Please sign in again.");
   const {SimplePool} = await getNostrTools();
   if(!nostrPool) nostrPool = new SimplePool();
   const results = await Promise.allSettled(nostrPool.publish(WRITE_RELAYS,signed));
