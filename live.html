@@ -339,7 +339,8 @@ permalink: /live
     const PRESENCE_REFRESH_MS = 9000;
     const TWITCH_VIEWER_API = 'https://decapi.me/twitch/viewercount/craigthespacebum';
     // YouTube's official concurrent-viewer count requires a YouTube Data API key.
-    // Keep this empty until a key restricted to https://bitcoin-cats.ca/* is configured.
+    // A browser key is visible in page source: restrict it to this site's HTTP
+    // referrer and to YouTube Data API v3 before adding it here.
     const YOUTUBE_API_KEY = '';
     const YOUTUBE_CHANNEL_HANDLE = '@CraigTheSpaceBum';
     const $ = id => document.getElementById(id);
@@ -657,6 +658,26 @@ permalink: /live
         return identity.toLowerCase();
       }catch{return '';}
     }
+    async function queryPresenceRelays(filter){
+      const results=await Promise.allSettled(RELAYS.map(relay=>{
+        const relayFilter={...filter};
+        for(const key of Object.keys(relayFilter))if(Array.isArray(relayFilter[key]))relayFilter[key]=relayFilter[key].slice();
+        let timer;
+        return Promise.race([
+          pool.querySync([relay],relayFilter,{maxWait:7000}),
+          new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Watcher relay timeout')),8500);})
+        ]).finally(()=>clearTimeout(timer));
+      }));
+      const events=new Map();
+      let responders=0;
+      for(const result of results){
+        if(result.status!=='fulfilled')continue;
+        responders++;
+        for(const event of result.value||[])if(event?.id)events.set(event.id,event);
+      }
+      if(!responders)throw new Error('No configured relays responded to watcher presence.');
+      return {events:[...events.values()],responders,totalRelays:RELAYS.length};
+    }
     async function refreshViewerRoster(){
       if(watcherRefreshRunning)return;
       const address=activityAddress,version=++watcherRenderVersion;
@@ -671,12 +692,13 @@ permalink: /live
       }
       watcherRefreshRunning=true;
       try{
-        const events=await queryRelays({
+        const relayResult=await queryPresenceRelays({
           kinds:[PRESENCE_KIND],
           '#d':[PRESENCE_D_TAG],
           '#a':[address],
           limit:1000
-        },7000,8500,'Watcher presence lookup timed out');
+        });
+        const events=relayResult.events;
         if(version!==watcherRenderVersion||activityAddress!==address)return;
         const pure=await getNostrPure();
         const now=Math.floor(Date.now()/1000);
@@ -711,8 +733,11 @@ permalink: /live
         $('watcherNostrCount').textContent=nostr.length.toLocaleString();
         $('watcherGuestCount').textContent=guests.size.toLocaleString();
         $('watcherLiveState').classList.remove('offline');
-        $('watcherLiveLabel').textContent='Live · updating';
-        $('watcherUpdatedAt').textContent='Updated '+new Date(watcherSnapshot.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · heartbeat expires after '+PRESENCE_TTL_SECONDS+'s';
+        $('watcherLiveLabel').textContent=relayResult.responders===relayResult.totalRelays?'Live · updating':'Partial relay sync';
+        $('watcherUpdatedAt').textContent='Updated '+new Date(watcherSnapshot.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+relayResult.responders+'/'+relayResult.totalRelays+' relays responded';
+        $('watcherFootnote').textContent=relayResult.responders===relayResult.totalRelays
+          ?'New page visitors usually appear within '+Math.ceil(PRESENCE_REFRESH_MS/1000)+' seconds. A closed or disconnected page expires after '+PRESENCE_TTL_SECONDS+' seconds. Counts are for this Bitcoin Cats page only.'
+          :'Only '+relayResult.responders+' of '+relayResult.totalRelays+' relays responded, so totals may be undercounted until relay connectivity recovers.';
         await renderWatcherProfiles(nostr,address,version);
       }catch(error){
         if(version===watcherRenderVersion){
