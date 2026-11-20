@@ -612,17 +612,17 @@ permalink: /live
       if(!activityAddress||activityStatus!=='live'||!pool||!hostPubkey){
         await stopPresenceSession();
         if(!$('watcherList'))return;
-        if(activityStatus!=='live'){
-          $('watcherLiveState').classList.add('offline');
-          $('watcherLiveLabel').textContent='Host offline';
-          $('watcherTotalCount').textContent='0';
-          $('watcherNostrCount').textContent='0';
-          $('watcherGuestCount').textContent='0';
-          $('watcherList').replaceChildren();
-          const empty=document.createElement('div');empty.className='watcher-empty';
-          empty.textContent='Viewer presence starts when the host goes live.';
-          $('watcherList').appendChild(empty);
-        }
+        $('watcherLiveState').classList.add('offline');
+        $('watcherLiveLabel').textContent=activityStatus==='live'?'Waiting for stream activity':'Host offline';
+        $('watcherTotalCount').textContent='0';
+        $('watcherNostrCount').textContent='0';
+        $('watcherGuestCount').textContent='0';
+        $('watcherList').replaceChildren();
+        const empty=document.createElement('div');empty.className='watcher-empty';
+        empty.textContent=activityStatus==='live'
+          ?'The host is live, but there is no NIP-53 activity identifier to track viewers yet.'
+          :'Viewer presence starts when the host goes live.';
+        $('watcherList').appendChild(empty);
         return;
       }
       if(presencePublishRunning)return;
@@ -799,8 +799,9 @@ permalink: /live
         if(!response.ok)throw new Error('Twitch count service returned '+response.status);
         const value=(await response.text()).trim();
         if(!/^\d+$/.test(value)){
-          $('twitchViewerCount').textContent=value.toLowerCase()==='offline'?'0':'—';
-          $('twitchViewerNote').textContent=value.toLowerCase()==='offline'?'Channel offline':'Count unavailable';
+          const isOffline=value.toLowerCase().includes('offline');
+          $('twitchViewerCount').textContent=isOffline?'0':'—';
+          $('twitchViewerNote').textContent=isOffline?'Channel offline':'Count unavailable';
         }else{
           $('twitchViewerCount').textContent=Number(value).toLocaleString();
           $('twitchViewerNote').textContent='Snapshot · source cache up to 5 min · checked '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
