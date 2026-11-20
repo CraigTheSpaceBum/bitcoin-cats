@@ -1476,7 +1476,7 @@ permalink: /live
         if(!/^[0-9a-f]{64}$/i.test(event.pubkey||''))return null;
         if(onchainDonationVerificationCache.has(txid)){
           const cached=await onchainDonationVerificationCache.get(txid);
-          return cached?{...cached,pubkey:event.pubkey}:null;
+          return cached&&cached.satsMsat===sats*1000?{...cached,pubkey:event.pubkey}:null;
         }
         const pending=(async()=>{
           const controller=new AbortController();
@@ -1550,7 +1550,10 @@ permalink: /live
         for(const event of mainchainEvents){
           if(getEventTag(event,'payment')!=='bitcoin')continue;
           const txid=String(getEventTag(event,'txid')||'').toLowerCase();
-          if(/^[0-9a-f]{64}$/.test(txid)&&!uniqueTransactions.has(txid))uniqueTransactions.set(txid,event);
+          if(/^[0-9a-f]{64}$/.test(txid)){
+            const previous=uniqueTransactions.get(txid);
+            if(!previous||(event.created_at||0)>(previous.created_at||0))uniqueTransactions.set(txid,event);
+          }
         }
         const candidates=[...uniqueTransactions.values()].sort((a,b)=>(b.created_at||0)-(a.created_at||0)).slice(0,50);
         const pure=await getNostrPure();
