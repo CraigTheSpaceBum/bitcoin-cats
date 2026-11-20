@@ -227,7 +227,7 @@ permalink: /live
           <button class="btn" id="homeBtn" type="button">✍️ Blog</button>
           <button class="btn" id="aboutBtn" type="button">ℹ️ About</button>
           <button class="btn" id="liveBtn" type="button" aria-current="page">📺 Live Stream</button>
-          <button class="btn primary" id="zapBtn" type="button">₿ Donate</button>
+          <button class="btn" id="zapBtn" type="button">₿ Donate</button>
           <button class="btn" id="loginBtn" type="button">🔑 Login with Nostr</button>
         </div>
       </div>
@@ -383,6 +383,7 @@ permalink: /live
     let signedInPubkey = '';
     let activeLocalSecret = null, activeRemoteSigner = null, activeSignerKind = '', signedInProfile = null;
     let pendingNewIdentity = false, remoteLoginAbort = null, remoteClientSecret = null, pendingRemoteSigner = null;
+    let sharedRemoteLoginUri = '';
     let chatRefreshRunning = false, chatRefreshQueued = false, chatRequestId = 0, lastPlaybackKey = '';
     const profileCache = new Map();
     const nip05VerificationCache = new Map();
@@ -523,7 +524,7 @@ permalink: /live
       return nip46Promise;
     }
     async function getQrCode(){
-      qrCodePromise ||= import('https://esm.sh/qrcode@1.5.4');
+      qrCodePromise ||= import('https://esm.sh/qrcode@1.5.4?bundle');
       return qrCodePromise;
     }
     async function signUserEvent(unsigned){
@@ -887,6 +888,15 @@ permalink: /live
       const profile=options.profile||await fetchProfile(signedInPubkey);
       signedInProfile=profile;
       if(options.method)activeSignerKind=options.method;
+      try{
+        const shared={pubkey:signedInPubkey,method:activeSignerKind};
+        if(activeSignerKind==='nip46'&&remoteClientSecret instanceof Uint8Array&&sharedRemoteLoginUri){
+          shared.remoteSecret=Array.from(remoteClientSecret).map(value=>value.toString(16).padStart(2,'0')).join('');
+          shared.remoteUri=sharedRemoteLoginUri;
+        }
+        if(activeSignerKind==='nip07'||(activeSignerKind==='nip46'&&shared.remoteSecret))sessionStorage.setItem('bitcoinCatsAuth',JSON.stringify(shared));
+        else sessionStorage.removeItem('bitcoinCatsAuth');
+      }catch(error){console.warn('Could not save the temporary shared sign-in session',error);}
       await updateSignedInOverlay(profile);
       $('loginBtn').textContent='Sign Out';
       $('loginModal').hidden=true;
@@ -894,6 +904,11 @@ permalink: /live
       setChatComposerState();
       chatState.textContent='Signed in as '+(profile.name||signedInPubkey.slice(0,8)+'…')+'. You can now send messages in this live chat.';
       if(activityAddress&&activityStatus==='live')void syncViewerPresence();
+      const returnTo=sessionStorage.getItem('bitcoinCatsLoginReturn');
+      if(returnTo&&returnTo.startsWith('/')&&!returnTo.startsWith('//')){
+        sessionStorage.removeItem('bitcoinCatsLoginReturn');
+        setTimeout(()=>window.location.replace(returnTo),350);
+      }
       return signedInPubkey;
     }
     async function signInWithExtension(){
@@ -965,16 +980,17 @@ permalink: /live
         const clientPubkey=pure.getPublicKey(remoteClientSecret);
         const uri=nip46.createNostrConnectURI({
           clientPubkey,
-          relays:RELAYS.slice(0,3),
+          relays:RELAYS.slice(0,5),
           secret:makeLoginSecret(),
           name:'Bitcoin Cats',
           url:'https://bitcoin-cats.ca',
-          perms:['sign_event:1311,sign_event:9734,sign_event:30078']
+          perms:['sign_event:1311','sign_event:9734','sign_event:30078']
         });
+        sharedRemoteLoginUri=uri;
         $('remoteLoginUri').value=uri;
         const qrApi=qr.default&&typeof qr.default.toDataURL==='function'?qr.default:qr;
         if(typeof qrApi.toDataURL!=='function')throw new Error('QR code rendering is not available in this browser.');
-        $('remoteLoginQrImage').src=await qrApi.toDataURL(uri,{width:240,margin:2});
+        $('remoteLoginQrImage').src=await qrApi.toDataURL(uri,{width:320,margin:2,errorCorrectionLevel:'M'});
         if(controller.signal.aborted){
           if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
           remoteClientSecret=null;return;
@@ -1045,6 +1061,8 @@ permalink: /live
       }
     }
     async function signOut(){
+      try{sessionStorage.removeItem('bitcoinCatsAuth');sessionStorage.removeItem('bitcoinCatsLoginReturn');}catch{}
+      sharedRemoteLoginUri='';
       if(remoteLoginAbort)cancelRemoteLogin();
       if(pendingRemoteSigner){try{await pendingRemoteSigner.close();}catch{}pendingRemoteSigner=null;}
       try{if(activeRemoteSigner&&typeof activeRemoteSigner.close==='function')await activeRemoteSigner.close();}catch{}
@@ -1906,6 +1924,7 @@ permalink: /live
         }).catch(error=>console.warn('Could not load the Bitcoin Cats profile for navigation',error));
         $('streamSource').textContent='Discovering the host’s latest Nostr stream';
         await refreshStream();
+        if(new URLSearchParams(location.search).get('login')==='1')openLogin();
         void refreshTopBitcoinDonors();
         setInterval(()=>{void refreshStream();},30000);
         setInterval(()=>{void refreshTopBitcoinDonors();},300000);
