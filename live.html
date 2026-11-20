@@ -1060,6 +1060,30 @@ permalink: /live
         $('loginStatus').textContent=error.message||'Could not connect to the bunker signer.';
       }
     }
+    async function restoreSharedLogin(){
+      let saved;
+      try{saved=JSON.parse(sessionStorage.getItem('bitcoinCatsAuth')||'null');}catch{}
+      if(!saved||saved.pubkey!==undefined&&!/^[0-9a-f]{64}$/.test(saved.pubkey||''))return;
+      try{
+        if(saved.method==='nip07'&&window.nostr&&typeof window.nostr.getPublicKey==='function'&&typeof window.nostr.signEvent==='function'){
+          const pubkey=await window.nostr.getPublicKey();
+          if(pubkey===saved.pubkey)await completeLogin(pubkey,{method:'nip07'});
+        }else if(saved.method==='nip46'&&saved.remoteUri&&/^[0-9a-f]{64}$/.test(saved.remoteSecret||'')){
+          await ensureNostrReady();
+          const [nip46,pure]=await Promise.all([getNip46(),getNostrPure()]);
+          remoteClientSecret=Uint8Array.from((saved.remoteSecret.match(/.{2}/g)||[]).map(value=>parseInt(value,16)));
+          sharedRemoteLoginUri=saved.remoteUri;
+          activeRemoteSigner=await nip46.BunkerSigner.fromURI(remoteClientSecret,saved.remoteUri,{pool},20000);
+          activeLocalSecret=null;activeSignerKind='nip46';
+          await completeLogin(await activeRemoteSigner.getPublicKey(),{method:'nip46'});
+        }
+      }catch(error){
+        console.warn('Could not restore the shared Nostr session on Live Stream',error);
+        try{sessionStorage.removeItem('bitcoinCatsAuth');}catch{}
+        if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+        remoteClientSecret=null;activeRemoteSigner=null;signedInPubkey='';signedInProfile=null;
+      }
+    }
     async function signOut(){
       try{sessionStorage.removeItem('bitcoinCatsAuth');sessionStorage.removeItem('bitcoinCatsLoginReturn');}catch{}
       sharedRemoteLoginUri='';
@@ -1912,6 +1936,7 @@ permalink: /live
     async function start(){
       try{
         await ensureNostrReady();
+        await restoreSharedLogin();
         $('profNpub').textContent=HOST_NPUB;
         void fetchProfile(hostPubkey).then(profile=>{
           const name=String(profile.name||'Craig').trim();
