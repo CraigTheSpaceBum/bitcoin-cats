@@ -1936,7 +1936,9 @@ permalink: /live
     async function start(){
       try{
         await ensureNostrReady();
-        await restoreSharedLogin();
+        const wantsLogin=new URLSearchParams(location.search).get('login')==='1';
+        if(!wantsLogin)await restoreSharedLogin();
+        if(wantsLogin)openLogin();
         $('profNpub').textContent=HOST_NPUB;
         void fetchProfile(hostPubkey).then(profile=>{
           const name=String(profile.name||'Craig').trim();
@@ -1949,7 +1951,6 @@ permalink: /live
         }).catch(error=>console.warn('Could not load the Bitcoin Cats profile for navigation',error));
         $('streamSource').textContent='Discovering the host’s latest Nostr stream';
         await refreshStream();
-        if(new URLSearchParams(location.search).get('login')==='1')openLogin();
         void refreshTopBitcoinDonors();
         setInterval(()=>{void refreshStream();},30000);
         setInterval(()=>{void refreshTopBitcoinDonors();},300000);
