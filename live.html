@@ -110,8 +110,59 @@ permalink: /live
     .bitcoin-donation-copy:hover{background:rgba(255,173,85,.17)}
     .bitcoin-donation-note{margin-top:12px;color:var(--muted);font-size:10px;line-height:1.5;overflow-wrap:anywhere}
     .bitcoin-donation-loading,.bitcoin-donation-error{padding:18px 12px;border:1px dashed rgba(255,255,255,.16);border-radius:12px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
+    .signed-in-overlay{position:fixed;z-index:900;top:12px;right:12px;display:flex;align-items:center;gap:10px;max-width:min(360px,calc(100vw - 24px));padding:9px 12px 9px 9px;border:1px solid rgba(167,139,250,.42);border-radius:14px;background:rgba(15,13,27,.94);box-shadow:0 14px 42px rgba(0,0,0,.46),0 0 22px rgba(139,92,246,.16);backdrop-filter:blur(16px)}
+    .signed-in-overlay[hidden]{display:none!important}
+    .signed-in-avatar{width:42px;height:42px;flex:none;object-fit:cover;border:2px solid rgba(167,139,250,.65);border-radius:9px;background:#211c32}
+    .signed-in-meta{min-width:0;display:grid;gap:3px}
+    .signed-in-name{font-size:12px;font-weight:850;color:#f7f3ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .signed-in-identity{display:flex;align-items:center;gap:5px;min-width:0;color:#c8bddf;font:10px/1.3 ui-monospace,monospace;overflow-wrap:anywhere}
+    .signed-in-verified{display:inline-grid;place-items:center;width:15px;height:15px;flex:none;border-radius:50%;background:#a78bfa;color:#160d25;font:900 10px/1 system-ui}
+    .signed-in-verified[hidden]{display:none!important}
+    .login-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:18px;background:rgba(3,4,12,.82);backdrop-filter:blur(13px)}
+    .login-backdrop[hidden]{display:none!important}
+    .login-dialog{position:relative;width:min(850px,100%);max-height:min(88vh,820px);overflow:auto;padding:26px;border:1px solid rgba(139,92,246,.42);border-radius:22px;background:linear-gradient(145deg,#191927,#0b0b14);box-shadow:0 28px 100px rgba(0,0,0,.7),0 0 48px rgba(139,92,246,.14)}
+    .login-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.05);color:var(--text);font-size:20px;cursor:pointer}
+    .login-head{padding-right:46px;margin-bottom:20px}
+    .login-brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:850;letter-spacing:-.03em}
+    .login-brand img{width:36px;height:36px;object-fit:contain;border-radius:9px}
+    .login-subtitle{margin-top:8px;color:var(--muted);font-size:12px;line-height:1.6}
+    .login-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .login-option{width:100%;min-width:0;display:flex;align-items:center;gap:12px;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035);color:var(--text);text-align:left;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+    .login-option:hover{border-color:rgba(167,139,250,.5);background:rgba(139,92,246,.09);transform:translateY(-1px)}
+    .login-option:focus-visible,.login-action:focus-visible{outline:2px solid #a78bfa;outline-offset:2px}
+    .login-option-icon{width:38px;height:38px;flex:none;display:grid;place-items:center;border:1px solid rgba(167,139,250,.23);border-radius:11px;background:rgba(139,92,246,.12);font-size:18px}
+    .login-option-copy{min-width:0;display:grid;gap:4px}
+    .login-option-title{font-size:12px;font-weight:850}
+    .login-option-desc{font-size:10px;line-height:1.5;color:var(--muted)}
+    .login-divider{margin:18px 0;border:0;border-top:1px solid var(--line)}
+    .login-subpanel{margin-top:14px;padding:15px;border:1px solid rgba(167,139,250,.24);border-radius:14px;background:rgba(139,92,246,.05)}
+    .login-subpanel[hidden]{display:none!important}
+    .login-subpanel h3{margin:0 0 8px;font-size:13px}
+    .login-subpanel p{margin:0 0 12px;font-size:11px;line-height:1.55;color:var(--muted)}
+    .login-input,.donation-input,.donation-message{width:100%;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.28);color:var(--text);font:12px/1.5 system-ui,sans-serif;outline:none}
+    .login-input:focus,.donation-input:focus,.donation-message:focus{border-color:rgba(167,139,250,.6)}
+    .login-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .login-action{min-height:40px;padding:9px 13px;border:1px solid rgba(167,139,250,.36);border-radius:10px;background:rgba(139,92,246,.14);color:#e8ddff;font-size:11px;font-weight:800;cursor:pointer}
+    .login-action.secondary{border-color:var(--line);background:rgba(255,255,255,.04);color:var(--text)}
+    .login-status{margin-top:10px;color:#c9b8f2;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+    .login-status:empty{display:none}
+    .login-key{display:block;margin:10px 0;padding:12px;border:1px solid rgba(167,139,250,.26);border-radius:10px;background:rgba(0,0,0,.32);color:#e6d9ff;font:11px/1.6 ui-monospace,monospace;overflow-wrap:anywhere;user-select:all}
+    .login-check{display:flex;align-items:flex-start;gap:8px;margin-top:12px;color:var(--muted);font-size:11px;line-height:1.5}
+    .login-qr{display:block;width:190px;height:190px;max-width:100%;margin:10px auto;border-radius:10px;background:white;padding:7px;object-fit:contain}
+    .donation-form{display:grid;gap:13px}
+    .donation-label{display:grid;gap:6px;color:#ded8ec;font-size:11px;font-weight:750}
+    .donation-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+    .donation-preset{min-height:38px;padding:8px 9px;border:1px solid rgba(255,173,85,.22);border-radius:9px;background:rgba(255,173,85,.06);color:#ffd3a8;font-size:11px;font-weight:800;cursor:pointer}
+    .donation-preset.active{border-color:rgba(255,173,85,.68);background:rgba(255,173,85,.16)}
+    .donation-payment-panel{margin-top:16px;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(0,0,0,.2)}
+    .donation-payment-panel[hidden]{display:none!important}
+    .donation-payment-panel .bitcoin-donation-qr{width:190px;height:190px}
+    .donation-wallet-link{display:block;margin-top:10px;padding:10px 12px;border:1px solid rgba(255,173,85,.3);border-radius:10px;background:rgba(255,173,85,.1);color:#ffd3a8;text-align:center;font-size:12px;font-weight:800}
+    .donation-help{margin-top:8px;color:var(--muted);font-size:10px;line-height:1.5}
+    .donation-verified{padding:12px;border:1px solid rgba(94,230,168,.3);border-radius:10px;background:rgba(94,230,168,.08);color:#c9ffe3;font-size:11px;line-height:1.5}
     .footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;color:var(--muted);font-size:11px;line-height:1.6}.footer a{color:#ffd1a0}
     @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}}
+    @media(max-width:700px){.login-dialog{padding:20px}.login-grid{grid-template-columns:1fr}.signed-in-overlay{top:8px;right:8px;padding:7px 9px}.signed-in-avatar{width:36px;height:36px}.donation-presets{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:700px){.container{padding:12px}.profile{margin:24px 0}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{width:100%;margin:0;justify-content:flex-start;gap:7px}.btn{padding:9px 10px;font-size:12px}.page{padding:0}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
   </style>
@@ -134,6 +185,13 @@ permalink: /live
         </div>
       </div>
     </header>
+    <aside class="signed-in-overlay" id="signedInOverlay" aria-live="polite" hidden>
+      <img class="signed-in-avatar" id="signedInAvatar" src="/logo.png" alt="">
+      <div class="signed-in-meta">
+        <div class="signed-in-name" id="signedInName">Nostr user</div>
+        <div class="signed-in-identity"><span class="signed-in-verified" id="signedInVerified" hidden>✓</span><span id="signedInIdentity">npub…</span></div>
+      </div>
+    </aside>
     <main class="page">
     <section class="intro" aria-label="Live stream banner">
       <img class="live-banner" src="assets/twitchbanner.webp" alt="Bitcoin Cats live stream banner">
@@ -142,7 +200,7 @@ permalink: /live
 
     <section class="layout" aria-label="Live stream and chat">
       <article class="panel">
-        <div class="panel-head"><div><div class="panel-title">Now playing</div><div class="panel-kicker" id="streamSource">Checking Nostr for the latest stream</div></div><a class="link-btn primary" href="https://sifaka.live/" target="_blank" rel="noopener noreferrer">Open Sifaka Live ↗</a></div>
+        <div id="streamSource" hidden aria-hidden="true"></div>
         <div class="video-wrap" id="videoWrap">
           <video id="streamVideo" controls playsinline autoplay muted></video>
           <img class="offline-poster" id="offlinePoster" alt="" hidden>
@@ -175,6 +233,48 @@ permalink: /live
       </aside>
     </section>
     </main>
+  </div>
+
+  <div class="login-backdrop" id="loginModal" hidden>
+    <section class="login-dialog" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <button class="login-close" id="loginCloseButton" type="button" aria-label="Close sign-in">×</button>
+      <div class="login-head">
+        <div class="login-brand"><img src="/logo.png" alt=""><span id="loginTitle">Bitcoin Cats</span></div>
+        <div class="login-subtitle">Sign in with your Nostr identity. You control your keys and approve every signature.</div>
+      </div>
+      <div class="login-grid" id="loginChoiceGrid">
+        <button class="login-option" id="createIdentityButton" type="button"><span class="login-option-icon">✦</span><span class="login-option-copy"><span class="login-option-title">Create New Identity</span><span class="login-option-desc">Generate a fresh Nostr keypair in this browser.</span></span></button>
+        <button class="login-option" id="extensionSignInButton" type="button"><span class="login-option-icon">🔑</span><span class="login-option-copy"><span class="login-option-title">Signer App or Extension</span><span class="login-option-desc">Alby, nos2x, Amber, or another NIP-07 signer.</span></span></button>
+        <button class="login-option" id="hardwareSignInButton" type="button"><span class="login-option-icon">▣</span><span class="login-option-copy"><span class="login-option-title">Hardware Signer</span><span class="login-option-desc">Connect a NIP-46 bunker or remote signing device.</span></span></button>
+        <button class="login-option" id="remoteSignInButton" type="button"><span class="login-option-icon">▦</span><span class="login-option-copy"><span class="login-option-title">Remote Nostr Login</span><span class="login-option-desc">Scan a QR code with a compatible signer app.</span></span></button>
+      </div>
+      <div class="login-subpanel" id="hardwareLoginPanel" hidden>
+        <h3>Connect a hardware or remote signer</h3><p>Paste the NIP-46 bunker connection URI supplied by your signer. It should begin with <code>bunker://</code>.</p>
+        <input class="login-input" id="bunkerInput" type="password" autocomplete="off" placeholder="bunker://…">
+        <div class="login-actions"><button class="login-action" id="connectBunkerButton" type="button">Connect Signer</button><button class="login-action secondary" id="hardwareBackButton" type="button">Back</button></div>
+      </div>
+      <div class="login-subpanel" id="remoteLoginPanel" hidden>
+        <h3>Remote Nostr Login</h3><p>Scan this request using a NIP-46 compatible signer. The connection completes after you approve it in your signer app.</p>
+        <img class="login-qr" id="remoteLoginQrImage" alt="Remote Nostr login QR code" hidden>
+        <input class="login-input" id="remoteLoginUri" type="text" readonly aria-label="Remote Nostr login URI">
+        <div class="login-actions"><button class="login-action" id="copyRemoteLoginButton" type="button">Copy Link</button><button class="login-action secondary" id="cancelRemoteLoginButton" type="button">Cancel</button></div>
+        <div class="login-status" id="remoteLoginStatus" role="status" aria-live="polite"></div>
+      </div>
+      <div class="login-subpanel" id="newIdentityPanel" hidden>
+        <h3>Save Your New Nostr Identity</h3><p>This private key is shown only in this browser session. Save it somewhere secure before continuing. Anyone with this key can control this identity.</p>
+        <code class="login-key" id="generatedNsec"></code>
+        <div class="login-actions"><button class="login-action" id="copyGeneratedNsecButton" type="button">Copy Private Key</button><button class="login-action secondary" id="newIdentityBackButton" type="button">Back</button></div>
+        <label class="login-check"><input id="savedGeneratedNsecCheck" type="checkbox"> I have saved this private key somewhere secure.</label>
+        <div class="login-actions"><button class="login-action" id="continueNewIdentityButton" type="button" disabled>Continue to Bitcoin Cats</button></div>
+      </div>
+      <hr class="login-divider">
+      <div class="login-subpanel" id="manualKeyPanel">
+        <h3>Enter Keys Manually</h3><p>Your nsec is decoded locally and held in memory only. It is not uploaded or stored by this page. A browser signer or hardware signer is safer.</p>
+        <input class="login-input" id="nsecLoginInput" type="password" autocomplete="off" spellcheck="false" placeholder="nsec1…">
+        <div class="login-actions"><button class="login-action" id="manualKeyLoginButton" type="button">Sign In with nsec Key</button></div>
+      </div>
+      <div class="login-status" id="loginStatus" role="status" aria-live="polite"></div>
+    </section>
   </div>
 
   <script type="module">
