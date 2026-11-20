@@ -294,7 +294,7 @@ permalink: /live
     let activityStatus = 'offline', currentEventId = '', streamRefreshRunning = false;
     let signedInPubkey = '';
     let activeLocalSecret = null, activeRemoteSigner = null, activeSignerKind = '', signedInProfile = null;
-    let remoteLoginAbort = null, remoteClientSecret = null;
+    let pendingNewIdentity = false, remoteLoginAbort = null, remoteClientSecret = null;
     let chatRefreshRunning = false, chatRequestId = 0, lastPlaybackKey = '';
     const profileCache = new Map();
     const lnurlPayCache = new Map();
@@ -467,6 +467,12 @@ permalink: /live
       $('extensionSignInButton').focus();
     }
     function closeLogin(){
+      if(remoteLoginAbort)cancelRemoteLogin();
+      if(pendingNewIdentity&&!signedInPubkey&&activeLocalSecret instanceof Uint8Array){
+        activeLocalSecret.fill(0);activeLocalSecret=null;pendingNewIdentity=false;
+        $('generatedNsec').textContent='';
+      }
+      $('nsecLoginInput').value='';
       $('loginModal').hidden=true;
       document.body.style.overflow='';
       $('loginBtn').focus();
@@ -517,7 +523,8 @@ permalink: /live
     async function createNewIdentity(){
       try{
         const [{nip19},pure]=await Promise.all([nostrModulePromise,getNostrPure()]);
-        activeLocalSecret=pure.generateSecretKey();
+        if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
+        activeLocalSecret=pure.generateSecretKey();pendingNewIdentity=true;
         $('generatedNsec').textContent=nip19.nsecEncode(activeLocalSecret);
         $('savedGeneratedNsecCheck').checked=false;
         $('continueNewIdentityButton').disabled=true;
@@ -529,6 +536,7 @@ permalink: /live
       const pure=await getNostrPure();
       const pubkey=pure.getPublicKey(activeLocalSecret);
       await completeLogin(pubkey,{method:'local',profile:{name:'New Nostr identity',picture:'',nip05:''}});
+      pendingNewIdentity=false;$('generatedNsec').textContent='';
     }
     async function signInWithNsec(){
       try{
@@ -564,16 +572,19 @@ permalink: /live
           perms:['sign_event:1311','sign_event:9734']
         });
         $('remoteLoginUri').value=uri;
-        $('remoteLoginQrImage').src=await qr.default.toDataURL(uri,{width:240,margin:2});
+        const qrApi=qr.default&&typeof qr.default.toDataURL==='function'?qr.default:qr;
+        if(typeof qrApi.toDataURL!=='function')throw new Error('QR code rendering is not available in this browser.');
+        $('remoteLoginQrImage').src=await qrApi.toDataURL(uri,{width:240,margin:2});
         $('remoteLoginQrImage').hidden=false;
         $('remoteLoginStatus').textContent='Waiting for your signer to approve the connection…';
         remoteLoginAbort=new AbortController();
         const signer=await nip46.BunkerSigner.fromURI(remoteClientSecret,uri,{pool},remoteLoginAbort.signal);
         if(remoteLoginAbort.signal.aborted){try{await signer.close();}catch{}return;}
         activeRemoteSigner=signer;activeLocalSecret=null;activeSignerKind='nip46';
-        remoteClientSecret=null;
         await completeLogin(await signer.getPublicKey(),{method:'nip46'});
       }catch(error){
+        if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+        remoteClientSecret=null;
         if(!remoteLoginAbort?.signal.aborted)$('remoteLoginStatus').textContent=error.message||'The remote signer connection failed or timed out.';
       }finally{remoteLoginAbort=null;}
     }
@@ -597,20 +608,25 @@ permalink: /live
         const parsed=await nip46.parseBunkerInput(uri);
         if(!parsed)throw new Error('That bunker URI could not be parsed. Check it with your signer.');
         if(!pool)await ensureNostrReady();
-        const clientSecret=pure.generateSecretKey();
+        const clientSecret=pure.generateSecretKey();remoteClientSecret=clientSecret;
         const signer=nip46.BunkerSigner.fromBunker(clientSecret,parsed,{pool});
         $('loginStatus').textContent='Connecting to your hardware or remote signer…';
         await signer.connect();
         activeRemoteSigner=signer;activeLocalSecret=null;activeSignerKind='nip46';
         await completeLogin(await signer.getPublicKey(),{method:'nip46'});
-      }catch(error){$('loginStatus').textContent=error.message||'Could not connect to the bunker signer.';}
+      }catch(error){
+        if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+        remoteClientSecret=null;
+        $('loginStatus').textContent=error.message||'Could not connect to the bunker signer.';
+      }
     }
     async function signOut(){
+      if(remoteLoginAbort)cancelRemoteLogin();
       try{if(activeRemoteSigner&&typeof activeRemoteSigner.close==='function')await activeRemoteSigner.close();}catch{}
       activeRemoteSigner=null;
       if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
       if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
-      activeLocalSecret=null;remoteClientSecret=null;activeSignerKind='';
+      activeLocalSecret=null;remoteClientSecret=null;activeSignerKind='';pendingNewIdentity=false;
       signedInPubkey='';signedInProfile=null;
       $('signedInOverlay').hidden=true;
       document.body.classList.remove('signed-in');
@@ -722,12 +738,15 @@ permalink: /live
       openLogin();
       return false;
     }
-    function getDonationQrDataUrl(value){
-      return getQrCode().then(module=>module.default.toDataURL(value,{width:240,margin:2}));
+    async function getDonationQrDataUrl(value){
+      const module=await getQrCode();
+      const qr=module.default&&typeof module.default.toDataURL==='function'?module.default:module;
+      if(typeof qr.toDataURL!=='function')throw new Error('QR code rendering is not available in this browser.');
+      return qr.toDataURL(value,{width:240,margin:2});
     }
     function donationSats(){
       const value=Number($('donationAmount')?.value);
-      if(!Number.isSafeInteger(value)||value<1||value>2100000000000000)throw new Error('Enter a whole-number amount of sats greater than zero.');
+      if(!Number.isSafeInteger(value)||value<1||value>2100000000000000||!Number.isSafeInteger(value*1000))throw new Error('Enter a whole-number amount of sats within the supported payment range.');
       return value;
     }
     function selectedDonationMessage(){
@@ -863,6 +882,7 @@ permalink: /live
       button.disabled=true;button.textContent='Creating NIP-57 zap invoice…';panel.hidden=false;panel.replaceChildren();
       try{
         const sats=donationSats();
+        if(!activityAddress)throw new Error('The current Nostr stream activity is not available yet, so this zap cannot be attached to live chat.');
         const millisats=String(sats*1000);
         const profile=await fetchProfile(hostPubkey);
         const lnurl=await resolveLnurlPayInfo(profile);
@@ -908,6 +928,7 @@ permalink: /live
       button.disabled=true;button.textContent='Preparing Bitcoin payment…';panel.hidden=false;panel.replaceChildren();
       try{
         const sats=donationSats();
+        if(!activityAddress)throw new Error('The current Nostr stream activity is not available yet, so this donation cannot be posted to live chat.');
         const address=deriveNostrTaprootAddress(hostPubkey);
         const btc=(sats/100000000).toFixed(8).replace(/0+$/,'').replace(/\.$/,'');
         const bip21=new URLSearchParams({amount:btc,label:'Bitcoin Cats',message:selectedDonationMessage()||'Bitcoin Cats live-stream donation'});
@@ -999,6 +1020,7 @@ permalink: /live
         const pure=await getNostrPure();
         if(!receipt||receipt.kind!==9735||!pure.verifyEvent(receipt))return null;
         if(receipt.pubkey!==lnurlInfo.nostrPubkey)return null;
+        if(!(receipt.tags||[]).some(tag=>tag[0]==='p'&&tag[1]===hostPubkey))return null;
         const description=getEventTag(receipt,'description');
         const invoice=getEventTag(receipt,'bolt11');
         if(!description||!invoice)return null;
@@ -1023,14 +1045,16 @@ permalink: /live
       return resolveLnurlPayInfo(profile);
     }
     async function loadChatForCurrentActivity(){
-      const address=activityAddress,requestId=++chatRequestId;
+      const address=activityAddress;
       if(!address||!pool){
+        chatRequestId++;
         chatList.replaceChildren();
         const msg=document.createElement('div');msg.className='chat-empty';
         msg.textContent='Chat will appear here when the host’s Nostr stream event is available.';
         chatList.appendChild(msg);setChatComposerState();reportHeight();return;
       }
       if(chatRefreshRunning)return;
+      const requestId=++chatRequestId;
       chatRefreshRunning=true;
       try{
         const results=await Promise.allSettled([
