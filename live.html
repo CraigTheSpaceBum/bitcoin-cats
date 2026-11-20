@@ -438,9 +438,9 @@ permalink: /live
       const value=String(identifier||'').trim();
       const at=value.lastIndexOf('@');
       if(at<1||at===value.length-1)return false;
-      const name=value.slice(0,at).toLowerCase();
+      const name=value.slice(0,at);
       const domain=value.slice(at+1).toLowerCase();
-      if(!/^[a-z0-9._-]+$/.test(name)||!/^[a-z0-9.-]+$/.test(domain))return false;
+      if(!/^[a-z0-9._-]+$/i.test(name)||!/^[a-z0-9.-]+$/.test(domain))return false;
       const controller=new AbortController();
       const timeout=setTimeout(()=>controller.abort(),6500);
       try{
@@ -519,7 +519,8 @@ permalink: /live
         return;
       }
       try{
-        activeRemoteSigner=null;activeLocalSecret=null;activeSignerKind='nip07';
+        if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
+        activeLocalSecret=null;activeRemoteSigner=null;activeSignerKind='nip07';
         await completeLogin(await window.nostr.getPublicKey(),{method:'nip07'});
       }catch(error){
         activeSignerKind='';
@@ -552,6 +553,7 @@ permalink: /live
         const {nip19}=await nostrModulePromise;
         const decoded=nip19.decode(value);
         if(decoded.type!=='nsec')throw new Error('Enter a valid nsec key.');
+        if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
         activeLocalSecret=decoded.data;activeRemoteSigner=null;activeSignerKind='local';
         $('nsecLoginInput').value='';
         const pure=await getNostrPure();
@@ -581,7 +583,7 @@ permalink: /live
           secret:makeLoginSecret(),
           name:'Bitcoin Cats',
           url:'https://bitcoin-cats.ca',
-          perms:['sign_event:1311','sign_event:9734']
+          perms:['sign_event:1311,sign_event:9734']
         });
         $('remoteLoginUri').value=uri;
         const qrApi=qr.default&&typeof qr.default.toDataURL==='function'?qr.default:qr;
