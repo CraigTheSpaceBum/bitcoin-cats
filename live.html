@@ -514,8 +514,8 @@ permalink: /live
     }
     async function signInWithExtension(){
       $('loginStatus').textContent='Requesting access from your Nostr signer…';
-      if(!window.nostr||typeof window.nostr.getPublicKey!=='function'){
-        $('loginStatus').textContent='No NIP-07 signer was found. Enable a Nostr signer extension or use Remote Nostr Login.';
+      if(!window.nostr||typeof window.nostr.getPublicKey!=='function'||typeof window.nostr.signEvent!=='function'){
+        $('loginStatus').textContent='A compatible NIP-07 signer with both public-key and event-signing support was not found. Enable a Nostr signer extension or use Remote Nostr Login.';
         return;
       }
       try{
@@ -566,6 +566,8 @@ permalink: /live
     }
     async function startRemoteLogin(){
       if(remoteLoginAbort)cancelRemoteLogin();
+      $('cancelRemoteLoginButton').disabled=false;
+      $('cancelRemoteLoginButton').textContent='Cancel';
       const controller=new AbortController();
       remoteLoginAbort=controller;
       try{
@@ -593,6 +595,10 @@ permalink: /live
         $('remoteLoginStatus').textContent='Waiting for your signer to approve the connection…';
         const signer=await nip46.BunkerSigner.fromURI(remoteClientSecret,uri,{pool},controller.signal);
         if(controller.signal.aborted){try{await signer.close();}catch{}return;}
+        $('cancelRemoteLoginButton').disabled=true;
+        $('cancelRemoteLoginButton').textContent='Connected…';
+        $('remoteLoginStatus').textContent='Signer connected. Loading your Nostr profile…';
+        if(remoteLoginAbort===controller)remoteLoginAbort=null;
         activeRemoteSigner=signer;activeLocalSecret=null;activeSignerKind='nip46';
         await completeLogin(await signer.getPublicKey(),{method:'nip46'});
       }catch(error){
@@ -610,6 +616,8 @@ permalink: /live
       remoteClientSecret=null;
       $('remoteLoginQrImage').hidden=true;
       $('remoteLoginUri').value='';
+      $('cancelRemoteLoginButton').disabled=false;
+      $('cancelRemoteLoginButton').textContent='Cancel';
       $('remoteLoginStatus').textContent='Remote login cancelled.';
     }
     async function connectHardwareBunker(){
