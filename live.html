@@ -339,10 +339,11 @@ permalink: /live
     const PRESENCE_REFRESH_MS = 9000;
     const TWITCH_VIEWER_API = 'https://decapi.me/twitch/viewercount/craigthespacebum';
     // YouTube's official concurrent-viewer count requires a YouTube Data API key.
-    // A browser key is visible in page source: restrict it to this site's HTTP
-    // referrer and to YouTube Data API v3 before adding it here.
+    // This browser-visible key must be restricted to this site's HTTP referrer
+    // and to YouTube Data API v3 before adding it here.
     const YOUTUBE_API_KEY = '';
-    const YOUTUBE_CHANNEL_HANDLE = '@CraigTheSpaceBum';
+    // Fallback only: set this if the NIP-53 event does not include a YouTube URL.
+    const YOUTUBE_LIVE_VIDEO_ID = '';
     const $ = id => document.getElementById(id);
     const pill = $('livePill'), label = $('liveLabel'), note = $('streamNote');
     const video = $('streamVideo'), empty = $('videoEmpty'), videoWrap = $('videoWrap');
@@ -364,8 +365,8 @@ permalink: /live
     let presenceSessionActivity = '', presenceSessionIdentity = '', presenceIdentityProof = null;
     let presencePublishRunning = false, watcherRefreshRunning = false, watcherRenderVersion = 0;
     let watcherSnapshot = {nostr:[],guests:0,total:0,updatedAt:0};
-    let twitchCountLastFetched = 0, youtubeChannelIdCache = '', youtubeLiveVideoIdCache = '';
-    let youtubeDiscoveryLastFetched = 0, youtubeCountLastFetched = 0;
+    let twitchCountLastFetched = 0, youtubeLiveVideoIdCache = '';
+    let youtubeCountLastFetched = 0;
 
     function setStatus(kind,text){pill.className='live-pill '+kind;label.textContent=text;}
     function getTag(event,name){const found=(event.tags||[]).find(tag=>tag[0]===name&&tag[1]);return found?found[1]:'';}
@@ -816,41 +817,39 @@ permalink: /live
     async function refreshYouTubeViewerCount(){
       if(!YOUTUBE_API_KEY){
         $('youtubeViewerCount').textContent='—';
-        $('youtubeViewerNote').textContent='YouTube Data API key not configured';
+        $('youtubeViewerNote').textContent='YouTube API key not configured';
+        return;
+      }
+      const videoId=youtubeLiveVideoIdCache||YOUTUBE_LIVE_VIDEO_ID;
+      if(!/^[A-Za-z0-9_-]{11}$/.test(videoId)){
+        $('youtubeViewerCount').textContent='—';
+        $('youtubeViewerNote').textContent='No YouTube live video ID in the Nostr stream event';
         return;
       }
       try{
-        const now=Date.now();
-        if(!youtubeChannelIdCache||now-youtubeDiscoveryLastFetched>300000){
-          const channelUrl=new URL('https://www.googleapis.com/youtube/v3/channels');
-          channelUrl.search=new URLSearchParams({part:'id',forHandle:YOUTUBE_CHANNEL_HANDLE,key:YOUTUBE_API_KEY});
-          const channelResponse=await fetch(channelUrl.toString(),{credentials:'omit',cache:'no-store'});
-          if(!channelResponse.ok)throw new Error('YouTube channel lookup failed ('+channelResponse.status+').');
-          const channelData=await channelResponse.json();
-          youtubeChannelIdCache=channelData.items?.[0]?.id||'';
-          if(!youtubeChannelIdCache)throw new Error('Could not find the configured YouTube channel.');
-          const searchUrl=new URL('https://www.googleapis.com/youtube/v3/search');
-          searchUrl.search=new URLSearchParams({part:'id',channelId:youtubeChannelIdCache,type:'video',eventType:'live',maxResults:'1',key:YOUTUBE_API_KEY});
-          const searchResponse=await fetch(searchUrl.toString(),{credentials:'omit',cache:'no-store'});
-          if(!searchResponse.ok)throw new Error('YouTube live broadcast lookup failed ('+searchResponse.status+').');
-          const searchData=await searchResponse.json();
-          youtubeLiveVideoIdCache=searchData.items?.[0]?.id?.videoId||'';
-          youtubeDiscoveryLastFetched=now;
-        }
-        if(!youtubeLiveVideoIdCache){
-          $('youtubeViewerCount').textContent='0';
-          $('youtubeViewerNote').textContent='No public live broadcast found';
-          youtubeCountLastFetched=now;return;
-        }
         const videoUrl=new URL('https://www.googleapis.com/youtube/v3/videos');
-        videoUrl.search=new URLSearchParams({part:'liveStreamingDetails',id:youtubeLiveVideoIdCache,key:YOUTUBE_API_KEY});
+        videoUrl.search=new URLSearchParams({part:'liveStreamingDetails,snippet',id:videoId,key:YOUTUBE_API_KEY});
         const videoResponse=await fetch(videoUrl.toString(),{credentials:'omit',cache:'no-store'});
         if(!videoResponse.ok)throw new Error('YouTube live viewer lookup failed ('+videoResponse.status+').');
         const videoData=await videoResponse.json();
-        const concurrent=videoData.items?.[0]?.liveStreamingDetails?.concurrentViewers;
-        $('youtubeViewerCount').textContent=concurrent!==undefined?Number(concurrent).toLocaleString():'—';
-        $('youtubeViewerNote').textContent=concurrent!==undefined?'Live API snapshot · checked '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'YouTube count hidden or unavailable';
-        youtubeCountLastFetched=now;
+        const item=videoData.items?.[0];
+        if(!item){
+          $('youtubeViewerCount').textContent='—';
+          $('youtubeViewerNote').textContent='YouTube video not found or unavailable';
+          return;
+        }
+        const concurrent=item.liveStreamingDetails?.concurrentViewers;
+        const broadcastState=item.snippet?.liveBroadcastContent;
+        if(broadcastState==='none'){
+          $('youtubeViewerCount').textContent='0';
+          $('youtubeViewerNote').textContent='YouTube broadcast is not live';
+        }else{
+          $('youtubeViewerCount').textContent=concurrent!==undefined?Number(concurrent).toLocaleString():'—';
+          $('youtubeViewerNote').textContent=concurrent!==undefined
+            ?'Live API snapshot · checked '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+            :'YouTube count hidden or not available yet';
+        }
+        youtubeCountLastFetched=Date.now();
       }catch(error){
         $('youtubeViewerCount').textContent='—';
         $('youtubeViewerNote').textContent='YouTube count unavailable';
@@ -1577,6 +1576,38 @@ permalink: /live
         if(requestId===chatRequestId)chatState.textContent='Could not refresh this stream’s chat from public Nostr relays. Retrying automatically…';
       }finally{chatRefreshRunning=false;}
     }
+    function extractYouTubeVideoId(event){
+      const valid=id=>/^[A-Za-z0-9_-]{11}$/.test(String(id||''));
+      for(const tag of event?.tags||[]){
+        if(['youtube','youtube_video_id','youtube-id'].includes(String(tag[0]||'').toLowerCase())&&valid(tag[1]))return tag[1];
+      }
+      const candidates=[
+        getTag(event,'url'),
+        getTag(event,'streaming'),
+        String(event?.content||''),
+        ...(event?.tags||[]).flatMap(tag=>(tag||[]).slice(1).map(String))
+      ];
+      for(const candidate of candidates){
+        const raw=String(candidate||'').trim();
+        if(!raw)continue;
+        try{
+          const url=new URL(raw);
+          const host=url.hostname.toLowerCase().replace(/^www\./,'');
+          if(host==='youtu.be'){
+            const id=url.pathname.split('/').filter(Boolean)[0]||'';
+            if(valid(id))return id;
+          }
+          if(host==='youtube.com'||host.endsWith('.youtube.com')){
+            const id=url.searchParams.get('v')||url.pathname.match(/^\/(?:live|embed|shorts|v)\/([A-Za-z0-9_-]{11})(?:\/|$)/)?.[1]||'';
+            if(valid(id))return id;
+          }
+        }catch{
+          const match=raw.match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|live\/|embed\/|shorts\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/i);
+          if(match&&valid(match[1]))return match[1];
+        }
+      }
+      return YOUTUBE_LIVE_VIDEO_ID||'';
+    }
     async function refreshStream(){
       if(streamRefreshRunning||!pool||!hostPubkey)return;
       streamRefreshRunning=true;
@@ -1585,6 +1616,7 @@ permalink: /live
         const event=chooseStream(events);
         if(!event){
           activityAddress='';activityStatus='offline';currentEventId='';
+          youtubeLiveVideoIdCache='';
           void syncViewerPresence();
           setStatus('','Host offline');$('streamTitle').textContent='Bitcoin Cats Live Broadcast';
           $('streamSummary').textContent='No recent stream activity was found for the configured Nostr host. The preview is blurred while the host is offline.';
@@ -1595,6 +1627,7 @@ permalink: /live
         const previousAddress=activityAddress,d=getTag(event,'d');
         activityAddress=d?'30311:'+event.pubkey+':'+d:'';
         activityStatus=classifyActivity(event);currentEventId=event.id||'';
+        youtubeLiveVideoIdCache=activityStatus==='live'?extractYouTubeVideoId(event):'';
         void syncViewerPresence();
         if(activityStatus==='live'){
           const url=getTag(event,'streaming')||getTag(event,'url');
