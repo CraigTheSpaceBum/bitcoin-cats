@@ -978,14 +978,48 @@ permalink: /live
       try{return new Date(timestamp*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch{return '';}
     }
     function setChatComposerState(){
-      const canChat=!!activityAddress&&activityStatus==='live';
-      chatInput.disabled=!canChat;chatSend.disabled=!canChat;
-      chatInput.placeholder=canChat?'Write to this live stream…':'Chat is read-only while the host is offline…';
-      chatStatus.textContent=activityAddress?(canChat?'LIVE CHAT':'OFFLINE HISTORY'):'WAITING';
+      const streamCanChat=!!activityAddress&&activityStatus==='live';
+      const canSend=streamCanChat&&!!signedInPubkey;
+      chatInput.disabled=!canSend;chatSend.disabled=!canSend;
+      chatInput.placeholder=streamCanChat?(signedInPubkey?'Write to this live stream…':'Sign in with Nostr to chat…'):'Chat is read-only while the host is offline…';
+      chatStatus.textContent=activityAddress?(streamCanChat?(signedInPubkey?'LIVE CHAT':'SIGN IN TO CHAT'):'OFFLINE HISTORY'):'WAITING';
       $('chatSubtitle').textContent=activityAddress?'Synced to stream '+activityAddress.split(':').slice(-1)[0]:'Waiting for the host’s stream activity';
       if(!activityAddress)chatState.textContent='Chat will sync automatically when a stream activity is discovered.';
-      else if(canChat)chatState.textContent='Messages are scoped to this broadcast’s NIP-53 activity. A Nostr browser signer is needed to send messages.';
+      else if(streamCanChat&&!signedInPubkey)chatState.textContent='Sign in with Nostr to send messages and support the stream. You can still read the chat history.';
+      else if(canSend)chatState.textContent='You are signed in. Your messages are published to this broadcast’s NIP-53 live chat.';
       else chatState.textContent='Showing chat history for the last known broadcast. Sending is disabled while the host is offline.';
+    }
+    function getEventTag(event,name){
+      const found=(event?.tags||[]).find(tag=>tag[0]===name&&tag[1]);
+      return found?found[1]:'';
+    }
+    async function verifyZapReceipt(receipt,address,lnurlInfo){
+      try{
+        const pure=await getNostrPure();
+        if(!receipt||receipt.kind!==9735||!pure.verifyEvent(receipt))return null;
+        if(receipt.pubkey!==lnurlInfo.nostrPubkey)return null;
+        const description=getEventTag(receipt,'description');
+        const invoice=getEventTag(receipt,'bolt11');
+        if(!description||!invoice)return null;
+        const request=JSON.parse(description);
+        if(request.kind!==9734||!pure.verifyEvent(request))return null;
+        if(!(request.tags||[]).some(tag=>tag[0]==='p'&&tag[1]===hostPubkey))return null;
+        if(!(request.tags||[]).some(tag=>tag[0]==='a'&&tag[1]===address))return null;
+        const amountTag=(request.tags||[]).find(tag=>tag[0]==='amount'&&tag[1]);
+        const amountMsats=amountTag?Number(amountTag[1]):null;
+        const invoiceMsats=bolt11AmountMsats(invoice);
+        if(!Number.isSafeInteger(amountMsats)||amountMsats<=0||invoiceMsats!==amountMsats)return null;
+        return {
+          ...receipt,
+          pubkey:request.pubkey,
+          content:String(request.content||''),
+          _zap:{sats:amountMsats/1000,requestId:request.id,requestPubkey:request.pubkey}
+        };
+      }catch{return null;}
+    }
+    async function getHostZapProvider(){
+      const profile=await fetchProfile(hostPubkey);
+      return resolveLnurlPayInfo(profile);
     }
     async function loadChatForCurrentActivity(){
       const address=activityAddress,requestId=++chatRequestId;
@@ -998,32 +1032,60 @@ permalink: /live
       if(chatRefreshRunning)return;
       chatRefreshRunning=true;
       try{
-        const events=await queryRelays({kinds:[1311],'#a':[address],limit:100},7000,8000,'Chat lookup timed out');
+        const results=await Promise.allSettled([
+          queryRelays({kinds:[1311],'#a':[address],limit:100},7000,8000,'Chat lookup timed out'),
+          queryRelays({kinds:[9735],'#p':[hostPubkey],limit:100},7000,8000,'Zap receipt lookup timed out')
+        ]);
         if(requestId!==chatRequestId||activityAddress!==address)return;
+        const rawMessages=results[0].status==='fulfilled'?results[0].value:[];
+        const rawReceipts=results[1].status==='fulfilled'?results[1].value:[];
+        if(results[0].status==='rejected'&&results[1].status==='rejected')throw new Error('Chat and zap receipt lookups timed out.');
         const unique=new Map();
-        for(const event of events||[]){
+        for(const event of rawMessages||[]){
           if((event.tags||[]).some(tag=>tag[0]==='a'&&tag[1]===address))unique.set(event.id,event);
         }
-        const messages=[...unique.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0)).slice(-50);
+        let verifiedZaps=[];
+        if(rawReceipts.length){
+          try{
+            const lnurlInfo=await getHostZapProvider();
+            verifiedZaps=(await Promise.all(rawReceipts.map(receipt=>verifyZapReceipt(receipt,address,lnurlInfo)))).filter(Boolean);
+          }catch(error){
+            console.warn('Could not verify NIP-57 receipts for this host profile',error);
+          }
+        }
+        for(const zap of verifiedZaps)unique.set(zap.id,zap);
+        const messages=[...unique.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0)).slice(-60);
         if(!messages.length){
           chatList.replaceChildren();
-          const msg=document.createElement('div');msg.className='chat-empty';msg.textContent='No messages in this stream’s chat yet.';
+          const msg=document.createElement('div');msg.className='chat-empty';
+          msg.textContent='No messages in this stream’s chat yet.';
           chatList.appendChild(msg);setChatComposerState();reportHeight();return;
         }
         chatList.replaceChildren();
         const authorElements=[];
         for(const event of messages){
-          const row=document.createElement('article');row.className='chat-message';
+          const row=document.createElement('article');
+          const payment=getEventTag(event,'payment');
+          const isZap=!!event._zap;
+          const isOnchain=payment==='bitcoin';
+          row.className='chat-message'+((isZap||isOnchain)?' zap-message':'');
           const avatar=document.createElement('img');avatar.className='chat-avatar';avatar.alt='';avatar.loading='lazy';
           avatar.src='https://api.dicebear.com/7.x/identicon/svg?seed='+encodeURIComponent(event.pubkey||'nostr');
           const main=document.createElement('div');main.className='chat-message-main';
           const head=document.createElement('div');head.className='chat-message-head';
           const name=document.createElement('span');name.className='chat-message-name';
           name.textContent=event.pubkey?event.pubkey.slice(0,8)+'…'+event.pubkey.slice(-4):'Nostr user';
+          const badge=(isZap||isOnchain)?document.createElement('span'):null;
+          if(badge){badge.className='chat-zap-badge';badge.textContent=isZap?'⚡ VERIFIED ZAP':'₿ MAINCHAIN';}
+          const amount=(isZap||isOnchain)?document.createElement('span'):null;
+          if(amount){amount.className='chat-zap-amount';amount.textContent=(isZap?Number(event._zap.sats).toLocaleString():Number(getEventTag(event,'amount')||0).toLocaleString())+' sats';}
           const time=document.createElement('time');time.className='chat-message-time';time.textContent=formatTime(event.created_at||0);
           if(event.created_at)time.dateTime=new Date(event.created_at*1000).toISOString();
-          const body=document.createElement('div');body.className='chat-message-body';body.textContent=event.content||'';
-          head.append(name,time);main.append(head,body);row.append(avatar,main);chatList.appendChild(row);
+          const body=document.createElement('div');body.className='chat-message-body';body.textContent=event.content||((isZap||isOnchain)?'Donation received':'');
+          head.append(name);
+          if(badge)head.append(badge);
+          if(amount)head.append(amount);
+          head.append(time);main.append(head,body);row.append(avatar,main);chatList.appendChild(row);
           authorElements.push({pubkey:event.pubkey,avatar,name});
         }
         const pubkeys=[...new Set(authorElements.map(item=>item.pubkey).filter(Boolean))];
@@ -1101,21 +1163,22 @@ permalink: /live
       }finally{streamRefreshRunning=false;}
     }
     async function sendChatMessage(text){
-      const content=text.trim();
+      const content=String(text||'').trim();
       if(!content||!activityAddress||activityStatus!=='live')return;
-      if(!window.nostr){chatState.textContent='To send chat messages, enable a NIP-07-compatible Nostr signer in your browser.';return;}
-      if(!signedInPubkey){await connectNostr();if(!signedInPubkey)return;}
+      if(!requireSignedIn('send a live chat message'))return;
       chatSend.disabled=true;
       try{
-        const unsigned={kind:1311,created_at:Math.floor(Date.now()/1000),tags:[['a',activityAddress,'','root'],['p',hostPubkey]],content};
-        const signed=await window.nostr.signEvent(unsigned);
-        if(signed.pubkey&&signed.pubkey!==signedInPubkey)throw new Error('The signer account changed. Please connect again.');
-        const results=await Promise.allSettled(pool.publish(RELAYS,signed));
-        if(!results.some(result=>result.status==='fulfilled'))throw new Error('No relay accepted the message. Please try again.');
-        chatInput.value='';chatState.textContent='Message published. Syncing the stream chat…';
+        const event=await signUserEvent({
+          kind:1311,created_at:Math.floor(Date.now()/1000),
+          tags:[['a',activityAddress,'','root'],['p',hostPubkey],...(currentEventId?[['e',currentEventId,'','root']]:[])],
+          content
+        });
+        const results=await Promise.allSettled(pool.publish(RELAYS,event));
+        if(!results.some(result=>result.status==='fulfilled'))throw new Error('Your signer approved the message, but no relay confirmed publishing. Please try again.');
+        chatInput.value='';chatState.textContent='Message published to the Nostr live chat.';
         await loadChatForCurrentActivity();
-      }catch(error){chatState.textContent=error.message||'Could not publish chat message.';}
-      finally{chatSend.disabled=activityStatus!=='live'||!activityAddress;}
+      }catch(error){chatState.textContent=error.message||'Could not publish your message.';}
+      finally{chatSend.disabled=!(activityStatus==='live'&&activityAddress&&signedInPubkey);}
     }
     $('homeBtn').addEventListener('click',()=>window.location.assign('/'));
     $('aboutBtn').addEventListener('click',()=>window.location.assign('/?page=about'));
