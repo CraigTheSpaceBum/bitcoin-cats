@@ -874,6 +874,7 @@ permalink: /live
       document.body.style.overflow='';
       setChatComposerState();
       chatState.textContent='Signed in as '+(profile.name||signedInPubkey.slice(0,8)+'…')+'. You can now send messages in this live chat.';
+      if(activityAddress&&activityStatus==='live')void syncViewerPresence();
       return signedInPubkey;
     }
     async function signInWithExtension(){
@@ -1039,6 +1040,7 @@ permalink: /live
       $('loginModal').hidden=true;document.body.style.overflow='';
       setChatComposerState();
       chatState.textContent='You have signed out. Sign in with Nostr to send live chat messages or donations.';
+      if(activityAddress&&activityStatus==='live')void syncViewerPresence();
     }
     async function copyLoginValue(value,buttonId){
       try{await navigator.clipboard.writeText(value);if(buttonId)$(buttonId).textContent='✓ Copied';}
@@ -1542,6 +1544,7 @@ permalink: /live
         const event=chooseStream(events);
         if(!event){
           activityAddress='';activityStatus='offline';currentEventId='';
+          void stopPresenceSession();
           setStatus('','Host offline');$('streamTitle').textContent='Bitcoin Cats Live Broadcast';
           $('streamSummary').textContent='No recent stream activity was found for the configured Nostr host. The preview is blurred while the host is offline.';
           $('streamTags').replaceChildren();showOffline(null,'No recent NIP-53 stream activity is available. The preview will remain blurred until the host publishes a stream.');
@@ -1551,6 +1554,7 @@ permalink: /live
         const previousAddress=activityAddress,d=getTag(event,'d');
         activityAddress=d?'30311:'+event.pubkey+':'+d:'';
         activityStatus=classifyActivity(event);currentEventId=event.id||'';
+        void syncViewerPresence();
         if(activityStatus==='live'){
           const url=getTag(event,'streaming')||getTag(event,'url');
           const playbackKey=activityAddress+'|'+url;
@@ -1589,7 +1593,7 @@ permalink: /live
         }
         reportHeight();
       }catch(error){
-        activityStatus='offline';showOffline(null,'Could not refresh the host’s stream from public Nostr relays. The preview is blurred while reconnecting.');
+        activityStatus='offline';void stopPresenceSession();showOffline(null,'Could not refresh the host’s stream from public Nostr relays. The preview is blurred while reconnecting.');
         setStatus('','Host status unavailable');$('streamSource').textContent='Nostr discovery temporarily unavailable';
         $('streamSummary').textContent='Unable to load the host’s latest stream announcement right now. The page will retry automatically.';
       }finally{streamRefreshRunning=false;}
@@ -1663,6 +1667,12 @@ permalink: /live
         await refreshStream();
         setInterval(()=>{void refreshStream();},30000);
         setInterval(()=>{if(!streamRefreshRunning)void loadChatForCurrentActivity();},10000);
+        setInterval(()=>{void syncViewerPresence();},PRESENCE_HEARTBEAT_MS);
+        setInterval(()=>{void refreshViewerRoster();},PRESENCE_REFRESH_MS);
+        void refreshTwitchViewerCount();
+        void refreshYouTubeViewerCount();
+        setInterval(()=>{void refreshTwitchViewerCount();},300000);
+        setInterval(()=>{void refreshYouTubeViewerCount();},60000);
         const observer=new ResizeObserver(reportHeight);observer.observe(document.body);reportHeight();
       }catch(error){
         showOffline(null,'Could not initialize Nostr stream discovery. The preview will stay blurred while reconnecting.');
@@ -1671,8 +1681,18 @@ permalink: /live
         chatState.textContent='Chat will synchronize when a stream activity can be discovered.';
       }
     }
+    window.addEventListener('pagehide',()=>{
+      // Best effort. If the browser exits before this event is relayed,
+      // every watcher heartbeat still expires automatically.
+      void stopPresenceSession();
+    });
     window.addEventListener('beforeunload',()=>{
-      try{if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);if(pool)pool.close(RELAYS);}catch{}
+      try{
+        if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
+        if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+        if(presenceSessionSecret instanceof Uint8Array)presenceSessionSecret.fill(0);
+        if(pool)pool.close(RELAYS);
+      }catch{}
     });
     window.addEventListener('load',reportHeight);
     start();
