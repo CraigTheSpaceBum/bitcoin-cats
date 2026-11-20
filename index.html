@@ -1032,12 +1032,17 @@ function isDonationRoute(){
   return path==="/donation" || query.get("page")==="donation" || window.location.hash.toLowerCase()==="#donate";
 }
 
+function isAboutRoute(){
+  const query=new URLSearchParams(window.location.search);
+  return query.get("page")==="about";
+}
+
 function setPageHistory(page,{replace=false}={}){
-  const url=page==="donation"?"/donation":"/";
+  const url=page==="donation"?"/donation":page==="about"?"/?page=about":"/";
   const state={page};
   if(replace){
     history.replaceState(state,"",url);
-  }else if(location.pathname!==url || history.state?.page!==page || location.search || location.hash){
+  }else if((location.pathname+location.search+location.hash)!==url || history.state?.page!==page){
     history.pushState(state,"",url);
   }
   activeContentPage=page;
@@ -1297,14 +1302,18 @@ function attachInteractions(post, note){
 async function load(){
   try{
     const initialDonationRoute=isDonationRoute();
+    const initialAboutRoute=!initialDonationRoute&&isAboutRoute();
     const [firstPage,meta]=await Promise.all([
-      initialDonationRoute?Promise.resolve([]):getKind1(PUBKEY_HEX,1),
+      (initialDonationRoute||initialAboutRoute)?Promise.resolve([]):getKind1(PUBKEY_HEX,1),
       getProfile(PUBKEY_HEX)
     ]);
     applyProfileToBanner(meta);
-    setPageHistory(initialDonationRoute?"donation":"home",{replace:true});
+    const initialPage=initialDonationRoute?"donation":initialAboutRoute?"about":"home";
+    setPageHistory(initialPage,{replace:true});
     if(initialDonationRoute){
       await showDonationPage({navigate:false,profile:meta});
+    }else if(initialAboutRoute){
+      await showAbout({navigate:false});
     }else{
       activeContentPage="home";
       await drawFeed(firstPage);
@@ -1319,7 +1328,7 @@ async function load(){
 
     // Keep browser Back/Forward synchronized with the visible page.
     window.addEventListener("popstate",(event)=>{
-      const page=event.state?.page || (isDonationRoute()?"donation":"home");
+      const page=event.state?.page || (isDonationRoute()?"donation":isAboutRoute()?"about":"home");
       if(page==="donation")void showDonationPage({navigate:false});
       else if(page==="about")void showAbout({navigate:false});
       else void showHomePage({navigate:false});
