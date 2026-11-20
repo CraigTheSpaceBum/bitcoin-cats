@@ -591,10 +591,18 @@ permalink: /live
         const qrApi=qr.default&&typeof qr.default.toDataURL==='function'?qr.default:qr;
         if(typeof qrApi.toDataURL!=='function')throw new Error('QR code rendering is not available in this browser.');
         $('remoteLoginQrImage').src=await qrApi.toDataURL(uri,{width:240,margin:2});
+        if(controller.signal.aborted){
+          if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+          remoteClientSecret=null;return;
+        }
         $('remoteLoginQrImage').hidden=false;
         $('remoteLoginStatus').textContent='Waiting for your signer to approve the connection…';
-        const signer=await nip46.BunkerSigner.fromURI(remoteClientSecret,uri,{pool},controller.signal);
-        if(controller.signal.aborted){try{await signer.close();}catch{}return;}
+        const signer=await nip46.BunkerSigner.fromURI(remoteClientSecret,uri,{pool},90000);
+        if(controller.signal.aborted){
+          try{await signer.close();}catch{}
+          if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+          remoteClientSecret=null;return;
+        }
         $('cancelRemoteLoginButton').disabled=true;
         $('cancelRemoteLoginButton').textContent='Connected…';
         $('remoteLoginStatus').textContent='Signer connected. Loading your Nostr profile…';
@@ -610,10 +618,11 @@ permalink: /live
       }finally{if(remoteLoginAbort===controller)remoteLoginAbort=null;}
     }
     function cancelRemoteLogin(){
-      if(remoteLoginAbort)remoteLoginAbort.abort();
+      const pendingController=remoteLoginAbort;
+      if(pendingController)pendingController.abort();
       remoteLoginAbort=null;
-      if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
-      remoteClientSecret=null;
+      if(!pendingController&&!activeRemoteSigner&&remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+      if(!pendingController&&!activeRemoteSigner)remoteClientSecret=null;
       $('remoteLoginQrImage').hidden=true;
       $('remoteLoginUri').value='';
       $('cancelRemoteLoginButton').disabled=false;
