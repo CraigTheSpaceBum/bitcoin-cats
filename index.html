@@ -1325,7 +1325,9 @@ async function getNostrTools(){
 function npubShort(hex){return hex ? hex.slice(0,8)+"…"+hex.slice(-4) : "";}
 async function connectNostr(){
   if(signedInPubkey){
-    signedInPubkey=null;nostrRemoteSigner=null;
+    signedInPubkey=null;
+    if(nostrRemoteSigner&&typeof nostrRemoteSigner.close==="function")void nostrRemoteSigner.close().catch(()=>{});
+    nostrRemoteSigner=null;
     try{sessionStorage.removeItem("bitcoinCatsAuth");}catch{}
     document.getElementById("loginBtn").textContent="🔑 Login with Nostr";
     document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Sign in to write a reply…");
