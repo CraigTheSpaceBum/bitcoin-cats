@@ -168,33 +168,60 @@
       .about-top {flex-direction: column;}
     }
 
-    /* Sifaka.Live image feature */
+    /* Sifaka.Live image feature with the original description retained */
     .sifaka-feature {
       margin: 24px 0 8px;
+      border: 1px solid rgba(255,164,71,.35);
+      border-radius: 20px;
       overflow: hidden;
-      border-radius: 16px;
+      background: radial-gradient(ellipse at 100% 0%, rgba(255,164,71,.13), transparent 48%),
+                  linear-gradient(140deg, rgba(25,25,39,.96), rgba(12,12,20,.96));
       box-shadow: var(--shadow);
     }
     .sifaka-feature-link {
       display: block;
-      border-radius: 16px;
       line-height: 0;
     }
     .sifaka-feature-link:focus-visible {
       outline: 3px solid var(--orange);
-      outline-offset: 4px;
+      outline-offset: -4px;
     }
     .sifaka-feature-image {
       display: block;
       width: 100%;
       max-width: 100%;
       height: auto;
-      border-radius: 16px;
-      transition: opacity .2s ease, transform .2s ease;
+      transition: opacity .2s ease;
     }
     .sifaka-feature-link:hover .sifaka-feature-image {
-      opacity: .96;
-      transform: scale(1.01);
+      opacity: .94;
+    }
+    .sifaka-feature-copy {
+      padding: clamp(20px, 3vw, 30px);
+    }
+    .sifaka-feature-copy p {
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.75;
+      max-width: 1000px;
+      margin: 0 0 16px;
+    }
+    .sifaka-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 18px;
+    }
+    .sifaka-features span {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(255,164,71,.22);
+      border-radius: 999px;
+      background: rgba(255,164,71,.07);
+      color: #f1dfce;
+      padding: 8px 11px;
+      font-size: 12px;
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -218,6 +245,18 @@
               loading="lazy"
               decoding="async">
           </a>
+          <div class="sifaka-feature-copy">
+            <p>Sifaka.Live is a free, Nostr-powered live-streaming website where you can watch and share streams, chat with others, and send or receive Bitcoin tips. You can use it right in your browser—no app download, email address, or phone number is required to get started.</p>
+            <p>The project is completely free and powered by the open Nostr protocol. You can run your own self-hosted instance or use an available third-party hosted option.</p>
+            <div class="sifaka-features" aria-label="Sifaka.Live features">
+              <span>📺 Live streaming &amp; theater mode</span>
+              <span>💬 Live chat &amp; direct messages</span>
+              <span>⚡ Send &amp; receive Bitcoin tips</span>
+              <span>🌐 Self-hosted or third-party hosted</span>
+              <span>👤 Nostr profiles, feeds &amp; videos</span>
+              <span>🎙️ Podcast Radio &amp; games</span>
+            </div>
+          </div>
         </section>
       </div>
 
