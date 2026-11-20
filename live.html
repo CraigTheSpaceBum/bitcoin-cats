@@ -1553,7 +1553,8 @@ permalink: /live
           if(/^[0-9a-f]{64}$/.test(txid)&&!uniqueTransactions.has(txid))uniqueTransactions.set(txid,event);
         }
         const candidates=[...uniqueTransactions.values()].sort((a,b)=>(b.created_at||0)-(a.created_at||0)).slice(0,50);
-        const verifiedMainchain=await mapWithConcurrency(candidates,8,event=>verifyOnchainDonorEvent(event,await getNostrPure()));
+        const pure=await getNostrPure();
+        const verifiedMainchain=await mapWithConcurrency(candidates,8,event=>verifyOnchainDonorEvent(event,pure));
         for(const donation of verifiedMainchain)if(donation)addDonor(donation.pubkey,donation.satsMsat);
         const ranked=[...donors.values()].sort((a,b)=>b.millisats-a.millisats).slice(0,10);
         if(!ranked.length){
