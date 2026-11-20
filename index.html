@@ -1066,7 +1066,7 @@ function isAboutRoute(){
 }
 
 function setPageHistory(page,{replace=false}={}){
-  const url=page==="donation"?"/donation":page==="about"?"/?page=about":"/";
+  const url=page==="donation"?"/donation/":page==="about"?"/?page=about":"/";
   const state={page};
   if(replace){
     history.replaceState(state,"",url);
@@ -1177,8 +1177,9 @@ async function showDonationPage({navigate=true,profile=null}={}){
   if(navigate)setPageHistory("donation");
   else{
     activeContentPage="donation";
-    if(isDonationRoute() && location.pathname!=="/donation"){
-      history.replaceState({page:"donation"},"","/donation");
+    const currentPath=location.pathname.replace(/\/+$/, "") || "/";
+    if(isDonationRoute() && currentPath!=="/donation"){
+      history.replaceState({page:"donation"},"","/donation/");
     }
   }
   overlay.classList.remove("hidden");
