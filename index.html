@@ -1151,7 +1151,7 @@ function ensureBitcoinEducationBanner(aboutPage){
 
 async function showAbout({navigate=true}={}) {
   if(navigate)setPageHistory("about");
-  else activeContentPage="about";
+  else{activeContentPage="about";updateNavigationState("about");}
   overlay.classList.remove("hidden");
   try {
     const html=await fetchAboutPageMarkup();
@@ -1174,7 +1174,7 @@ async function showAbout({navigate=true}={}) {
 /* Home/feed page */
 async function showHomePage({navigate=true}={}){
   if(navigate)setPageHistory("home");
-  else activeContentPage="home";
+  else{activeContentPage="home";updateNavigationState("home");}
   overlay.classList.remove("hidden");
   try{
     const latest=await getKind1(PUBKEY_HEX,1);
@@ -1192,6 +1192,7 @@ async function showDonationPage({navigate=true,profile=null}={}){
   if(navigate)setPageHistory("donation");
   else{
     activeContentPage="donation";
+    updateNavigationState("donation");
     const currentPath=location.pathname.replace(/\/+$/, "") || "/";
     if(isDonationRoute() && currentPath!=="/donation"){
       history.replaceState({page:"donation"},"","/donation/");
