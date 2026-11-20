@@ -516,6 +516,306 @@ permalink: /live
       }catch{return false;}
       finally{clearTimeout(timeout);}
     }
+    function createPresenceSessionId(){
+      if(typeof crypto.randomUUID==='function')return crypto.randomUUID();
+      const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);
+      return Array.from(bytes).map(value=>value.toString(16).padStart(2,'0')).join('');
+    }
+    function clearPresenceSessionSecrets(){
+      if(presenceSessionSecret instanceof Uint8Array)presenceSessionSecret.fill(0);
+      presenceSessionSecret=null;presenceSessionPubkey='';presenceSessionId='';
+      presenceSessionActivity='';presenceSessionIdentity='';presenceIdentityProof=null;
+    }
+    async function publishPresenceEvent(state,expiresAt){
+      if(!presenceSessionSecret||!presenceSessionActivity||!pool)return false;
+      const pure=await getNostrPure();
+      const now=Math.floor(Date.now()/1000);
+      const event=pure.finalizeEvent({
+        kind:PRESENCE_KIND,
+        created_at:now,
+        tags:[
+          ['d',PRESENCE_D_TAG],
+          ['a',presenceSessionActivity],
+          ['p',hostPubkey],
+          ['expiration',String(expiresAt||now+PRESENCE_TTL_SECONDS)]
+        ],
+        content:JSON.stringify({
+          protocol:'bitcoin-cats-live-presence',
+          version:1,
+          state,
+          sessionId:presenceSessionId,
+          identityPubkey:state==='watching'&&presenceIdentityProof?presenceSessionIdentity:'',
+          identityProof:state==='watching'&&presenceIdentityProof?presenceIdentityProof:null
+        })
+      },presenceSessionSecret);
+      const results=await Promise.allSettled(pool.publish(RELAYS,event));
+      return results.some(result=>result.status==='fulfilled');
+    }
+    async function stopPresenceSession(){
+      if(!presenceSessionSecret){clearPresenceSessionSecrets();return;}
+      try{await publishPresenceEvent('left',Math.floor(Date.now()/1000)+2);}catch(error){console.warn('Could not send watcher leave event',error);}
+      clearPresenceSessionSecrets();
+    }
+    async function ensurePresenceSession(){
+      const identity=signedInPubkey||'';
+      if(presenceSessionSecret&&presenceSessionActivity===activityAddress&&presenceSessionIdentity===identity)return;
+      await stopPresenceSession();
+      const [pure]=await Promise.all([getNostrPure(),ensureNostrReady()]);
+      presenceSessionSecret=pure.generateSecretKey();
+      presenceSessionPubkey=pure.getPublicKey(presenceSessionSecret);
+      presenceSessionId=createPresenceSessionId();
+      presenceSessionActivity=activityAddress;
+      presenceSessionIdentity=identity;
+      presenceIdentityProof=null;
+      if(identity){
+        try{
+          const now=Math.floor(Date.now()/1000);
+          const proofContent={
+            protocol:'bitcoin-cats-live-presence-proof',
+            version:1,
+            activityAddress,
+            sessionId:presenceSessionId,
+            sessionPubkey:presenceSessionPubkey,
+            createdAt:now
+          };
+          const proof=await signUserEvent({
+            kind:PRESENCE_KIND,
+            created_at:now,
+            tags:[
+              ['d','bitcoin-cats-presence-proof:'+presenceSessionId],
+              ['a',activityAddress],
+              ['p',presenceSessionPubkey]
+            ],
+            content:JSON.stringify(proofContent)
+          });
+          if(proof.pubkey===identity)presenceIdentityProof=proof;
+        }catch(error){
+          // A signer may decline the one-time presence attestation; the session
+          // still contributes to the anonymous viewer count.
+          console.info('Nostr watcher identity proof was not approved; counting this session as a guest.',error);
+        }
+      }
+    }
+    async function syncViewerPresence(){
+      if(!activityAddress||activityStatus!=='live'||!pool||!hostPubkey){
+        await stopPresenceSession();
+        if(!$('watcherList'))return;
+        if(activityStatus!=='live'){
+          $('watcherLiveState').classList.add('offline');
+          $('watcherLiveLabel').textContent='Host offline';
+          $('watcherTotalCount').textContent='0';
+          $('watcherNostrCount').textContent='0';
+          $('watcherGuestCount').textContent='0';
+          $('watcherList').replaceChildren();
+          const empty=document.createElement('div');empty.className='watcher-empty';
+          empty.textContent='Viewer presence starts when the host goes live.';
+          $('watcherList').appendChild(empty);
+        }
+        return;
+      }
+      if(presencePublishRunning)return;
+      presencePublishRunning=true;
+      try{
+        await ensurePresenceSession();
+        const accepted=await publishPresenceEvent('watching',Math.floor(Date.now()/1000)+PRESENCE_TTL_SECONDS);
+        if(!accepted)throw new Error('No configured Nostr relay accepted the watcher heartbeat.');
+        $('watcherLiveState').classList.remove('offline');
+        $('watcherLiveLabel').textContent='Live · refreshing';
+        void refreshViewerRoster();
+      }catch(error){
+        $('watcherLiveState').classList.add('offline');
+        $('watcherLiveLabel').textContent='Presence reconnecting';
+        $('watcherFootnote').textContent='Could not publish the live watcher heartbeat to the configured Nostr relays. Viewer totals may be temporarily incomplete.';
+        console.warn('Could not publish live watcher presence',error);
+      }finally{presencePublishRunning=false;}
+    }
+    async function verifyPresenceIdentity(event,content,address){
+      try{
+        const pure=await getNostrPure();
+        const proof=content.identityProof;
+        const identity=String(content.identityPubkey||'');
+        if(!proof||!identity||!/^([0-9a-f]{64})$/i.test(identity)||!pure.verifyEvent(proof))return '';
+        if(proof.kind!==PRESENCE_KIND||proof.pubkey.toLowerCase()!==identity.toLowerCase())return '';
+        if(proof.created_at>(event.created_at||0)||Math.floor(Date.now()/1000)-(proof.created_at||0)>86400)return '';
+        const hasTag=(tag,value)=>(proof.tags||[]).some(item=>item[0]===tag&&item[1]===value);
+        if(!hasTag('d','bitcoin-cats-presence-proof:'+content.sessionId))return '';
+        if(!hasTag('a',address)||!hasTag('p',event.pubkey))return '';
+        const proofBody=JSON.parse(proof.content||'{}');
+        if(proofBody.protocol!=='bitcoin-cats-live-presence-proof'||proofBody.activityAddress!==address)return '';
+        if(proofBody.sessionId!==content.sessionId||proofBody.sessionPubkey!==event.pubkey)return '';
+        return identity.toLowerCase();
+      }catch{return '';}
+    }
+    async function refreshViewerRoster(){
+      const address=activityAddress,version=++watcherRenderVersion;
+      if(!address||activityStatus!=='live'||!pool){
+        $('watcherTotalCount').textContent='0';$('watcherNostrCount').textContent='0';$('watcherGuestCount').textContent='0';
+        $('watcherUpdatedAt').textContent='Waiting for the host to go live';
+        return;
+      }
+      if(watcherRefreshRunning)return;
+      watcherRefreshRunning=true;
+      try{
+        const events=await queryRelays({
+          kinds:[PRESENCE_KIND],
+          '#d':[PRESENCE_D_TAG],
+          '#a':[address],
+          limit:1000
+        },7000,8500,'Watcher presence lookup timed out');
+        if(version!==watcherRenderVersion||activityAddress!==address)return;
+        const pure=await getNostrPure();
+        const now=Math.floor(Date.now()/1000);
+        const validEvents=[];
+        for(const event of events||[]){
+          if(!event||event.kind!==PRESENCE_KIND||!pure.verifyEvent(event))continue;
+          if(getTag(event,'d')!==PRESENCE_D_TAG||getTag(event,'a')!==address)continue;
+          const age=now-Number(event.created_at||0);
+          const expiry=Number(getTag(event,'expiration')||0);
+          if(age< -15||age>PRESENCE_TTL_SECONDS||expiry<now)continue;
+          let content={};try{content=JSON.parse(event.content||'{}');}catch{continue;}
+          if(content.protocol!=='bitcoin-cats-live-presence'||content.version!==1||content.state!=='watching'||!content.sessionId)continue;
+          if(!(event.tags||[]).some(tag=>tag[0]==='p'&&tag[1]===hostPubkey))continue;
+          validEvents.push({event,content});
+        }
+        const sessions=new Map();
+        for(const item of validEvents){
+          const key=String(item.content.sessionId);
+          const previous=sessions.get(key);
+          if(!previous||(item.event.created_at||0)>(previous.event.created_at||0))sessions.set(key,item);
+        }
+        const nostrByPubkey=new Map(),guests=new Set();
+        for(const item of sessions.values()){
+          const identity=await verifyPresenceIdentity(item.event,item.content,address);
+          if(identity)nostrByPubkey.set(identity,item);
+          else guests.add(item.content.sessionId);
+        }
+        if(version!==watcherRenderVersion||activityAddress!==address)return;
+        const nostr= [...nostrByPubkey.keys()];
+        watcherSnapshot={nostr,guests:guests.size,total:nostr.length+guests.size,updatedAt:Date.now()};
+        $('watcherTotalCount').textContent=watcherSnapshot.total.toLocaleString();
+        $('watcherNostrCount').textContent=nostr.length.toLocaleString();
+        $('watcherGuestCount').textContent=guests.size.toLocaleString();
+        $('watcherLiveState').classList.remove('offline');
+        $('watcherLiveLabel').textContent='Live · updating';
+        $('watcherUpdatedAt').textContent='Updated '+new Date(watcherSnapshot.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · heartbeat expires after '+PRESENCE_TTL_SECONDS+'s';
+        await renderWatcherProfiles(nostr,address,version);
+      }catch(error){
+        if(version===watcherRenderVersion){
+          $('watcherLiveState').classList.add('offline');
+          $('watcherLiveLabel').textContent='Relay sync delayed';
+          $('watcherUpdatedAt').textContent='Could not refresh relay presence';
+          $('watcherFootnote').textContent='The last successful counts are retained while the page reconnects to the Nostr relays. A failed refresh is not shown as zero viewers.';
+        }
+        console.warn('Could not refresh Nostr watcher roster',error);
+      }finally{watcherRefreshRunning=false;}
+    }
+    async function renderWatcherProfiles(pubkeys,address,version){
+      const list=$('watcherList');
+      if(!pubkeys.length){
+        list.replaceChildren();
+        const empty=document.createElement('div');empty.className='watcher-empty';
+        empty.textContent=watcherSnapshot.guests
+          ? watcherSnapshot.guests+' guest viewer'+(watcherSnapshot.guests===1?' is':'s are')+' watching. Sign in with Nostr to appear in the account list.'
+          :'No signed-in Nostr accounts are watching yet.';
+        list.appendChild(empty);return;
+      }
+      const rows=await Promise.all(pubkeys.map(async pubkey=>{
+        const profile=await fetchProfile(pubkey);
+        const valid=profile.nip05?await verifyNip05(profile.nip05,pubkey):false;
+        return {pubkey,profile,valid};
+      }));
+      if(version!==watcherRenderVersion||activityAddress!==address)return;
+      const {nip19}=await nostrModulePromise;
+      rows.sort((a,b)=>String(a.profile.name||'').localeCompare(String(b.profile.name||'')));
+      list.replaceChildren();
+      for(const rowData of rows){
+        const card=document.createElement('article');card.className='watcher-card';
+        const avatar=document.createElement('img');avatar.className='watcher-avatar';avatar.alt='';avatar.loading='lazy';
+        avatar.onerror=()=>{avatar.onerror=null;avatar.src='/logo.png';};
+        avatar.src=rowData.profile.picture&&isSecureUrl(rowData.profile.picture)?rowData.profile.picture:'/logo.png';
+        const details=document.createElement('div');details.className='watcher-profile';
+        const name=document.createElement('div');name.className='watcher-name';
+        name.textContent=rowData.profile.name||rowData.pubkey.slice(0,8)+'…'+rowData.pubkey.slice(-4);
+        const identity=document.createElement('div');identity.className='watcher-identity';
+        if(rowData.valid){
+          const check=document.createElement('span');check.className='watcher-verified';check.textContent='✓';check.title='Verified NIP-05';identity.appendChild(check);
+          const nip05=document.createElement('span');nip05.textContent=rowData.profile.nip05;identity.appendChild(nip05);
+        }else{
+          const npub=nip19.npubEncode(rowData.pubkey);
+          identity.textContent=npub.slice(0,15)+'…'+npub.slice(-9);
+          identity.title=npub;
+        }
+        details.append(name,identity);card.append(avatar,details);list.appendChild(card);
+      }
+      if(watcherSnapshot.guests){
+        const guest=document.createElement('div');guest.className='watcher-empty';
+        guest.textContent=watcherSnapshot.guests+' additional guest viewer'+(watcherSnapshot.guests===1?'':'s')+' are watching without signing in.';
+        list.appendChild(guest);
+      }
+    }
+    async function refreshTwitchViewerCount(){
+      try{
+        const response=await fetch(TWITCH_VIEWER_API,{method:'GET',mode:'cors',credentials:'omit',redirect:'error',cache:'no-store'});
+        if(!response.ok)throw new Error('Twitch count service returned '+response.status);
+        const value=(await response.text()).trim();
+        if(!/^\d+$/.test(value)){
+          $('twitchViewerCount').textContent=value.toLowerCase()==='offline'?'0':'—';
+          $('twitchViewerNote').textContent=value.toLowerCase()==='offline'?'Channel offline':'Count unavailable';
+        }else{
+          $('twitchViewerCount').textContent=Number(value).toLocaleString();
+          $('twitchViewerNote').textContent='Twitch snapshot · provider cache up to 5 min';
+        }
+        twitchCountLastFetched=Date.now();
+      }catch(error){
+        $('twitchViewerCount').textContent='—';
+        $('twitchViewerNote').textContent='Twitch count unavailable';
+        console.warn('Could not load Twitch viewer count',error);
+      }
+    }
+    async function refreshYouTubeViewerCount(){
+      if(!YOUTUBE_API_KEY){
+        $('youtubeViewerCount').textContent='—';
+        $('youtubeViewerNote').textContent='YouTube Data API key not configured';
+        return;
+      }
+      try{
+        const now=Date.now();
+        if(!youtubeChannelIdCache||now-youtubeDiscoveryLastFetched>300000){
+          const channelUrl=new URL('https://www.googleapis.com/youtube/v3/channels');
+          channelUrl.search=new URLSearchParams({part:'id',forHandle:YOUTUBE_CHANNEL_HANDLE,key:YOUTUBE_API_KEY});
+          const channelResponse=await fetch(channelUrl.toString(),{credentials:'omit',cache:'no-store'});
+          if(!channelResponse.ok)throw new Error('YouTube channel lookup failed ('+channelResponse.status+').');
+          const channelData=await channelResponse.json();
+          youtubeChannelIdCache=channelData.items?.[0]?.id||'';
+          if(!youtubeChannelIdCache)throw new Error('Could not find the configured YouTube channel.');
+          const searchUrl=new URL('https://www.googleapis.com/youtube/v3/search');
+          searchUrl.search=new URLSearchParams({part:'id',channelId:youtubeChannelIdCache,type:'video',eventType:'live',maxResults:'1',key:YOUTUBE_API_KEY});
+          const searchResponse=await fetch(searchUrl.toString(),{credentials:'omit',cache:'no-store'});
+          if(!searchResponse.ok)throw new Error('YouTube live broadcast lookup failed ('+searchResponse.status+').');
+          const searchData=await searchResponse.json();
+          youtubeLiveVideoIdCache=searchData.items?.[0]?.id?.videoId||'';
+          youtubeDiscoveryLastFetched=now;
+        }
+        if(!youtubeLiveVideoIdCache){
+          $('youtubeViewerCount').textContent='0';
+          $('youtubeViewerNote').textContent='No public live broadcast found';
+          youtubeCountLastFetched=now;return;
+        }
+        const videoUrl=new URL('https://www.googleapis.com/youtube/v3/videos');
+        videoUrl.search=new URLSearchParams({part:'liveStreamingDetails',id:youtubeLiveVideoIdCache,key:YOUTUBE_API_KEY});
+        const videoResponse=await fetch(videoUrl.toString(),{credentials:'omit',cache:'no-store'});
+        if(!videoResponse.ok)throw new Error('YouTube live viewer lookup failed ('+videoResponse.status+').');
+        const videoData=await videoResponse.json();
+        const concurrent=videoData.items?.[0]?.liveStreamingDetails?.concurrentViewers;
+        $('youtubeViewerCount').textContent=concurrent!==undefined?Number(concurrent).toLocaleString():'—';
+        $('youtubeViewerNote').textContent=concurrent!==undefined?'YouTube live count · public broadcast':'YouTube count hidden or unavailable';
+        youtubeCountLastFetched=now;
+      }catch(error){
+        $('youtubeViewerCount').textContent='—';
+        $('youtubeViewerNote').textContent='YouTube count unavailable';
+        console.warn('Could not load YouTube viewer count',error);
+      }
+    }
     function showLoginPanel(panelId){
       ['hardwareLoginPanel','remoteLoginPanel','newIdentityPanel'].forEach(id=>$(id).hidden=id!==panelId);
       $('loginChoiceGrid').hidden=!!panelId;
