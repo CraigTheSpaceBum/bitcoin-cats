@@ -365,7 +365,8 @@ permalink: /live
 
   <script type="module">
     const HOST_NPUB = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95';
-    const RELAYS = ['wss://nos.lol','wss://relay.damus.io','wss://purplerelay.com','wss://relay.primal.net'];
+    const RELAYS = ['wss://nos.lol','wss://relay.damus.io','wss://purplerelay.com','wss://relay.primal.net','wss://relay.nostr.band','wss://nostr.wine','wss://relay.snort.social'];
+    const streamRelayHints = new Set();
     const PRESENCE_KIND = 30078;
     const PRESENCE_D_TAG = 'bitcoin-cats-live-presence';
     const PRESENCE_HEARTBEAT_MS = 15000;
@@ -430,6 +431,7 @@ permalink: /live
     async function playUrl(url){
       if(!url||!isSecureUrl(url))throw new Error('The stream event does not contain a secure HTTPS playback URL.');
       videoWrap.classList.remove('offline');offlineOverlay.hidden=true;poster.hidden=true;empty.hidden=true;
+      let hlsJsPlayback=false;
       if(/\.m3u8(?:$|\?)/i.test(url)){
         if(video.canPlayType('application/vnd.apple.mpegurl'))video.src=url;
         else{
@@ -437,6 +439,7 @@ permalink: /live
           const Hls=HlsModule.default;
           if(!Hls.isSupported())throw new Error('HLS playback is not supported by this browser.');
           if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+          hlsJsPlayback=true;
           hlsInstance=new Hls({enableWorker:true,lowLatencyMode:true});
           hlsInstance.loadSource(url);hlsInstance.attachMedia(video);
           hlsInstance.on(Hls.Events.ERROR,(_event,data)=>{
@@ -444,7 +447,14 @@ permalink: /live
           });
         }
       }else video.src=url;
-      video.load();reportHeight();
+      // Do not call load() after hls.js attaches its MediaSource.
+      if(!hlsJsPlayback)video.load();
+      try{await video.play();}
+      catch(error){
+        if(error?.name==='NotAllowedError')note.textContent='The stream is ready. Press Play if your browser blocks automatic playback.';
+        else throw error;
+      }
+      reportHeight();
     }
     function eventAgeSeconds(event){return Math.max(0,Math.floor(Date.now()/1000)-(event.created_at||0));}
     function latestVersionPerActivity(events){
@@ -479,26 +489,27 @@ permalink: /live
       const tags=(event.tags||[]).filter(tag=>tag[0]==='t'&&tag[1]).slice(0,12);
       $('streamTags').replaceChildren(...tags.map(tag=>{const span=document.createElement('span');span.className='tag';span.textContent='#'+tag[1];return span;}));
     }
-    async function queryRelays(filter,maxWait,milliseconds,message){
-  const results=await Promise.allSettled(RELAYS.map(relay=>{
-    const relayFilter={...filter};
-    for(const key of Object.keys(relayFilter)) if(Array.isArray(relayFilter[key])) relayFilter[key]=relayFilter[key].slice();
-    let timer;
-    return Promise.race([
-      pool.querySync([relay],relayFilter,{maxWait}),
-      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),milliseconds);})
-    ]).finally(()=>clearTimeout(timer));
-  }));
-  const events=new Map();
-  let responders=0;
-  for(const result of results){
-    if(result.status!=="fulfilled") continue;
-    responders++;
-    for(const event of result.value||[]) if(event?.id) events.set(event.id,event);
-  }
-  if(!responders) throw new Error(message);
-  return [...events.values()];
-}
+    async function queryRelays(filter,maxWait,milliseconds,message,relayUrls=RELAYS){
+      const targets=[...new Set((relayUrls||RELAYS).filter(relay=>typeof relay==='string'&&/^wss:\/\//i.test(relay)))];
+      const results=await Promise.allSettled(targets.map(relay=>{
+        const relayFilter={...filter};
+        for(const key of Object.keys(relayFilter))if(Array.isArray(relayFilter[key]))relayFilter[key]=relayFilter[key].slice();
+        let timer;
+        return Promise.race([
+          pool.querySync([relay],relayFilter,{maxWait}),
+          new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),milliseconds);})
+        ]).finally(()=>clearTimeout(timer));
+      }));
+      const events=new Map();
+      let responders=0;
+      for(const result of results){
+        if(result.status!=='fulfilled')continue;
+        responders++;
+        for(const event of result.value||[])if(event?.id)events.set(event.id,event);
+      }
+      if(!responders)throw new Error(message);
+      return [...events.values()];
+    }
 
     async function getNostrPure(){
       nostrPurePromise ||= import('https://esm.sh/nostr-tools@2.10.4/pure');
@@ -1682,11 +1693,27 @@ permalink: /live
         if(requestId===chatRequestId)chatState.textContent='Could not refresh this stream’s chat from public Nostr relays. Retrying automatically…';
       }finally{chatRefreshRunning=false;}
     }
+    function addStreamRelayHints(event){
+      for(const tag of event?.tags||[]){
+        if(tag[0]==='relays'){
+          for(const relay of tag.slice(1))if(typeof relay==='string'&&/^wss:\/\//i.test(relay))streamRelayHints.add(relay);
+        }else if(tag[0]==='r'&&tag[1]){
+          const marker=String(tag[2]||'').toLowerCase();
+          if(marker!=='write'&&/^wss:\/\//i.test(tag[1]))streamRelayHints.add(tag[1]);
+        }
+      }
+    }
     async function refreshStream(){
       if(streamRefreshRunning||!pool||!hostPubkey)return;
       streamRefreshRunning=true;
       try{
-        const events=await queryRelays({kinds:[30311],authors:[hostPubkey],limit:50},9000,10000,'Relay lookup timed out');
+        // Discover the host's preferred read relays through NIP-65.
+        try{
+          const relayLists=await queryRelays({kinds:[10002],authors:[hostPubkey],limit:5},5000,6500,'Host relay-list lookup timed out');
+          for(const relayList of relayLists)addStreamRelayHints(relayList);
+        }catch(error){console.info('Host NIP-65 relay list unavailable; using public fallback relays.',error);}
+        const discoveryRelays=[...new Set([...RELAYS,...streamRelayHints])];
+        const events=await queryRelays({kinds:[30311],authors:[hostPubkey],limit:100},9000,11000,'Relay lookup timed out',discoveryRelays);
         const event=chooseStream(events);
         if(!event){
           activityAddress='';activityStatus='offline';currentEventId='';
@@ -1696,6 +1723,7 @@ permalink: /live
           $('streamTags').replaceChildren();showOffline(null,'No recent NIP-53 stream activity is available. The preview will remain blurred until the host publishes a stream.');
           await loadChatForCurrentActivity();return;
         }
+        addStreamRelayHints(event);
         setStreamMetadata(event);
         const previousAddress=activityAddress,d=getTag(event,'d');
         activityAddress=d?'30311:'+event.pubkey+':'+d:'';
@@ -1744,6 +1772,7 @@ permalink: /live
         $('streamSummary').textContent='Unable to load the host’s latest stream announcement right now. The page will retry automatically.';
       }finally{streamRefreshRunning=false;}
     }
+
     async function sendChatMessage(text){
       const content=String(text||'').trim();
       if(!content||!activityAddress||activityStatus!=='live')return;
