@@ -294,7 +294,7 @@ permalink: /live
     let activityStatus = 'offline', currentEventId = '', streamRefreshRunning = false;
     let signedInPubkey = '';
     let activeLocalSecret = null, activeRemoteSigner = null, activeSignerKind = '', signedInProfile = null;
-    let pendingNewIdentity = false, remoteLoginAbort = null, remoteClientSecret = null;
+    let pendingNewIdentity = false, remoteLoginAbort = null, remoteClientSecret = null, pendingRemoteSigner = null;
     let chatRefreshRunning = false, chatRequestId = 0, lastPlaybackKey = '';
     const profileCache = new Map();
     const lnurlPayCache = new Map();
@@ -468,6 +468,7 @@ permalink: /live
     }
     function closeLogin(){
       if(remoteLoginAbort)cancelRemoteLogin();
+      if(pendingRemoteSigner){const signer=pendingRemoteSigner;pendingRemoteSigner=null;void signer.close().catch(()=>{});}
       if(pendingNewIdentity&&!signedInPubkey&&activeLocalSecret instanceof Uint8Array){
         activeLocalSecret.fill(0);activeLocalSecret=null;pendingNewIdentity=false;
         $('generatedNsec').textContent='';
@@ -557,8 +558,12 @@ permalink: /live
       return Array.from(bytes).map(value=>value.toString(16).padStart(2,'0')).join('');
     }
     async function startRemoteLogin(){
+      if(remoteLoginAbort)cancelRemoteLogin();
+      const controller=new AbortController();
+      remoteLoginAbort=controller;
       try{
         const [nip46,pure,qr]=await Promise.all([getNip46(),getNostrPure(),getQrCode()]);
+        if(controller.signal.aborted)return;
         if(!nip46.BunkerSigner||typeof nip46.BunkerSigner.fromURI!=='function'||typeof nip46.createNostrConnectURI!=='function'){
           throw new Error('Remote Nostr login is not supported by the loaded signer library. Try a NIP-07 extension or bunker URI.');
         }
@@ -579,9 +584,8 @@ permalink: /live
         $('remoteLoginQrImage').src=await qrApi.toDataURL(uri,{width:240,margin:2});
         $('remoteLoginQrImage').hidden=false;
         $('remoteLoginStatus').textContent='Waiting for your signer to approve the connection…';
-        remoteLoginAbort=new AbortController();
-        const signer=await nip46.BunkerSigner.fromURI(remoteClientSecret,uri,{pool},remoteLoginAbort.signal);
-        if(remoteLoginAbort.signal.aborted){try{await signer.close();}catch{}return;}
+        const signer=await nip46.BunkerSigner.fromURI(remoteClientSecret,uri,{pool},controller.signal);
+        if(controller.signal.aborted){try{await signer.close();}catch{}return;}
         activeRemoteSigner=signer;activeLocalSecret=null;activeSignerKind='nip46';
         await completeLogin(await signer.getPublicKey(),{method:'nip46'});
       }catch(error){
@@ -589,8 +593,8 @@ permalink: /live
         activeRemoteSigner=null;
         if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
         remoteClientSecret=null;
-        if(!remoteLoginAbort?.signal.aborted)$('remoteLoginStatus').textContent=error.message||'The remote signer connection failed or timed out.';
-      }finally{remoteLoginAbort=null;}
+        if(!controller.signal.aborted)$('remoteLoginStatus').textContent=error.message||'The remote signer connection failed or timed out.';
+      }finally{if(remoteLoginAbort===controller)remoteLoginAbort=null;}
     }
     function cancelRemoteLogin(){
       if(remoteLoginAbort)remoteLoginAbort.abort();
@@ -614,11 +618,14 @@ permalink: /live
         if(!pool)await ensureNostrReady();
         const clientSecret=pure.generateSecretKey();remoteClientSecret=clientSecret;
         const signer=nip46.BunkerSigner.fromBunker(clientSecret,parsed,{pool});
+        pendingRemoteSigner=signer;
         $('loginStatus').textContent='Connecting to your hardware or remote signer…';
         await signer.connect();
+        pendingRemoteSigner=null;
         activeRemoteSigner=signer;activeLocalSecret=null;activeSignerKind='nip46';
         await completeLogin(await signer.getPublicKey(),{method:'nip46'});
       }catch(error){
+        if(pendingRemoteSigner){try{await pendingRemoteSigner.close();}catch{}pendingRemoteSigner=null;}
         if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
         remoteClientSecret=null;
         $('loginStatus').textContent=error.message||'Could not connect to the bunker signer.';
@@ -626,6 +633,7 @@ permalink: /live
     }
     async function signOut(){
       if(remoteLoginAbort)cancelRemoteLogin();
+      if(pendingRemoteSigner){try{await pendingRemoteSigner.close();}catch{}pendingRemoteSigner=null;}
       try{if(activeRemoteSigner&&typeof activeRemoteSigner.close==='function')await activeRemoteSigner.close();}catch{}
       activeRemoteSigner=null;
       if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
