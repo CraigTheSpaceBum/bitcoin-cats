@@ -57,7 +57,7 @@ permalink: /live
     .live-pill.live{color:#d8ffeb;border-color:rgba(94,230,168,.28);background:rgba(94,230,168,.08)}.live-pill.live .dot{background:var(--green);box-shadow:0 0 12px rgba(94,230,168,.75)}
     .live-pill.loading .dot{background:var(--accent);animation:pulse 1.2s infinite}
     @keyframes pulse{50%{opacity:.35}}
-    .layout{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,.85fr);gap:18px;align-items:stretch}
+    .layout{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,.85fr);gap:18px;align-items:start}
     .panel{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:linear-gradient(155deg,rgba(23,23,37,.96),rgba(14,14,23,.98));box-shadow:0 18px 55px rgba(0,0,0,.22)}
     .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
     .panel-title{font-size:13px;font-weight:750;letter-spacing:.01em}.panel-kicker{font-size:11px;color:var(--muted);margin-top:4px}
@@ -1443,9 +1443,7 @@ permalink: /live
         if(request.kind!==9734||!pure.verifyEvent(request))return null;
         if(!(request.tags||[]).some(tag=>tag[0]==='p'&&tag[1]===hostPubkey))return null;
         const donationActivity=getEventTag(request,'a');
-        if(address){
-          if(donationActivity!==address)return null;
-        }else if(!donationActivity.startsWith('30311:'+hostPubkey+':'))return null;
+        if(address&&donationActivity!==address)return null;
         if(!/^[0-9a-f]{64}$/i.test(request.pubkey||''))return null;
         const amountTag=(request.tags||[]).find(tag=>tag[0]==='amount'&&tag[1]);
         const amountMsats=amountTag?Number(amountTag[1]):null;
