@@ -9,6 +9,7 @@ permalink: /live
   <meta name="theme-color" content="#090910">
   <meta name="description" content="Bitcoin Cats live broadcast and Nostr chat.">
   <title>Bitcoin Cats — Live</title>
+  <script>if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('login-embed');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -211,6 +212,11 @@ permalink: /live
     @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}.watcher-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(max-width:700px){.container{padding-top:12px}body.signed-in .container{padding-top:82px}.login-dialog{padding:20px}.login-grid{grid-template-columns:1fr}.signed-in-overlay{top:8px;right:8px;padding:7px 9px}.signed-in-avatar{width:36px;height:36px}.donation-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-section{padding:14px 11px}.watcher-heading{align-items:flex-start}.watcher-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-stat:first-child{grid-column:span 2}.watcher-stat-value{font-size:19px}.watcher-list{grid-template-columns:1fr}.watcher-live-state{font-size:9px;padding:5px 7px}}
     @media(max-width:700px){.container{padding:12px}.profile{margin:24px 0}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{width:100%;margin:0;justify-content:flex-start;gap:7px}.btn{padding:9px 10px;font-size:12px}.page{padding:0}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.banner-links{bottom:5px;gap:5px;max-width:calc(100% - 16px)}.banner-link{min-height:24px;padding:4px 8px;border-radius:7px;font-size:9px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.donor-list{padding:10px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
+    html.login-embed body{min-height:100vh;height:100vh;overflow:hidden;background:#090910}
+    html.login-embed body .container,html.login-embed body .signed-in-overlay{display:none!important}
+    html.login-embed body .login-backdrop{z-index:20;padding:10px;background:rgba(3,4,12,.94);backdrop-filter:none}
+    html.login-embed body .login-backdrop[hidden]{display:none!important}
+    html.login-embed body .login-dialog{max-height:calc(100dvh - 20px);width:min(850px,100%);margin:auto}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
   </style>
 </head>
@@ -373,6 +379,8 @@ permalink: /live
     const PRESENCE_TTL_SECONDS = 65;
     const PRESENCE_REFRESH_MS = 9000;
     const $ = id => document.getElementById(id);
+    const embedLoginMode = new URLSearchParams(location.search).get('embed')==='1';
+    if(embedLoginMode)document.documentElement.classList.add('login-embed');
     const pill = $('livePill'), label = $('liveLabel'), note = $('streamNote');
     const video = $('streamVideo'), empty = $('videoEmpty'), videoWrap = $('videoWrap');
     const poster = $('offlinePoster'), offlineOverlay = $('offlineOverlay');
@@ -865,6 +873,9 @@ permalink: /live
       $('nsecLoginInput').value='';
       $('loginModal').hidden=true;
       document.body.style.overflow='';
+      if(embedLoginMode&&window.parent!==window){
+        window.parent.postMessage({type:'bitcoin-cats-login-dismiss'},location.origin);
+      }
       $('loginBtn').focus();
     }
     async function updateSignedInOverlay(profile){
@@ -904,6 +915,15 @@ permalink: /live
       setChatComposerState();
       chatState.textContent='Signed in as '+(profile.name||signedInPubkey.slice(0,8)+'…')+'. You can now send messages in this live chat.';
       if(activityAddress&&activityStatus==='live')void syncViewerPresence();
+      if(embedLoginMode&&window.parent!==window){
+        window.parent.postMessage({
+          type:'bitcoin-cats-login-complete',
+          pubkey:signedInPubkey,
+          method:activeSignerKind,
+          profile:{name:String(profile?.name||''),picture:String(profile?.picture||'')}
+        },location.origin);
+        return signedInPubkey;
+      }
       const returnTo=sessionStorage.getItem('bitcoinCatsLoginReturn');
       if(returnTo&&returnTo.startsWith('/')&&!returnTo.startsWith('//')){
         sessionStorage.removeItem('bitcoinCatsLoginReturn');
@@ -1899,6 +1919,26 @@ permalink: /live
       }catch(error){chatState.textContent=error.message||'Could not publish your message.';}
       finally{chatSend.disabled=!(activityStatus==='live'&&activityAddress&&signedInPubkey);}
     }
+    if(embedLoginMode){
+      window.addEventListener('message',async event=>{
+        if(event.origin!==location.origin||event.source!==window.parent)return;
+        const message=event.data||{};
+        if(message.type==='bitcoin-cats-open-login'){
+          if(!signedInPubkey)openLogin();
+        }else if(message.type==='bitcoin-cats-close-login'){
+          if(!$('loginModal').hidden)closeLogin();
+        }else if(message.type==='bitcoin-cats-sign-out'){
+          if(signedInPubkey)await signOut();
+        }else if(message.type==='bitcoin-cats-sign-event'){
+          try{
+            const signed=await signUserEvent(message.event);
+            window.parent.postMessage({type:'bitcoin-cats-sign-result',requestId:message.requestId,ok:true,event:signed},location.origin);
+          }catch(error){
+            window.parent.postMessage({type:'bitcoin-cats-sign-result',requestId:message.requestId,ok:false,error:error.message||'The Nostr signer could not sign this event.'},location.origin);
+          }
+        }
+      });
+    }
     $('homeBtn').addEventListener('click',()=>window.location.assign('/'));
     $('aboutBtn').addEventListener('click',()=>window.location.assign('/?page=about'));
     $('liveBtn').addEventListener('click',()=>window.location.assign('/live'));
@@ -1937,6 +1977,11 @@ permalink: /live
       try{
         await ensureNostrReady();
         const wantsLogin=new URLSearchParams(location.search).get('login')==='1';
+        if(embedLoginMode){
+          $('profNpub').textContent=HOST_NPUB;
+          openLogin();
+          return;
+        }
         if(!wantsLogin)await restoreSharedLogin();
         if(wantsLogin)openLogin();
         $('profNpub').textContent=HOST_NPUB;
