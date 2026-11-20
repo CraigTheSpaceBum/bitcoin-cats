@@ -288,8 +288,8 @@
     .post-ribbon{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;margin:0 0 12px}
     article.post:not(.featured-post){min-height:100%;padding:22px}
     .post-header .name{font-size:14px}
-    .donation-backdrop{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:18px;background:rgba(3,3,8,.82);backdrop-filter:blur(14px)}
-    .donation-dialog{width:min(900px,100%);max-height:min(92vh,900px);overflow:auto;border:1px solid rgba(192,132,252,.32);border-radius:22px;background:linear-gradient(145deg,#191927,#0c0c14);box-shadow:0 0 18px rgba(168,85,247,.38),0 0 42px rgba(124,58,237,.24),0 30px 100px rgba(0,0,0,.65);animation:donation-window-pulse 2.8s ease-in-out infinite}
+    .donation-page{grid-column:1/-1;width:100%;min-width:0;animation:fadeIn .55s ease forwards}
+    .donation-dialog{width:min(1100px,100%);margin:0 auto;overflow:hidden;border:1px solid rgba(192,132,252,.32);border-radius:22px;background:linear-gradient(145deg,#191927,#0c0c14);box-shadow:0 0 18px rgba(168,85,247,.38),0 0 42px rgba(124,58,237,.24),0 30px 100px rgba(0,0,0,.65);animation:donation-window-pulse 2.8s ease-in-out infinite}
     @keyframes donation-window-pulse{0%,100%{border-color:rgba(192,132,252,.28);box-shadow:0 0 14px rgba(168,85,247,.32),0 0 34px rgba(124,58,237,.20),0 30px 100px rgba(0,0,0,.65)}50%{border-color:rgba(216,180,254,.68);box-shadow:0 0 25px rgba(192,132,252,.70),0 0 60px rgba(139,92,246,.42),0 30px 100px rgba(0,0,0,.65)}}
     @media(prefers-reduced-motion:reduce){.donation-dialog{animation:none;box-shadow:0 0 22px rgba(168,85,247,.48),0 30px 100px rgba(0,0,0,.65)}}
     .donation-head{position:relative;display:block;padding:0;border-bottom:1px solid rgba(255,255,255,.08)}
@@ -297,8 +297,6 @@
     .donation-title-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     .donation-banner{display:block;width:100%;height:auto;max-height:none;object-fit:contain;object-position:center;border-radius:21px 21px 0 0}
     .donation-head h2{font-size:22px;letter-spacing:-.03em}.donation-head p{color:var(--muted);font-size:13px;line-height:1.6;margin-top:6px}
-    .donation-close{position:absolute;top:12px;right:12px;z-index:2;flex:none;border:1px solid rgba(255,255,255,.26);background:rgba(5,5,12,.66);backdrop-filter:blur(8px);color:var(--text);border-radius:10px;padding:8px 12px;cursor:pointer}
-    .donation-close:focus-visible{outline:2px solid #ffb76c;outline-offset:3px}
     .donation-methods{display:grid;grid-template-columns:minmax(185px,230px) minmax(0,1fr);align-items:start;gap:16px;padding:20px}
     .donation-options{min-width:0;display:grid;gap:9px;align-content:start}
     .donation-option{width:100%;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.045);color:#eeeaf5;text-align:left;text-decoration:none;font:700 13px/1.4 system-ui,sans-serif;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
@@ -1025,8 +1023,30 @@ function applyProfileToBanner(meta){
   donationLightningAddress = meta.lud16 || "";
 }
 
+/* Lightweight page routing: the content stays in the main site shell. */
+let activeContentPage = "home";
+
+function isDonationRoute(){
+  const path=window.location.pathname.replace(/\/+$/, "");
+  const query=new URLSearchParams(window.location.search);
+  return path==="/donation" || query.get("page")==="donation" || window.location.hash.toLowerCase()==="#donate";
+}
+
+function setPageHistory(page,{replace=false}={}){
+  const url=page==="donation"?"/donation":"/";
+  const state={page};
+  if(replace){
+    history.replaceState(state,"",url);
+  }else if(location.pathname!==url || history.state?.page!==page || location.search || location.hash){
+    history.pushState(state,"",url);
+  }
+  activeContentPage=page;
+}
+
 /* About page */
-async function showAbout() {
+async function showAbout({navigate=true}={}) {
+  if(navigate)setPageHistory("about");
+  else activeContentPage="about";
   try {
     overlay.classList.remove("hidden");
     const r = await fetch("about.html", { mode: "cors" });
@@ -1034,64 +1054,90 @@ async function showAbout() {
       ? await r.text()
       : "<p style='color:#f77'>about.html not found.</p>";
 
-    // Clear the grid and inject a full-screen content div
     feedEl.innerHTML = `
       <div id="aboutPage" class="about-page hidden">${html}</div>
     `;
 
-    // Trigger fade-in
     setTimeout(() => {
       const aboutPage = document.getElementById("aboutPage");
-      aboutPage.classList.remove("hidden");
+      if(aboutPage)aboutPage.classList.remove("hidden");
     }, 50);
   } finally {
     overlay.classList.add("hidden");
   }
 }
 
-/* Donation modal: on-chain checkout plus the profile's published Lightning address. */
-async function showDonationModal(){
-  document.getElementById("donationModal")?.remove();
+/* Home/feed page */
+async function showHomePage({navigate=true}={}){
+  if(navigate)setPageHistory("home");
+  else activeContentPage="home";
+  overlay.classList.remove("hidden");
+  try{
+    const latest=await getKind1(PUBKEY_HEX,1);
+    await drawFeed(latest);
+  }catch(error){
+    console.error("Could not refresh blog posts",error);
+    feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Error loading posts. Please try again.</p>";
+  }finally{
+    overlay.classList.add("hidden");
+  }
+}
+
+/* Full-page donation view, using the same recipient and payment methods as before. */
+async function showDonationPage({navigate=true,profile=null}={}){
+  if(navigate)setPageHistory("donation");
+  else{
+    activeContentPage="donation";
+    if(isDonationRoute() && location.pathname!=="/donation"){
+      history.replaceState({page:"donation"},"","/donation");
+    }
+  }
+  overlay.classList.remove("hidden");
   const recipientNpub=pubkeyToNpub(PUBKEY_HEX);
-  const backdrop=document.createElement("div");backdrop.id="donationModal";backdrop.className="donation-backdrop";
-  backdrop.innerHTML=`
-    <section class="donation-dialog" role="dialog" aria-modal="true" aria-labelledby="donationTitle">
-      <header class="donation-head"><div class="donation-banner-wrap"><h2 id="donationTitle" class="donation-title-label">Bitcoin Cats donation methods</h2><img class="donation-banner" src="assets/Donate.jpg" alt="Bitcoin Cats donation information"></div><button class="donation-close" type="button" aria-label="Close donations">✕</button></header>
-      <div class="donation-methods">
-        <div class="donation-options" role="group" aria-label="Choose a donation method">
-          <button class="donation-option" type="button" data-donation-method="mainchain" aria-controls="mainchainDonationPanel" aria-pressed="true">Bitcoin (Mainchain)</button>
-          <button class="donation-option" type="button" data-donation-method="lightning" aria-controls="lightningDonationPanel" aria-pressed="false">Bitcoin (Lightning)</button>
-          <a class="donation-option donation-option-link" href="https://www.paypal.com/ncp/payment/MK56JE2HF8ESW" target="_blank" rel="noopener noreferrer">PayPal <span aria-hidden="true">↗</span></a>
+  feedEl.innerHTML=`
+    <div id="donationPage" class="about-page donation-page">
+      <section class="donation-dialog" aria-labelledby="donationTitle">
+        <header class="donation-head">
+          <div class="donation-banner-wrap">
+            <h2 id="donationTitle" class="donation-title-label">Bitcoin Cats donation methods</h2>
+            <img class="donation-banner" src="assets/Donate.jpg" alt="Bitcoin Cats donation information">
+          </div>
+        </header>
+        <div class="donation-methods">
+          <div class="donation-options" role="group" aria-label="Choose a donation method">
+            <button class="donation-option" type="button" data-donation-method="mainchain" aria-controls="mainchainDonationPanel" aria-pressed="true">Bitcoin (Mainchain)</button>
+            <button class="donation-option" type="button" data-donation-method="lightning" aria-controls="lightningDonationPanel" aria-pressed="false">Bitcoin (Lightning)</button>
+            <a class="donation-option donation-option-link" href="https://www.paypal.com/ncp/payment/MK56JE2HF8ESW" target="_blank" rel="noopener noreferrer">PayPal <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="donation-panels">
+            <section class="donation-method" id="mainchainDonationPanel" data-donation-panel="mainchain">
+              <h3>₿ Bitcoin (Mainchain)</h3>
+              <p>Send to this Bitcoin mainnet Taproot address. Check the network before confirming.</p>
+              <div id="onchainDonationContent"><div class="donation-unavailable">Preparing the on-chain address…</div></div>
+              <div class="donation-recipient">Nostr recipient: <code></code></div>
+            </section>
+            <section class="donation-method" id="lightningDonationPanel" data-donation-panel="lightning" hidden>
+              <h3>⚡ Bitcoin (Lightning)</h3>
+              <p>Pay using the Lightning address or LNURL published by this Nostr profile.</p>
+              <div id="lightningDonationContent"><div class="donation-unavailable">Loading Lightning details for the matching Nostr profile…</div></div>
+              <div class="donation-recipient">Nostr recipient: <code></code></div>
+            </section>
+          </div>
         </div>
-        <div class="donation-panels">
-          <section class="donation-method" id="mainchainDonationPanel" data-donation-panel="mainchain">
-            <h3>₿ Bitcoin (Mainchain)</h3>
-            <p>Send to this Bitcoin mainnet Taproot address. Check the network before confirming.</p>
-            <div id="onchainDonationContent"><div class="donation-unavailable">Preparing the on-chain address…</div></div>
-            <div class="donation-recipient">Nostr recipient: <code></code></div>
-          </section>
-          <section class="donation-method" id="lightningDonationPanel" data-donation-panel="lightning" hidden>
-            <h3>⚡ Bitcoin (Lightning)</h3>
-            <p>Pay using the Lightning address or LNURL published by this Nostr profile.</p>
-            <div id="lightningDonationContent"><div class="donation-unavailable">Loading Lightning details for the matching Nostr profile…</div></div>
-            <div class="donation-recipient">Nostr recipient: <code></code></div>
-          </section>
-        </div>
-      </div>
-    </section>`;
-  document.body.appendChild(backdrop);
-  backdrop.querySelectorAll(".donation-recipient code").forEach(el=>{el.textContent=recipientNpub;});
-  const close=()=>backdrop.remove();
-  backdrop.querySelector(".donation-close").onclick=close;
-  const methodOptions=[...backdrop.querySelectorAll("[data-donation-method]")];
-  const methodPanels=[...backdrop.querySelectorAll("[data-donation-panel]")];
+      </section>
+    </div>`;
+  const page=document.getElementById("donationPage");
+  page.querySelectorAll(".donation-recipient code").forEach(el=>{el.textContent=recipientNpub;});
+
+  const methodOptions=[...page.querySelectorAll("[data-donation-method]")];
+  const methodPanels=[...page.querySelectorAll("[data-donation-panel]")];
   const selectDonationMethod=method=>{
     methodOptions.forEach(option=>option.setAttribute("aria-pressed",String(option.dataset.donationMethod===method)));
     methodPanels.forEach(panel=>{panel.hidden=panel.dataset.donationPanel!==method;});
   };
   methodOptions.forEach(option=>option.addEventListener("click",()=>selectDonationMethod(option.dataset.donationMethod)));
 
-  const onchainContent=backdrop.querySelector("#onchainDonationContent");
+  const onchainContent=page.querySelector("#onchainDonationContent");
   try{
     const address=deriveNostrTaprootAddress(PUBKEY_HEX);
     const qr=document.createElement("img");
@@ -1106,11 +1152,10 @@ async function showDonationModal(){
     onchainContent.innerHTML='<div class="donation-unavailable">The on-chain address could not be derived. No alternate wallet is shown to avoid sending funds to the wrong destination.</div>';
   }
 
-  const lightningContent=backdrop.querySelector("#lightningDonationContent");
+  const lightningContent=page.querySelector("#lightningDonationContent");
   try{
-    // Resolve metadata from the exact same public key used for the on-chain address.
-    const recipientProfile=await getProfile(PUBKEY_HEX);
-    if(!backdrop.isConnected)return;
+    const recipientProfile=profile || await getProfile(PUBKEY_HEX);
+    if(!page.isConnected)return;
     donationLightningAddress=String(recipientProfile.lud16||"").trim();
     const lightningValue=donationLightningAddress || String(recipientProfile.lud06||"").trim();
     if(lightningValue){
@@ -1127,15 +1172,18 @@ async function showDonationModal(){
     }
   }catch(error){
     console.error("Could not load Lightning details for the Bitcoin Cats Nostr profile",error);
-    if(backdrop.isConnected)lightningContent.innerHTML='<div class="donation-unavailable">Lightning details could not be loaded for this Nostr profile. Please try again.</div>';
+    if(page.isConnected)lightningContent.innerHTML='<div class="donation-unavailable">Lightning details could not be loaded for this Nostr profile. Please try again.</div>';
+  }finally{
+    overlay.classList.add("hidden");
   }
-  backdrop.querySelector(".donation-close").focus();
 }
 
 /* Live Stream page (loads live.html like About) */
-async function showLivePage() {
+async function showLivePage({navigate=true}={}) {
+  if(navigate)setPageHistory("live");
+  else activeContentPage="live";
   overlay.classList.remove("hidden");
-  feedEl.innerHTML = "<div id=\"livePage\" class=\"about-page\" style=\"grid-column:1/-1;width:100%;padding:0;min-height:0;opacity:1;\"><iframe id=\"livePageFrame\" title=\"Bitcoin Cats Live Stream\" src=\"/live\" loading=\"eager\" referrerpolicy=\"strict-origin-when-cross-origin\" style=\"display:block;width:100%;height:1200px;min-height:900px;border:0;border-radius:18px;background:#090910;\"></iframe></div>";
+  feedEl.innerHTML = '<div id="livePage" class="about-page" style="grid-column:1/-1;width:100%;padding:0;min-height:0;opacity:1;"><iframe id="livePageFrame" title="Bitcoin Cats Live Stream" src="/live" loading="eager" referrerpolicy="strict-origin-when-cross-origin" style="display:block;width:100%;height:1200px;min-height:900px;border:0;border-radius:18px;background:#090910;"></iframe></div>';
   const frame=document.getElementById("livePageFrame");
   if(window.__bitcoinCatsLiveResizeHandler) window.removeEventListener("message",window.__bitcoinCatsLiveResizeHandler);
   window.__bitcoinCatsLiveResizeHandler=(event)=>{
@@ -1267,28 +1315,35 @@ function attachInteractions(post, note){
 /* ---------- Boot ---------- */
 async function load(){
   try{
-    if(location.hash.toLowerCase()==="#donate") void showDonationModal();
-    const [firstPage,meta]=await Promise.all([getKind1(PUBKEY_HEX,1),getProfile(PUBKEY_HEX)]);
+    const initialDonationRoute=isDonationRoute();
+    const [firstPage,meta]=await Promise.all([
+      initialDonationRoute?Promise.resolve([]):getKind1(PUBKEY_HEX,1),
+      getProfile(PUBKEY_HEX)
+    ]);
     applyProfileToBanner(meta);
-    await drawFeed(firstPage);
+    setPageHistory(initialDonationRoute?"donation":"home",{replace:true});
+    if(initialDonationRoute){
+      await showDonationPage({navigate:false,profile:meta});
+    }else{
+      activeContentPage="home";
+      await drawFeed(firstPage);
+    }
 
     // Button wiring
     document.getElementById("loginBtn").onclick=connectNostr;
-    document.getElementById("homeBtn").onclick=async()=>{
-      overlay.classList.remove("hidden");
-      try{
-        const latest=await getKind1(PUBKEY_HEX,1);
-        await drawFeed(latest);
-      }catch(error){
-        console.error("Could not refresh blog posts",error);
-        feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Error loading posts. Please try again.</p>";
-      }finally{
-        overlay.classList.add("hidden");
-      }
-    };
-    document.getElementById("aboutBtn").onclick=showAbout;
-    document.getElementById("liveBtn").onclick=showLivePage;
-    document.getElementById("zapBtn").onclick=showDonationModal;
+    document.getElementById("homeBtn").onclick=()=>showHomePage();
+    document.getElementById("aboutBtn").onclick=()=>showAbout();
+    document.getElementById("liveBtn").onclick=()=>showLivePage();
+    document.getElementById("zapBtn").onclick=()=>showDonationPage();
+
+    // Keep browser Back/Forward synchronized with the visible page.
+    window.addEventListener("popstate",(event)=>{
+      const page=event.state?.page || (isDonationRoute()?"donation":"home");
+      if(page==="donation")void showDonationPage({navigate:false});
+      else if(page==="about")void showAbout({navigate:false});
+      else if(page==="live")void showLivePage({navigate:false});
+      else void showHomePage({navigate:false});
+    });
   }catch(e){
     console.error(e);
     feedEl.innerHTML="<p style='color:#f77;text-align:center;'>Error loading posts.</p>";
