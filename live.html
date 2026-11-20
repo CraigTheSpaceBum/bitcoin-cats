@@ -383,7 +383,7 @@ permalink: /live
     let signedInPubkey = '';
     let activeLocalSecret = null, activeRemoteSigner = null, activeSignerKind = '', signedInProfile = null;
     let pendingNewIdentity = false, remoteLoginAbort = null, remoteClientSecret = null, pendingRemoteSigner = null;
-    let chatRefreshRunning = false, chatRequestId = 0, lastPlaybackKey = '';
+    let chatRefreshRunning = false, chatRefreshQueued = false, chatRequestId = 0, lastPlaybackKey = '';
     const profileCache = new Map();
     const nip05VerificationCache = new Map();
     const lnurlPayCache = new Map();
@@ -489,7 +489,10 @@ permalink: /live
       const tags=(event.tags||[]).filter(tag=>tag[0]==='t'&&tag[1]).slice(0,12);
       $('streamTags').replaceChildren(...tags.map(tag=>{const span=document.createElement('span');span.className='tag';span.textContent='#'+tag[1];return span;}));
     }
-    async function queryRelays(filter,maxWait,milliseconds,message,relayUrls=RELAYS){
+    function activityRelayUrls(){
+      return [...new Set([...RELAYS,...streamRelayHints])].filter(relay=>typeof relay==='string'&&/^wss:\/\//i.test(relay));
+    }
+    async function queryRelays(filter,maxWait,milliseconds,message,relayUrls=activityRelayUrls()){
       const targets=[...new Set((relayUrls||RELAYS).filter(relay=>typeof relay==='string'&&/^wss:\/\//i.test(relay)))];
       const results=await Promise.allSettled(targets.map(relay=>{
         const relayFilter={...filter};
@@ -1072,20 +1075,24 @@ permalink: /live
       const fallback={name:pubkey?pubkey.slice(0,8)+'…'+pubkey.slice(-4):'Nostr user',picture:'',lud16:'',lud06:'',nip05:''};
       const pending=(async()=>{
         try{
-          const events=await queryRelays({kinds:[0],authors:[pubkey],limit:20},4000,5000,'Profile lookup timeout');
-          const latest=(events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
-          for(const event of latest){
-            let meta={};try{meta=JSON.parse(event.content||'{}');}catch{}
-            if(meta.name||meta.display_name||meta.picture||meta.lud16||meta.lud06||meta.nip05){
-              return {
-                name:meta.display_name||meta.name||fallback.name,
-                picture:meta.picture||'',
-                lud16:meta.lud16||'',
-                lud06:meta.lud06||'',
-                nip05:meta.nip05||''
-              };
-            }
-          }
+          const events=await queryRelays({kinds:[0],authors:[pubkey],limit:50},6000,7500,'Profile lookup timeout');
+          const candidates=(events||[])
+            .slice()
+            .sort((a,b)=>(b.created_at||0)-(a.created_at||0))
+            .map(event=>{let meta={};try{meta=JSON.parse(event.content||'{}');}catch{}return meta;})
+            .filter(meta=>meta&&typeof meta==='object');
+          // Some relays hold a newer profile without Lightning fields while
+          // another still has the user's published LNURL/NIP-57 endpoint.
+          const named=candidates.find(meta=>meta.display_name||meta.name)||candidates.find(meta=>meta.picture)||{};
+          const lightning=candidates.find(meta=>meta.lud16||meta.lud06)||{};
+          const metadata=candidates[0]||{};
+          return {
+            name:named.display_name||named.name||metadata.display_name||metadata.name||fallback.name,
+            picture:named.picture||metadata.picture||'',
+            lud16:lightning.lud16||named.lud16||metadata.lud16||'',
+            lud06:lightning.lud06||named.lud06||metadata.lud06||'',
+            nip05:named.nip05||lightning.nip05||metadata.nip05||''
+          };
         }catch{}
         return fallback;
       })();
@@ -1445,7 +1452,7 @@ permalink: /live
       try{
         const pure=await getNostrPure();
         if(!receipt||receipt.kind!==9735||!pure.verifyEvent(receipt))return null;
-        if(receipt.pubkey!==lnurlInfo.nostrPubkey)return null;
+        if(!lnurlInfo||!lnurlInfo.nostrPubkey||String(receipt.pubkey||'').toLowerCase()!==String(lnurlInfo.nostrPubkey).toLowerCase())return null;
         if(!(receipt.tags||[]).some(tag=>tag[0]==='p'&&tag[1]===hostPubkey))return null;
         const description=getEventTag(receipt,'description');
         const invoice=getEventTag(receipt,'bolt11');
@@ -1529,8 +1536,11 @@ permalink: /live
       const list=$('donorList'),updated=$('donorUpdatedAt');
       try{
         const results=await Promise.allSettled([
-          queryRelays({kinds:[9735],'#p':[hostPubkey],limit:500},6500,8000,'Lightning donor lookup timed out'),
-          queryRelays({kinds:[1311],'#p':[hostPubkey],limit:500},6500,8000,'Mainchain donor lookup timed out')
+          queryRelays({kinds:[9735],'#p':[hostPubkey],limit:1000},9000,11000,'Lightning donor lookup timed out',activityRelayUrls()),
+          // Filter mainchain donation notes by their explicit payment marker.
+          // Otherwise ordinary chat messages can fill the relay's kind:1311
+          // result limit before older donation records are returned.
+          queryRelays({kinds:[1311],'#p':[hostPubkey],'#payment':['bitcoin'],limit:1000},9000,11000,'Mainchain donor lookup timed out',activityRelayUrls())
         ]);
         if(results.every(result=>result.status==='rejected'))throw new Error('No configured relays returned donor history.');
         const donors=new Map();
@@ -1542,6 +1552,7 @@ permalink: /live
           row.millisats+=amount;donors.set(key,row);
         };
         const zapEvents=results[0].status==='fulfilled'?results[0].value:[];
+        let lightningVerificationUnavailable=false;
         if(zapEvents.length){
           try{
             const lnurlInfo=await getHostZapProvider();
@@ -1552,7 +1563,10 @@ permalink: /live
               seenRequests.add(zap._zap.requestId);
               addDonor(zap._zap.requestPubkey,zap._zap.msats);
             }
-          }catch(error){console.warn('Could not verify Lightning donor history',error);}
+          }catch(error){
+            lightningVerificationUnavailable=true;
+            console.warn('Could not verify Lightning donor history',error);
+          }
         }
         const mainchainEvents=results[1].status==='fulfilled'?results[1].value:[];
         const uniqueTransactions=new Map();
@@ -1564,7 +1578,7 @@ permalink: /live
             if(!previous||(event.created_at||0)>(previous.created_at||0))uniqueTransactions.set(txid,event);
           }
         }
-        const candidates=[...uniqueTransactions.values()].sort((a,b)=>(b.created_at||0)-(a.created_at||0)).slice(0,50);
+        const candidates=[...uniqueTransactions.values()].sort((a,b)=>(b.created_at||0)-(a.created_at||0)).slice(0,200);
         const pure=await getNostrPure();
         const verifiedMainchain=await mapWithConcurrency(candidates,8,event=>verifyOnchainDonorEvent(event,pure));
         for(const donation of verifiedMainchain)if(donation)addDonor(donation.pubkey,donation.satsMsat);
@@ -1597,8 +1611,11 @@ permalink: /live
             item.append(rank,avatar,profile,amount);list.appendChild(item);
           });
         }
-        const partial=results.some(result=>result.status==='rejected');
+        const partial=results.some(result=>result.status==='rejected')||lightningVerificationUnavailable;
         updated.textContent=(partial?'Partial relay data · ':'Updated · ')+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        $('donorFootnote').textContent=partial
+          ? 'Some donation sources or Lightning receipt verification did not respond. The visible ranking may be incomplete and will be retried automatically.'
+          : 'Rankings use verified donation history found across the host and stream relays. Mainchain donations require a signed Nostr donation note and a confirmed payment; the Bitcoin transaction itself does not identify the sender.';
       }catch(error){
         if(!list.querySelector('.donor-row')){
           list.replaceChildren();
@@ -1619,38 +1636,67 @@ permalink: /live
         msg.textContent='Chat will appear here when the host’s Nostr stream event is available.';
         chatList.appendChild(msg);setChatComposerState();reportHeight();return;
       }
-      if(chatRefreshRunning)return;
+      if(chatRefreshRunning){chatRefreshQueued=true;return;}
+      const targetEventId=currentEventId;
+      const relayUrls=activityRelayUrls();
       const requestId=++chatRequestId;
       chatRefreshRunning=true;
       try{
         const results=await Promise.allSettled([
-          queryRelays({kinds:[1311],'#a':[address],limit:100},7000,8000,'Chat lookup timed out'),
-          queryRelays({kinds:[9735],'#p':[hostPubkey],limit:100},7000,8000,'Zap receipt lookup timed out')
+          // NIP-53 clients normally identify the live chat with an address tag.
+          queryRelays({kinds:[1311],'#a':[address],limit:500},9000,11000,'Chat lookup timed out',relayUrls),
+          // Also discover clients that link chat directly to the broadcast event.
+          targetEventId
+            ? queryRelays({kinds:[1311],'#e':[targetEventId],limit:500},9000,11000,'Stream-linked chat lookup timed out',relayUrls)
+            : Promise.resolve([]),
+          queryRelays({kinds:[9735],'#p':[hostPubkey],limit:500},9000,11000,'Zap receipt lookup timed out',relayUrls)
         ]);
-        if(requestId!==chatRequestId||activityAddress!==address)return;
-        const rawMessages=results[0].status==='fulfilled'?results[0].value:[];
-        const rawReceipts=results[1].status==='fulfilled'?results[1].value:[];
-        if(results[0].status==='rejected'&&results[1].status==='rejected')throw new Error('Chat and zap receipt lookups timed out.');
+        if(requestId!==chatRequestId||activityAddress!==address||currentEventId!==targetEventId)return;
+        const messageLookupFailed=results[0].status==='rejected'&&results[1].status==='rejected';
+        const receiptLookupFailed=results[2].status==='rejected';
+        if(messageLookupFailed){
+          chatStatus.textContent='RETRYING';
+          chatStatus.title='Chat relays did not respond. Existing messages are being retained while the page retries.';
+          $('chatSubtitle').textContent='Chat relay lookup failed; keeping the last messages while reconnecting…';
+          return;
+        }
+        const rawMessages=[
+          ...(results[0].status==='fulfilled'?results[0].value:[]),
+          ...(results[1].status==='fulfilled'?results[1].value:[])
+        ];
+        const rawReceipts=results[2].status==='fulfilled'?results[2].value:[];
         const unique=new Map();
         for(const event of rawMessages||[]){
-          if((event.tags||[]).some(tag=>tag[0]==='a'&&tag[1]===address))unique.set(event.id,event);
+          const tags=event.tags||[];
+          const matchesAddress=tags.some(tag=>tag[0]==='a'&&tag[1]===address);
+          const matchesStreamEvent=!!targetEventId&&tags.some(tag=>tag[0]==='e'&&tag[1]===targetEventId);
+          if(matchesAddress||matchesStreamEvent)unique.set(event.id,event);
         }
         let verifiedZaps=[];
+        let zapVerificationUnavailable=receiptLookupFailed;
         if(rawReceipts.length){
           try{
             const lnurlInfo=await getHostZapProvider();
             verifiedZaps=(await Promise.all(rawReceipts.map(receipt=>verifyZapReceipt(receipt,address,lnurlInfo)))).filter(Boolean);
           }catch(error){
+            zapVerificationUnavailable=true;
             console.warn('Could not verify NIP-57 receipts for this host profile',error);
           }
         }
         for(const zap of verifiedZaps)unique.set(zap.id,zap);
-        const messages=[...unique.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0)).slice(-60);
+        const messages=[...unique.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0)).slice(-150);
         if(!messages.length){
           chatList.replaceChildren();
           const msg=document.createElement('div');msg.className='chat-empty';
           msg.textContent='No messages in this stream’s chat yet.';
-          chatList.appendChild(msg);setChatComposerState();reportHeight();return;
+          chatList.appendChild(msg);
+          setChatComposerState();
+          if(results[0].status==='rejected'||results[1].status==='rejected'||zapVerificationUnavailable){
+            chatStatus.textContent='PARTIAL';
+            chatStatus.title='Some chat or zap relays did not respond; the result may be incomplete.';
+            $('chatSubtitle').textContent='Only part of the chat history could be checked. Retrying automatically…';
+          }
+          reportHeight();return;
         }
         chatList.replaceChildren();
         const authorElements=[];
@@ -1681,17 +1727,37 @@ permalink: /live
         }
         const pubkeys=[...new Set(authorElements.map(item=>item.pubkey).filter(Boolean))];
         const profiles=await Promise.all(pubkeys.map(async pubkey=>[pubkey,await fetchProfile(pubkey)]));
-        if(requestId!==chatRequestId||activityAddress!==address)return;
+        if(requestId!==chatRequestId||activityAddress!==address||currentEventId!==targetEventId)return;
         const profileMap=new Map(profiles);
         for(const item of authorElements){
           const profile=profileMap.get(item.pubkey);if(!profile)continue;
           item.name.textContent=profile.name||item.name.textContent;
           if(profile.picture&&isSecureUrl(profile.picture))item.avatar.src=profile.picture;
         }
-        chatList.scrollTop=chatList.scrollHeight;setChatComposerState();reportHeight();
+        chatList.scrollTop=chatList.scrollHeight;setChatComposerState();
+        if(results[0].status==='rejected'||results[1].status==='rejected'||zapVerificationUnavailable){
+          chatStatus.textContent='PARTIAL';
+          chatStatus.title='Some chat or zap relays did not respond; the displayed history may be incomplete.';
+          $('chatSubtitle').textContent='Partial relay sync · showing messages found so far; retrying automatically…';
+        }else{
+          chatStatus.title='';
+          $('chatSubtitle').textContent='Synced to stream '+address.split(':').slice(-1)[0]+' · last 150 messages';
+        }
+        reportHeight();
       }catch(error){
-        if(requestId===chatRequestId)chatState.textContent='Could not refresh this stream’s chat from public Nostr relays. Retrying automatically…';
-      }finally{chatRefreshRunning=false;}
+        if(requestId===chatRequestId){
+          chatStatus.textContent='RETRYING';
+          chatStatus.title='Could not refresh chat from public Nostr relays; previous messages are retained.';
+          $('chatSubtitle').textContent='Could not refresh this stream’s chat; keeping previous messages while retrying…';
+          console.warn('Could not refresh this stream chat',error);
+        }
+      }finally{
+        chatRefreshRunning=false;
+        if(chatRefreshQueued){
+          chatRefreshQueued=false;
+          if(activityAddress&&pool)void loadChatForCurrentActivity();
+        }
+      }
     }
     function addStreamRelayHints(event){
       for(const tag of event?.tags||[]){
