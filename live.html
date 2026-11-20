@@ -468,7 +468,12 @@ permalink: /live
     }
     function closeLogin(){
       if(remoteLoginAbort)cancelRemoteLogin();
-      if(pendingRemoteSigner){const signer=pendingRemoteSigner;pendingRemoteSigner=null;void signer.close().catch(()=>{});}
+      if(pendingRemoteSigner){
+        const signer=pendingRemoteSigner;pendingRemoteSigner=null;
+        void signer.close().catch(()=>{});
+        if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
+        remoteClientSecret=null;
+      }
       if(pendingNewIdentity&&!signedInPubkey&&activeLocalSecret instanceof Uint8Array){
         activeLocalSecret.fill(0);activeLocalSecret=null;pendingNewIdentity=false;
         $('generatedNsec').textContent='';
@@ -621,11 +626,16 @@ permalink: /live
         pendingRemoteSigner=signer;
         $('loginStatus').textContent='Connecting to your hardware or remote signer…';
         await signer.connect();
+        if(pendingRemoteSigner!==signer){
+          try{await signer.close();}catch{}
+          return;
+        }
         pendingRemoteSigner=null;
         activeRemoteSigner=signer;activeLocalSecret=null;activeSignerKind='nip46';
         await completeLogin(await signer.getPublicKey(),{method:'nip46'});
       }catch(error){
         if(pendingRemoteSigner){try{await pendingRemoteSigner.close();}catch{}pendingRemoteSigner=null;}
+        if(activeRemoteSigner){try{await activeRemoteSigner.close();}catch{}activeRemoteSigner=null;}
         if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
         remoteClientSecret=null;
         $('loginStatus').textContent=error.message||'Could not connect to the bunker signer.';
