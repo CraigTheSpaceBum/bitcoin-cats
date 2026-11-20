@@ -842,7 +842,6 @@ permalink: /live
         const data=await response.json();
         if(data.tag!=='payRequest')throw new Error('The published Lightning address is not an LNURL-pay endpoint.');
         if(data.allowsNostr!==true||!/^[0-9a-f]{64}$/i.test(String(data.nostrPubkey||'')))throw new Error('This Lightning address does not support Nostr zaps (NIP-57).');
-        if(String(data.nostrPubkey).toLowerCase()!==hostPubkey.toLowerCase())throw new Error('The Lightning endpoint Nostr key does not match the host profile.');
         const callback=String(data.callback||'');
         if(!isSecureUrl(callback))throw new Error('The Lightning invoice callback must use HTTPS.');
         if(!Number.isFinite(Number(data.minSendable))||!Number.isFinite(Number(data.maxSendable))||Number(data.maxSendable)<Number(data.minSendable))throw new Error('The Lightning endpoint returned invalid amount limits.');
@@ -908,7 +907,8 @@ permalink: /live
         const invoice=String(invoiceData.pr||'').trim();
         if(!/^ln(?:bc|tb|bcrt)/i.test(invoice))throw new Error(invoiceData.reason||'The LNURL service did not return a valid Lightning invoice.');
         const invoiceMsats=bolt11AmountMsats(invoice);
-        if(invoiceMsats!==null&&invoiceMsats!==Number(millisats))throw new Error('The invoice amount does not match your selected donation. No payment has been opened.');
+        if(invoiceMsats===null)throw new Error('Could not verify the amount encoded in the Lightning invoice. No payment has been opened.');
+        if(invoiceMsats!==Number(millisats))throw new Error('The invoice amount does not match your selected donation. No payment has been opened.');
         const qr=await buildPaymentQr(panel,'lightning:'+invoice,'Lightning invoice QR code');
         qr.alt='Lightning invoice for '+sats+' sats';
         const amount=document.createElement('div');amount.className='bitcoin-donation-address';amount.textContent=sats.toLocaleString()+' sats · '+(selectedDonationMessage()||'Bitcoin Cats live-stream zap');
@@ -970,7 +970,7 @@ permalink: /live
         const paid=Number(tx?.vout?.filter(output=>output.scriptpubkey_address===address).reduce((sum,output)=>sum+Number(output.value||0),0)||0);
         if(!tx?.status?.confirmed)throw new Error('The transaction is not confirmed yet. Try again once your wallet shows confirmation.');
         if(Number(tx?.status?.block_time||0)<createdAt-60)throw new Error('This transaction predates the donation request. Only a recent confirmed payment can be posted from this form.');
-        if(paid<sats)throw new Error('The confirmed transaction does not pay the selected amount to the Bitcoin Cats address.');
+        if(paid!==sats)throw new Error('The confirmed transaction pays '+paid.toLocaleString()+' sats to the Bitcoin Cats address, not the selected '+sats.toLocaleString()+' sats. Change the amount to match the confirmed payment before posting it.');
         if(!activityAddress)throw new Error('There is no Nostr stream activity to attach this donation to yet.');
         const content='₿ Bitcoin Mainchain donation received · '+sats.toLocaleString()+' sats'+(message?' — '+message:'');
         const event=await signUserEvent({
