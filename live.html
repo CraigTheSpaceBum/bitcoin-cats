@@ -355,6 +355,7 @@ permalink: /live
     let pendingNewIdentity = false, remoteLoginAbort = null, remoteClientSecret = null, pendingRemoteSigner = null;
     let chatRefreshRunning = false, chatRequestId = 0, lastPlaybackKey = '';
     const profileCache = new Map();
+    const nip05VerificationCache = new Map();
     const lnurlPayCache = new Map();
     const postedOnchainDonationTxids = new Set();
     let nostrPurePromise = null, nip46Promise = null, qrCodePromise = null;
@@ -505,16 +506,26 @@ permalink: /live
       const name=value.slice(0,at);
       const domain=value.slice(at+1).toLowerCase();
       if(!/^[a-z0-9._-]+$/i.test(name)||!/^[a-z0-9.-]+$/.test(domain))return false;
+      const cacheKey=value.toLowerCase()+'|'+pubkey.toLowerCase();
+      const cached=nip05VerificationCache.get(cacheKey);
+      if(cached&&cached.expiresAt>Date.now())return cached.valid;
       const controller=new AbortController();
       const timeout=setTimeout(()=>controller.abort(),6500);
+      let valid=false;
       try{
         const url='https://'+domain+'/.well-known/nostr.json?name='+encodeURIComponent(name);
         const response=await fetch(url,{method:'GET',mode:'cors',credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json'}});
-        if(!response.ok||response.redirected)return false;
-        const data=await response.json();
-        return typeof data?.names?.[name]==='string'&&data.names[name].toLowerCase()===pubkey.toLowerCase();
-      }catch{return false;}
-      finally{clearTimeout(timeout);}
+        if(response.ok&&!response.redirected){
+          const data=await response.json();
+          valid=typeof data?.names?.[name]==='string'&&data.names[name].toLowerCase()===pubkey.toLowerCase();
+        }
+      }catch{}
+      finally{
+        clearTimeout(timeout);
+        nip05VerificationCache.set(cacheKey,{valid,expiresAt:Date.now()+(valid?300000:30000)});
+        while(nip05VerificationCache.size>500)nip05VerificationCache.delete(nip05VerificationCache.keys().next().value);
+      }
+      return valid;
     }
     function createPresenceSessionId(){
       if(typeof crypto.randomUUID==='function')return crypto.randomUUID();
@@ -647,13 +658,17 @@ permalink: /live
       }catch{return '';}
     }
     async function refreshViewerRoster(){
+      if(watcherRefreshRunning)return;
       const address=activityAddress,version=++watcherRenderVersion;
       if(!address||activityStatus!=='live'||!pool){
         $('watcherTotalCount').textContent='0';$('watcherNostrCount').textContent='0';$('watcherGuestCount').textContent='0';
         $('watcherUpdatedAt').textContent='Waiting for the host to go live';
+        $('watcherList').replaceChildren();
+        const empty=document.createElement('div');empty.className='watcher-empty';
+        empty.textContent='Viewer presence starts when the host goes live.';
+        $('watcherList').appendChild(empty);
         return;
       }
-      if(watcherRefreshRunning)return;
       watcherRefreshRunning=true;
       try{
         const events=await queryRelays({
@@ -763,7 +778,7 @@ permalink: /live
           $('twitchViewerNote').textContent=value.toLowerCase()==='offline'?'Channel offline':'Count unavailable';
         }else{
           $('twitchViewerCount').textContent=Number(value).toLocaleString();
-          $('twitchViewerNote').textContent='Twitch snapshot · provider cache up to 5 min';
+          $('twitchViewerNote').textContent='Snapshot · source cache up to 5 min · checked '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
         }
         twitchCountLastFetched=Date.now();
       }catch(error){
@@ -808,7 +823,7 @@ permalink: /live
         const videoData=await videoResponse.json();
         const concurrent=videoData.items?.[0]?.liveStreamingDetails?.concurrentViewers;
         $('youtubeViewerCount').textContent=concurrent!==undefined?Number(concurrent).toLocaleString():'—';
-        $('youtubeViewerNote').textContent=concurrent!==undefined?'YouTube live count · public broadcast':'YouTube count hidden or unavailable';
+        $('youtubeViewerNote').textContent=concurrent!==undefined?'Live API snapshot · checked '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'YouTube count hidden or unavailable';
         youtubeCountLastFetched=now;
       }catch(error){
         $('youtubeViewerCount').textContent='—';
@@ -1544,7 +1559,7 @@ permalink: /live
         const event=chooseStream(events);
         if(!event){
           activityAddress='';activityStatus='offline';currentEventId='';
-          void stopPresenceSession();
+          void syncViewerPresence();
           setStatus('','Host offline');$('streamTitle').textContent='Bitcoin Cats Live Broadcast';
           $('streamSummary').textContent='No recent stream activity was found for the configured Nostr host. The preview is blurred while the host is offline.';
           $('streamTags').replaceChildren();showOffline(null,'No recent NIP-53 stream activity is available. The preview will remain blurred until the host publishes a stream.');
@@ -1593,7 +1608,7 @@ permalink: /live
         }
         reportHeight();
       }catch(error){
-        activityStatus='offline';void stopPresenceSession();showOffline(null,'Could not refresh the host’s stream from public Nostr relays. The preview is blurred while reconnecting.');
+        activityStatus='offline';void syncViewerPresence();showOffline(null,'Could not refresh the host’s stream from public Nostr relays. The preview is blurred while reconnecting.');
         setStatus('','Host status unavailable');$('streamSource').textContent='Nostr discovery temporarily unavailable';
         $('streamSummary').textContent='Unable to load the host’s latest stream announcement right now. The page will retry automatically.';
       }finally{streamRefreshRunning=false;}
