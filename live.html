@@ -522,6 +522,7 @@ permalink: /live
     }
     async function createNewIdentity(){
       try{
+        await ensureNostrReady();
         const [{nip19},pure]=await Promise.all([nostrModulePromise,getNostrPure()]);
         if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
         activeLocalSecret=pure.generateSecretKey();pendingNewIdentity=true;
@@ -540,6 +541,7 @@ permalink: /live
     }
     async function signInWithNsec(){
       try{
+        await ensureNostrReady();
         const value=$('nsecLoginInput').value.trim();
         const {nip19}=await nostrModulePromise;
         const decoded=nip19.decode(value);
@@ -583,6 +585,8 @@ permalink: /live
         activeRemoteSigner=signer;activeLocalSecret=null;activeSignerKind='nip46';
         await completeLogin(await signer.getPublicKey(),{method:'nip46'});
       }catch(error){
+        if(activeRemoteSigner&&typeof activeRemoteSigner.close==='function'){try{await activeRemoteSigner.close();}catch{}}
+        activeRemoteSigner=null;
         if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
         remoteClientSecret=null;
         if(!remoteLoginAbort?.signal.aborted)$('remoteLoginStatus').textContent=error.message||'The remote signer connection failed or timed out.';
@@ -1224,7 +1228,7 @@ permalink: /live
     $('savedGeneratedNsecCheck').addEventListener('change',event=>{$('continueNewIdentityButton').disabled=!event.target.checked;});
     $('newIdentityBackButton').addEventListener('click',()=>{
       if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
-      activeLocalSecret=null;showLoginPanel('');
+      activeLocalSecret=null;pendingNewIdentity=false;$('generatedNsec').textContent='';showLoginPanel('');
     });
     $('continueNewIdentityButton').addEventListener('click',()=>void continueNewIdentity());
     $('manualKeyLoginButton').addEventListener('click',()=>void signInWithNsec());
@@ -1264,7 +1268,9 @@ permalink: /live
         chatState.textContent='Chat will synchronize when a stream activity can be discovered.';
       }
     }
-    window.addEventListener('beforeunload',()=>{try{if(pool)pool.close(RELAYS);}catch{}});
+    window.addEventListener('beforeunload',()=>{
+      try{if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);if(pool)pool.close(RELAYS);}catch{}
+    });
     window.addEventListener('load',reportHeight);
     start();
   </script>
