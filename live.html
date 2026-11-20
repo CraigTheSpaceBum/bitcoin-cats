@@ -332,6 +332,16 @@ permalink: /live
   <script type="module">
     const HOST_NPUB = 'npub1826v365he5ty69lk3xgvzqrwy8587vdfrxnsz0k09khzustf8r7s6j7t95';
     const RELAYS = ['wss://nos.lol','wss://relay.damus.io','wss://purplerelay.com','wss://relay.primal.net'];
+    const PRESENCE_KIND = 30078;
+    const PRESENCE_D_TAG = 'bitcoin-cats-live-presence';
+    const PRESENCE_HEARTBEAT_MS = 15000;
+    const PRESENCE_TTL_SECONDS = 65;
+    const PRESENCE_REFRESH_MS = 9000;
+    const TWITCH_VIEWER_API = 'https://decapi.me/twitch/viewercount/craigthespacebum';
+    // YouTube's official concurrent-viewer count requires a YouTube Data API key.
+    // Keep this empty until a key restricted to https://bitcoin-cats.ca/* is configured.
+    const YOUTUBE_API_KEY = '';
+    const YOUTUBE_CHANNEL_HANDLE = '@CraigTheSpaceBum';
     const $ = id => document.getElementById(id);
     const pill = $('livePill'), label = $('liveLabel'), note = $('streamNote');
     const video = $('streamVideo'), empty = $('videoEmpty'), videoWrap = $('videoWrap');
@@ -348,6 +358,12 @@ permalink: /live
     const lnurlPayCache = new Map();
     const postedOnchainDonationTxids = new Set();
     let nostrPurePromise = null, nip46Promise = null, qrCodePromise = null;
+    let presenceSessionSecret = null, presenceSessionPubkey = '', presenceSessionId = '';
+    let presenceSessionActivity = '', presenceSessionIdentity = '', presenceIdentityProof = null;
+    let presencePublishRunning = false, watcherRefreshRunning = false, watcherRenderVersion = 0;
+    let watcherSnapshot = {nostr:[],guests:0,total:0,updatedAt:0};
+    let twitchCountLastFetched = 0, youtubeChannelIdCache = '', youtubeLiveVideoIdCache = '';
+    let youtubeDiscoveryLastFetched = 0, youtubeCountLastFetched = 0;
 
     function setStatus(kind,text){pill.className='live-pill '+kind;label.textContent=text;}
     function getTag(event,name){const found=(event.tags||[]).find(tag=>tag[0]===name&&tag[1]);return found?found[1]:'';}
@@ -633,7 +649,7 @@ permalink: /live
           secret:makeLoginSecret(),
           name:'Bitcoin Cats',
           url:'https://bitcoin-cats.ca',
-          perms:['sign_event:1311,sign_event:9734']
+          perms:['sign_event:1311,sign_event:9734,sign_event:30078']
         });
         $('remoteLoginUri').value=uri;
         const qrApi=qr.default&&typeof qr.default.toDataURL==='function'?qr.default:qr;
