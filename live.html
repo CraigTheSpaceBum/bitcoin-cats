@@ -75,9 +75,28 @@ permalink: /live
     .chat-panel{display:flex;flex-direction:column;min-height:520px}.chat-frame{display:block;flex:1;width:100%;min-height:500px;border:0;background:#08080e}
     .chat-foot{padding:12px 16px;color:var(--muted);font-size:11px;border-top:1px solid var(--line);line-height:1.5}
     .status-note{padding:12px 18px;color:var(--muted);font-size:12px;line-height:1.5;border-top:1px solid var(--line)}
+    #streamNote[hidden]{display:none!important}
+    .stream-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;padding:13px;border-top:1px solid var(--line);background:rgba(255,255,255,.018)}
+    .stream-action{min-width:0;min-height:46px;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border:1px solid rgba(255,255,255,.11);border-radius:11px;background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.025));color:#f4f3fa;text-align:center;text-decoration:none;font:700 12px/1.35 Inter,system-ui,sans-serif;cursor:pointer;transition:transform .15s,border-color .15s,background .15s}
+    .stream-action:hover{transform:translateY(-1px);border-color:rgba(255,173,85,.5);background:rgba(255,173,85,.09)}
+    .stream-action:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+    .stream-action.watch{border-color:rgba(255,255,255,.14)}
+    .stream-action.donate{border-color:rgba(255,173,85,.23);color:#ffd3a8;background:rgba(255,173,85,.055)}
+    .bitcoin-donation-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(3,3,8,.82);backdrop-filter:blur(12px)}
+    .bitcoin-donation-dialog{position:relative;width:min(520px,100%);max-height:min(88vh,760px);overflow:auto;border:1px solid rgba(255,173,85,.3);border-radius:20px;background:linear-gradient(145deg,#191927,#0c0c14);box-shadow:0 24px 90px rgba(0,0,0,.65),0 0 35px rgba(255,173,85,.13);padding:24px}
+    .bitcoin-donation-dialog h2{font-size:19px;margin:0 42px 8px 0;letter-spacing:-.025em}
+    .bitcoin-donation-dialog p{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 16px}
+    .bitcoin-donation-close{position:absolute;right:14px;top:14px;width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.06);color:var(--text);font-size:20px;cursor:pointer}
+    .bitcoin-donation-content{min-height:90px}
+    .bitcoin-donation-qr{display:block;width:210px;height:210px;max-width:100%;margin:12px auto 16px;padding:8px;border-radius:12px;background:#fff;object-fit:contain}
+    .bitcoin-donation-address{padding:12px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.25);color:#ffe0c1;font:12px/1.6 ui-monospace,monospace;overflow-wrap:anywhere}
+    .bitcoin-donation-copy{width:100%;margin-top:10px;min-height:42px;border:1px solid rgba(255,173,85,.32);border-radius:10px;background:rgba(255,173,85,.1);color:#ffd3a8;font-weight:750;cursor:pointer}
+    .bitcoin-donation-copy:hover{background:rgba(255,173,85,.17)}
+    .bitcoin-donation-note{margin-top:12px;color:var(--muted);font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+    .bitcoin-donation-loading,.bitcoin-donation-error{padding:18px 12px;border:1px dashed rgba(255,255,255,.16);border-radius:12px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
     .footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;color:var(--muted);font-size:11px;line-height:1.6}.footer a{color:#ffd1a0}
     @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}}
-    @media(max-width:560px){.page{padding:12px}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}}
+    @media(max-width:560px){.page{padding:12px}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
   </style>
 </head>
@@ -100,7 +119,15 @@ permalink: /live
           </div>
         </div>
         <div class="stream-details"><h2 class="stream-name" id="streamTitle">Bitcoin Cats Live Broadcast</h2><p class="stream-summary" id="streamSummary">Waiting for stream information from Nostr relays…</p><div class="stream-tags" id="streamTags"></div></div>
-        <div class="status-note" id="streamNote" role="status" aria-live="polite">Connecting to public Nostr relays…</div>
+        <nav class="stream-actions" aria-label="Watch and support Bitcoin Cats">
+          <a class="stream-action watch" href="https://www.youtube.com/@CraigTheSpaceBum/live" target="_blank" rel="noopener noreferrer">▶ Watch on YouTube</a>
+          <a class="stream-action watch" href="https://www.twitch.tv/craigthespacebum" target="_blank" rel="noopener noreferrer">◉ Watch on Twitch</a>
+          <a class="stream-action watch" href="https://sifaka.live/" target="_blank" rel="noopener noreferrer">↗ Watch on Sifaka.Live</a>
+          <button class="stream-action donate" id="streamElementsTipButton" type="button">♡ Donation (PayPal / Apple Pay / Card)</button>
+          <button class="stream-action donate" id="bitcoinMainchainButton" type="button">₿ Donation (Bitcoin Mainchain)</button>
+          <button class="stream-action donate" id="bitcoinLightningButton" type="button">⚡ Donation (Bitcoin Lightning)</button>
+        </nav>
+        <div class="status-note" id="streamNote" role="status" aria-live="polite" hidden></div>
       </article>
       <aside class="panel chat-panel">
         <div class="panel-head"><div><div class="panel-title">Live chat</div><div class="panel-kicker" id="chatSubtitle">Chat for the selected Nostr stream</div></div><span class="tag" id="chatStatus">SYNCING</span></div>
@@ -237,14 +264,21 @@ permalink: /live
 
 async function fetchProfile(pubkey){
       if(profileCache.has(pubkey))return profileCache.get(pubkey);
-      const fallback={name:pubkey?pubkey.slice(0,8)+'…'+pubkey.slice(-4):'Nostr user',picture:''};
+      const fallback={name:pubkey?pubkey.slice(0,8)+'…'+pubkey.slice(-4):'Nostr user',picture:'',lud16:'',lud06:''};
       const pending=(async()=>{
         try{
           const events=await queryRelays({kinds:[0],authors:[pubkey],limit:20},4000,5000,'Profile lookup timeout');
           const latest=(events||[]).slice().sort((a,b)=>(b.created_at||0)-(a.created_at||0));
           for(const event of latest){
             let meta={};try{meta=JSON.parse(event.content||'{}');}catch{}
-            if(meta.name||meta.display_name||meta.picture)return {name:meta.display_name||meta.name||fallback.name,picture:meta.picture||''};
+            if(meta.name||meta.display_name||meta.picture||meta.lud16||meta.lud06){
+              return {
+                name:meta.display_name||meta.name||fallback.name,
+                picture:meta.picture||'',
+                lud16:meta.lud16||'',
+                lud06:meta.lud06||''
+              };
+            }
           }
         }catch{}
         return fallback;
@@ -252,6 +286,143 @@ async function fetchProfile(pubkey){
       profileCache.set(pubkey,pending);
       const profile=await pending;profileCache.set(pubkey,Promise.resolve(profile));return profile;
     }
+    let nostrModulePromise=null;
+    async function ensureNostrReady(){
+      nostrModulePromise ||= import('https://esm.sh/nostr-tools@2.10.4');
+      const {nip19,SimplePool}=await nostrModulePromise;
+      if(!hostPubkey){
+        const decoded=nip19.decode(HOST_NPUB);
+        if(decoded.type!=='npub')throw new Error('The configured host identifier is not a valid npub.');
+        hostPubkey=hexFromKey(decoded.data);
+        if(!/^[0-9a-f]{64}$/.test(hostPubkey))throw new Error('Could not decode the configured host public key.');
+      }
+      if(!pool)pool=new SimplePool();
+      return hostPubkey;
+    }
+
+    const BTC_CHARSET='qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+    function btcPolymod(values){
+      const gen=[0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];
+      let check=1;
+      for(const value of values){
+        const top=check>>>25;
+        check=((check&0x1ffffff)<<5)^value;
+        for(let i=0;i<5;i++)if((top>>>i)&1)check^=gen[i];
+      }
+      return check>>>0;
+    }
+    function btcHrpExpand(hrp){
+      const out=[];
+      for(let i=0;i<hrp.length;i++)out.push(hrp.charCodeAt(i)>>>5);
+      out.push(0);
+      for(let i=0;i<hrp.length;i++)out.push(hrp.charCodeAt(i)&31);
+      return out;
+    }
+    function btcConvertBits(data,fromBits,toBits,pad=true){
+      let acc=0,bits=0;const out=[],max=(1<<toBits)-1;
+      for(const value of data){
+        if(value<0||(value>>>fromBits))return null;
+        acc=(acc<<fromBits)|value;bits+=fromBits;
+        while(bits>=toBits){bits-=toBits;out.push((acc>>>bits)&max);}
+      }
+      if(pad&&bits)out.push((acc<<(toBits-bits))&max);
+      return out;
+    }
+    function btcHexToBytes(hex){
+      const bytes=new Uint8Array(hex.length/2);
+      for(let i=0;i<bytes.length;i++)bytes[i]=parseInt(hex.slice(i*2,i*2+2),16);
+      return bytes;
+    }
+    function btcBech32mEncode(hrp,words){
+      const values=btcHrpExpand(hrp).concat(words,[0,0,0,0,0,0]);
+      const mod=(btcPolymod(values)^0x2bc830a3)>>>0;
+      const checksum=[];
+      for(let i=0;i<6;i++)checksum.push((mod>>>(5*(5-i)))&31);
+      return hrp+'1'+words.concat(checksum).map(v=>BTC_CHARSET[v]).join('');
+    }
+    function deriveNostrTaprootAddress(pubkeyHex){
+      const key=String(pubkeyHex||'').toLowerCase();
+      if(!/^[0-9a-f]{64}$/.test(key))throw new Error('Invalid Nostr public key for Bitcoin address.');
+      const bytes=btcHexToBytes(key);
+      const words=btcConvertBits(Array.from(bytes),8,5,true);
+      if(!words||words.length!==52)throw new Error('Could not encode the Nostr public key as a Taproot address.');
+      return btcBech32mEncode('bc',[1,...words]);
+    }
+
+    function showDonationDialog(method){
+      const isLightning=method==='lightning';
+      document.getElementById('bitcoinDonationModal')?.remove();
+      const overlay=document.createElement('div');
+      overlay.id='bitcoinDonationModal';
+      overlay.className='bitcoin-donation-backdrop';
+      overlay.innerHTML=`
+        <section class="bitcoin-donation-dialog" role="dialog" aria-modal="true" aria-labelledby="bitcoinDonationTitle">
+          <button class="bitcoin-donation-close" type="button" aria-label="Close donation details">×</button>
+          <h2 id="bitcoinDonationTitle">${isLightning?'⚡ Bitcoin (Lightning)':'₿ Bitcoin (Mainchain)'}</h2>
+          <p>${isLightning?'Pay using the Lightning address or LNURL published by the Bitcoin Cats Nostr profile.':'Send using the Bitcoin mainnet Taproot address derived from the Bitcoin Cats Nostr public key.'}</p>
+          <div class="bitcoin-donation-content"><div class="bitcoin-donation-loading">Loading the donation details…</div></div>
+          <div class="bitcoin-donation-note">Please check the network and recipient carefully before sending. Only use the payment method shown here.</div>
+        </section>`;
+      document.body.appendChild(overlay);
+      const close=()=>{overlay.remove();document.removeEventListener('keydown',onKeyDown);};
+      const onKeyDown=event=>{if(event.key==='Escape')close();};
+      overlay.querySelector('.bitcoin-donation-close').addEventListener('click',close);
+      overlay.addEventListener('click',event=>{if(event.target===overlay)close();});
+      document.addEventListener('keydown',onKeyDown);
+
+      void (async()=>{
+        const content=overlay.querySelector('.bitcoin-donation-content');
+        try{
+          await ensureNostrReady();
+          if(!overlay.isConnected)return;
+          let value='',qrValue='',copyLabel='';
+          if(isLightning){
+            const profile=await fetchProfile(hostPubkey);
+            if(!overlay.isConnected)return;
+            value=String(profile.lud16||profile.lud06||'').trim();
+            if(!value)throw new Error('No Lightning address or LNURL is published by the host’s Nostr profile.');
+            qrValue=value;
+            copyLabel=profile.lud16?'Copy Lightning address':'Copy Lightning LNURL';
+          }else{
+            value=deriveNostrTaprootAddress(hostPubkey);
+            qrValue='bitcoin:'+value;
+            copyLabel='Copy Bitcoin address';
+          }
+          const qr=document.createElement('img');
+          qr.className='bitcoin-donation-qr';
+          qr.alt=isLightning?'Bitcoin Lightning payment QR code':'Bitcoin Taproot payment QR code';
+          qr.src='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(qrValue);
+          const address=document.createElement('div');
+          address.className='bitcoin-donation-address';
+          address.textContent=value;
+          const copy=document.createElement('button');
+          copy.type='button';copy.className='bitcoin-donation-copy';copy.textContent=copyLabel;
+          copy.addEventListener('click',async()=>{
+            try{await navigator.clipboard.writeText(value);copy.textContent='✓ Copied';}
+            catch{copy.textContent='Select and copy the value above';}
+          });
+          content.replaceChildren(qr,address,copy);
+        }catch(error){
+          if(overlay.isConnected){
+            const message=document.createElement('div');
+            message.className='bitcoin-donation-error';
+            message.textContent=error.message||'Donation details could not be loaded. Please try again.';
+            content.replaceChildren(message);
+          }
+        }
+      })();
+    }
+
+    function openStreamElementsTip(){
+      const url='https://streamelements.com/craigthespacebum-987e4/tip';
+      const popup=window.open(url,'bitcoinCatsTipWindow','popup=yes,width=560,height=780,resizable=yes,scrollbars=yes');
+      if(popup){
+        try{popup.opener=null;popup.focus();}catch{}
+      }else{
+        window.location.assign(url);
+      }
+    }
+
     function formatTime(timestamp){
       try{return new Date(timestamp*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch{return '';}
     }
@@ -393,6 +564,9 @@ async function fetchProfile(pubkey){
       }catch(error){chatState.textContent=error.message||'Could not publish chat message.';}
       finally{chatSend.disabled=activityStatus!=='live'||!activityAddress;}
     }
+    $('streamElementsTipButton').addEventListener('click',openStreamElementsTip);
+    $('bitcoinMainchainButton').addEventListener('click',()=>showDonationDialog('mainchain'));
+    $('bitcoinLightningButton').addEventListener('click',()=>showDonationDialog('lightning'));
     chatForm.addEventListener('submit',event=>{event.preventDefault();void sendChatMessage(chatInput.value);});
     chatInput.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatForm.requestSubmit();}});
     video.addEventListener('playing',()=>{empty.hidden=true;});
@@ -401,12 +575,8 @@ async function fetchProfile(pubkey){
     });
     async function start(){
       try{
-        const {nip19,SimplePool}=await import('https://esm.sh/nostr-tools@2.10.4');
-        const decoded=nip19.decode(HOST_NPUB);
-        if(decoded.type!=='npub')throw new Error('The configured host identifier is not a valid npub.');
-        hostPubkey=hexFromKey(decoded.data);
-        if(!/^[0-9a-f]{64}$/.test(hostPubkey))throw new Error('Could not decode the configured Nostr host public key.');
-        pool=new SimplePool();$('streamSource').textContent='Discovering the host’s latest Nostr stream';
+        await ensureNostrReady();
+        $('streamSource').textContent='Discovering the host’s latest Nostr stream';
         await refreshStream();
         setInterval(()=>{void refreshStream();},30000);
         setInterval(()=>{if(!streamRefreshRunning)void loadChatForCurrentActivity();},10000);
