@@ -164,8 +164,9 @@ permalink: /live
     .donation-help{margin-top:8px;color:var(--muted);font-size:10px;line-height:1.5}
     .donation-verified{padding:12px;border:1px solid rgba(94,230,168,.3);border-radius:10px;background:rgba(94,230,168,.08);color:#c9ffe3;font-size:11px;line-height:1.5}
     .footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;color:var(--muted);font-size:11px;line-height:1.6}.footer a{color:#ffd1a0}
+    body.signed-in .container{padding-top:82px}
     @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}}
-    @media(max-width:700px){.login-dialog{padding:20px}.login-grid{grid-template-columns:1fr}.signed-in-overlay{top:8px;right:8px;padding:7px 9px}.signed-in-avatar{width:36px;height:36px}.donation-presets{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:700px){.container{padding-top:12px}body.signed-in .container{padding-top:82px}.login-dialog{padding:20px}.login-grid{grid-template-columns:1fr}.signed-in-overlay{top:8px;right:8px;padding:7px 9px}.signed-in-avatar{width:36px;height:36px}.donation-presets{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:700px){.container{padding:12px}.profile{margin:24px 0}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{width:100%;margin:0;justify-content:flex-start;gap:7px}.btn{padding:9px 10px;font-size:12px}.page{padding:0}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:16/10;min-height:190px}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
   </style>
@@ -1185,6 +1186,26 @@ permalink: /live
     $('liveBtn').addEventListener('click',()=>window.location.assign('/live'));
     $('zapBtn').addEventListener('click',()=>window.location.assign('/donation'));
     $('loginBtn').addEventListener('click',connectNostr);
+    $('loginCloseButton').addEventListener('click',closeLogin);
+    $('loginModal').addEventListener('click',event=>{if(event.target===$('loginModal'))closeLogin();});
+    $('createIdentityButton').addEventListener('click',createNewIdentity);
+    $('extensionSignInButton').addEventListener('click',signInWithExtension);
+    $('hardwareSignInButton').addEventListener('click',()=>showLoginPanel('hardwareLoginPanel'));
+    $('remoteSignInButton').addEventListener('click',()=>{showLoginPanel('remoteLoginPanel');void startRemoteLogin();});
+    $('connectBunkerButton').addEventListener('click',()=>void connectHardwareBunker());
+    $('hardwareBackButton').addEventListener('click',()=>showLoginPanel(''));
+    $('copyRemoteLoginButton').addEventListener('click',()=>void copyLoginValue($('remoteLoginUri').value,'copyRemoteLoginButton'));
+    $('cancelRemoteLoginButton').addEventListener('click',cancelRemoteLogin);
+    $('copyGeneratedNsecButton').addEventListener('click',()=>void copyLoginValue($('generatedNsec').textContent,'copyGeneratedNsecButton'));
+    $('savedGeneratedNsecCheck').addEventListener('change',event=>{$('continueNewIdentityButton').disabled=!event.target.checked;});
+    $('newIdentityBackButton').addEventListener('click',()=>{
+      if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
+      activeLocalSecret=null;showLoginPanel('');
+    });
+    $('continueNewIdentityButton').addEventListener('click',()=>void continueNewIdentity());
+    $('manualKeyLoginButton').addEventListener('click',()=>void signInWithNsec());
+    $('nsecLoginInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();void signInWithNsec();}});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('loginModal').hidden)closeLogin();});
     $('streamElementsTipButton').addEventListener('click',openStreamElementsTip);
     $('bitcoinMainchainButton').addEventListener('click',()=>showDonationDialog('mainchain'));
     $('bitcoinLightningButton').addEventListener('click',()=>showDonationDialog('lightning'));
