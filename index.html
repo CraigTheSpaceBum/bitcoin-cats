@@ -95,6 +95,8 @@
       user-select:none;
     }
     .btn:hover{filter:brightness(1.12)}
+    .btn[aria-current="page"]{border-color:rgba(255,164,71,.62);color:#ffd19e;background:rgba(255,164,71,.14);box-shadow:0 0 0 1px rgba(255,164,71,.10),0 0 18px rgba(255,164,71,.12)}
+    .actions{padding:8px;border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(8,8,14,.42)}
     .btn:active{transform:scale(0.98)}
     .btn.ghost{background:transparent}
     .followers-badge{
@@ -381,10 +383,10 @@
           <div class="id-npub" id="profNpub">npub…</div>
         </div>
         <div class="actions">
-          <button class="btn primary" id="homeBtn">✍️ Blog</button>
-          <button class="btn" id="aboutBtn">ℹ️ About</button>
+          <button class="btn" id="homeBtn" type="button">✍️ Blog</button>
+          <button class="btn" id="aboutBtn" type="button">ℹ️ About</button>
           <button class="btn" id="liveBtn">📺 Live Stream</button>
-          <button class="btn primary" id="zapBtn">₿ Donate</button>
+          <button class="btn" id="zapBtn" type="button">₿ Donate</button>
           <button class="btn" id="loginBtn" type="button">🔑 Login with Nostr</button>
         </div>
       </div>
@@ -1065,6 +1067,18 @@ function isAboutRoute(){
   return query.get("page")==="about";
 }
 
+function updateNavigationState(page=activeContentPage){
+  const items=[["home","homeBtn"],["about","aboutBtn"],["live","liveBtn"],["donation","zapBtn"]];
+  for(const [key,id] of items){
+    const button=document.getElementById(id);
+    if(!button)continue;
+    if(key===page)button.setAttribute("aria-current","page");
+    else button.removeAttribute("aria-current");
+  }
+  const actions=document.querySelector(".actions");
+  if(actions)actions.dataset.activePage=page;
+}
+
 function setPageHistory(page,{replace=false}={}){
   const url=page==="donation"?"/donation/":page==="about"?"/?page=about":"/";
   const state={page};
@@ -1074,6 +1088,7 @@ function setPageHistory(page,{replace=false}={}){
     history.pushState(state,"",url);
   }
   activeContentPage=page;
+  updateNavigationState(page);
 }
 
 /* About page */
@@ -1136,7 +1151,7 @@ function ensureBitcoinEducationBanner(aboutPage){
 
 async function showAbout({navigate=true}={}) {
   if(navigate)setPageHistory("about");
-  else activeContentPage="about";
+  else{activeContentPage="about";updateNavigationState("about");}
   overlay.classList.remove("hidden");
   try {
     const html=await fetchAboutPageMarkup();
@@ -1159,7 +1174,7 @@ async function showAbout({navigate=true}={}) {
 /* Home/feed page */
 async function showHomePage({navigate=true}={}){
   if(navigate)setPageHistory("home");
-  else activeContentPage="home";
+  else{activeContentPage="home";updateNavigationState("home");}
   overlay.classList.remove("hidden");
   try{
     const latest=await getKind1(PUBKEY_HEX,1);
@@ -1177,6 +1192,7 @@ async function showDonationPage({navigate=true,profile=null}={}){
   if(navigate)setPageHistory("donation");
   else{
     activeContentPage="donation";
+    updateNavigationState("donation");
     const currentPath=location.pathname.replace(/\/+$/, "") || "/";
     if(isDonationRoute() && currentPath!=="/donation"){
       history.replaceState({page:"donation"},"","/donation/");
@@ -1273,6 +1289,33 @@ const WRITE_RELAYS = ["wss://nos.lol","wss://relay.damus.io","wss://purplerelay.
 let signedInPubkey = null;
 let nostrPool = null;
 let nostrTools = null;
+let nostrRemoteSigner = null;
+const SHARED_AUTH_KEY="bitcoinCatsAuth";
+function hexBytes(hex){return Uint8Array.from((hex.match(/.{2}/g)||[]).map(value=>parseInt(value,16)));}
+async function restoreSharedNostrSession(){
+  let saved;
+  try{saved=JSON.parse(sessionStorage.getItem(SHARED_AUTH_KEY)||"null");}catch{}
+  if(!saved||!/^([0-9a-f]{64})$/.test(saved.pubkey||""))return;
+  try{
+    if(saved.method==="nip46"&&saved.remoteUri&&/^[0-9a-f]{64}$/.test(saved.remoteSecret||"")){
+      const [nip46,{SimplePool}]=await Promise.all([import("https://esm.sh/nostr-tools@2.10.4/nip46?bundle"),getNostrTools()]);
+      nostrPool ||= new SimplePool();
+      nostrRemoteSigner=await nip46.BunkerSigner.fromURI(hexBytes(saved.remoteSecret),saved.remoteUri,{pool:nostrPool},20000);
+      signedInPubkey=await nostrRemoteSigner.getPublicKey();
+    }else if(saved.method==="nip07"&&window.nostr&&typeof window.nostr.getPublicKey==="function"&&typeof window.nostr.signEvent==="function"){
+      const pubkey=await window.nostr.getPublicKey();
+      if(pubkey===saved.pubkey)signedInPubkey=pubkey;
+    }
+    if(signedInPubkey){
+      const profile=await getProfile(signedInPubkey);
+      document.getElementById("loginBtn").textContent="✓ "+(profile.name||npubShort(signedInPubkey));
+      document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Write a reply…");
+    }
+  }catch(error){
+    console.warn("Could not restore the shared Nostr signer session",error);
+    nostrRemoteSigner=null;signedInPubkey=null;
+  }
+}
 const reactionEmoji = ["❤️","🔥","😂","😻","🚀","💜"];
 
 async function getNostrTools(){
@@ -1281,23 +1324,22 @@ async function getNostrTools(){
 }
 function npubShort(hex){return hex ? hex.slice(0,8)+"…"+hex.slice(-4) : "";}
 async function connectNostr(){
-  if(!window.nostr){
-    alert("No Nostr browser signer was found. Install or enable a NIP-07 compatible Nostr extension, then try again.");
+  if(signedInPubkey){
+    signedInPubkey=null;
+    if(nostrRemoteSigner&&typeof nostrRemoteSigner.close==="function")void nostrRemoteSigner.close().catch(()=>{});
+    nostrRemoteSigner=null;
+    try{sessionStorage.removeItem("bitcoinCatsAuth");}catch{}
+    document.getElementById("loginBtn").textContent="🔑 Login with Nostr";
+    document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Sign in to write a reply…");
     return;
   }
-  try{
-    signedInPubkey = await window.nostr.getPublicKey();
-    const profile = await getProfile(signedInPubkey);
-    document.getElementById("loginBtn").textContent = "✓ " + (profile.name || npubShort(signedInPubkey));
-    document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Write a reply…");
-  }catch(error){
-    console.error("Nostr login failed",error);
-    alert("Could not connect to your Nostr signer. Please unlock it and approve the connection.");
-  }
+  try{sessionStorage.setItem("bitcoinCatsLoginReturn",location.pathname+location.search+location.hash);}catch{}
+  window.location.assign("/live?login=1");
 }
 async function publishNostrEvent(event){
-  if(!window.nostr || !signedInPubkey) throw new Error("Please log in with your Nostr signer first.");
-  const signed = await window.nostr.signEvent(event);
+  if(!signedInPubkey) throw new Error("Please log in with your Nostr signer first.");
+  const signed = nostrRemoteSigner ? await nostrRemoteSigner.signEvent(event) : (window.nostr&&typeof window.nostr.signEvent==="function" ? await window.nostr.signEvent(event) : null);
+  if(!signed)throw new Error("Your Nostr signer is unavailable. Please sign in again from the Live Stream page.");
   const {SimplePool} = await getNostrTools();
   if(!nostrPool) nostrPool = new SimplePool();
   const results = await Promise.allSettled(nostrPool.publish(WRITE_RELAYS,signed));
@@ -1393,6 +1435,7 @@ async function load(){
       getProfile(PUBKEY_HEX)
     ]);
     applyProfileToBanner(meta);
+    await restoreSharedNostrSession();
     const initialPage=initialDonationRoute?"donation":initialAboutRoute?"about":"home";
     setPageHistory(initialPage,{replace:true});
     if(initialDonationRoute){
@@ -1401,6 +1444,7 @@ async function load(){
       await showAbout({navigate:false});
     }else{
       activeContentPage="home";
+      updateNavigationState("home");
       await drawFeed(firstPage);
     }
 
