@@ -608,6 +608,7 @@ permalink: /live
     function closeProfileSettings(){
       $('profileSettingsModal').hidden=true;
       document.body.style.overflow=$('loginModal').hidden?'':'hidden';
+      if(embedLoginMode&&window.parent!==window)window.parent.postMessage({type:'bitcoin-cats-profile-settings-close'},location.origin);
     }
     async function saveProfileSettings(){
       if(!signedInPubkey)return;
@@ -2058,7 +2059,9 @@ permalink: /live
         }else if(message.type==='bitcoin-cats-open-login'){
           if(!signedInPubkey)openLogin();
         }else if(message.type==='bitcoin-cats-close-login'){
+          $('profileSettingsModal').hidden=true;
           if(!$('loginModal').hidden)closeLogin();
+          else document.body.style.overflow='';
         }else if(message.type==='bitcoin-cats-sign-out'){
           if(signedInPubkey)await signOut();
         }else if(message.type==='bitcoin-cats-sign-event'){
