@@ -786,7 +786,7 @@ async function replaceNprofileMentions(container, sourceEvent=null){
   const nodes=[];
   while(walker.nextNode()) nodes.push(walker.currentNode);
   const tasks=[];
-  const mentionPattern=/(?:nostr\\?:)?nprofile1[0-9a-z]+|#\\[(\\d+)\\]/ig;
+  const mentionPattern=/(?:nostr\\?:)?nprofile1[0-9a-z]+|#\[(\d+)\]/ig;
   for(const node of nodes){
     const text=node.textContent;
     const matches=[...text.matchAll(mentionPattern)];
@@ -799,7 +799,7 @@ async function replaceNprofileMentions(container, sourceEvent=null){
       if(index>lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex,index)));
       let pubkey="";
       let canonical="";
-      if(/^#\\[\\d+\\]$/.test(rawToken)){
+      if(/^#\[\d+\]$/.test(rawToken)){
         const tagIndex=Number(rawToken.slice(2,-1));
         const referencedTag=sourceEvent?.tags?.[tagIndex];
         if(referencedTag?.[0]==="p"&&/^[0-9a-f]{64}$/i.test(referencedTag[1]||"")) pubkey=referencedTag[1].toLowerCase();
