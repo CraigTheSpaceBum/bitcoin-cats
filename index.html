@@ -827,7 +827,7 @@ async function replaceIndexedProfileMentions(container, sourceEvent){
   const walker=document.createTreeWalker(container,NodeFilter.SHOW_TEXT);
   const nodes=[];
   while(walker.nextNode()) nodes.push(walker.currentNode);
-  const pattern=/#\\[(\\d+)\\]/g;
+  const pattern=/#\[(\d+)\]/g;
   for(const node of nodes){
     if(!node.parentNode) continue;
     const text=node.textContent;
@@ -847,9 +847,9 @@ async function replaceIndexedProfileMentions(container, sourceEvent){
       const fallback=fallbackProfile(pubkey);
       const labelText=String(fallback.name||shortKey(pubkey)||"Nostr user").trim();
       const a=document.createElement("a");
-      let profileId=pubkey;
       try{const {nip19}=await getNostrTools();profileId=nip19.npubEncode(pubkey);}catch{}
-      a.href="https://njump.me/"+profileId;
+      a.href="https://njump.me/"+pubkey;
+      getNostrTools().then(({nip19})=>{if(a.isConnected)a.href="https://njump.me/"+nip19.npubEncode(pubkey);}).catch(()=>{});
       a.target="_blank";
       a.rel="noopener noreferrer";
       a.className="mention visible";
