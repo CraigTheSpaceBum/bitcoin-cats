@@ -183,7 +183,8 @@ permalink: /live
     .profile-settings-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px;flex-wrap:wrap}
     .profile-settings-status{margin-top:12px;color:#c9b6ef;font-size:11px;line-height:1.5}
     @media(max-width:560px){.profile-settings-grid{grid-template-columns:1fr}.profile-settings-field.full{grid-column:auto}.profile-settings-dialog{padding:19px}}
-\n    .login-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:18px;background:rgba(3,4,12,.82);backdrop-filter:blur(13px)}
+
+    .login-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:18px;background:rgba(3,4,12,.82);backdrop-filter:blur(13px)}
     .login-backdrop[hidden]{display:none!important}
     .login-dialog{position:relative;width:min(850px,100%);max-height:min(88vh,820px);overflow:auto;padding:26px;border:1px solid rgba(139,92,246,.42);border-radius:22px;background:linear-gradient(145deg,#191927,#0b0b14);box-shadow:0 28px 100px rgba(0,0,0,.7),0 0 48px rgba(139,92,246,.14)}
     .login-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.05);color:var(--text);font-size:20px;cursor:pointer}
@@ -2041,7 +2042,8 @@ permalink: /live
     $('bitcoinLightningButton').addEventListener('click',()=>showDonationDialog('lightning'));
     chatForm.addEventListener('submit',event=>{event.preventDefault();void sendChatMessage(chatInput.value);});
     chatInput.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatForm.requestSubmit();}});
-    video.addEventListener('loadedmetadata',()=>{if(video.videoWidth>0&&video.videoHeight>0){const ratio=Math.min(2.8,Math.max(1.5,video.videoWidth/video.videoHeight));videoWrap.style.setProperty('--stream-aspect-ratio',String(ratio));}});\n    video.addEventListener('playing',()=>{empty.hidden=true;});
+    video.addEventListener('loadedmetadata',()=>{if(video.videoWidth>0&&video.videoHeight>0){const ratio=Math.min(2.8,Math.max(1.5,video.videoWidth/video.videoHeight));videoWrap.style.setProperty('--stream-aspect-ratio',String(ratio));}});
+    video.addEventListener('playing',()=>{empty.hidden=true;});
     video.addEventListener('error',()=>{
       if(video.currentSrc&&activityStatus==='live')note.textContent='The stream URL was found, but the browser could not play it. Check the stream format and cross-origin settings.';
     });
