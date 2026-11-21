@@ -1044,12 +1044,20 @@ permalink: /live
     }
     async function continueNewIdentity(){
       if(!activeLocalSecret||!$('savedGeneratedNsecCheck').checked)return;
-      const pure=await getNostrPure();
-      const pubkey=pure.getPublicKey(activeLocalSecret);
-      await completeLogin(pubkey,{method:'local',profile:{name:'New Nostr identity',picture:'',nip05:'',lud16:''}});
-      pendingNewIdentity=false;$('generatedNsec').textContent='';
-      if(embedLoginMode&&window.parent!==window)setTimeout(()=>window.parent.postMessage({type:'bitcoin-cats-request-profile-setup'},location.origin),700);
-      else setTimeout(openProfileSettings,350);
+      const button=$('continueNewIdentityButton');
+      button.disabled=true;
+      $('loginStatus').textContent='Creating your Nostr profile…';
+      try{
+        const pure=await getNostrPure();
+        const pubkey=pure.getPublicKey(activeLocalSecret);
+        await completeLogin(pubkey,{method:'local',profile:{name:'New Nostr identity',picture:'',nip05:'',lud16:''}});
+        pendingNewIdentity=false;$('generatedNsec').textContent='';
+        if(embedLoginMode&&window.parent!==window)setTimeout(()=>window.parent.postMessage({type:'bitcoin-cats-request-profile-setup'},location.origin),700);
+        else setTimeout(openProfileSettings,350);
+      }catch(error){
+        $('loginStatus').textContent=error.message||'Could not finish creating your Nostr identity. Your saved key remains available in this session.';
+        button.disabled=!$('savedGeneratedNsecCheck').checked;
+      }
     }
     async function signInWithNsec(){
       try{
