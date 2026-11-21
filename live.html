@@ -2072,7 +2072,7 @@ permalink: /live
         platformViewerRefreshRunning=false;
       }
     }
-    function addHostRelayHints(event){    function addHostRelayHints(event){
+    function addHostRelayHints(event){
       if(!event||event.kind!==10002||event.pubkey!==hostPubkey)return;
       for(const tag of event.tags||[]){
         if(tag[0]!=='r'||typeof tag[1]!=='string'||!/^wss:\/\//i.test(tag[1]))continue;
