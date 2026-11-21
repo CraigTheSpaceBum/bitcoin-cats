@@ -2057,9 +2057,10 @@ permalink: /live
         const platforms=payload?.platforms||{};
         for(const key of ['twitch','youtube','kick','rumble'])renderPlatformViewer(key,platforms[key]);
         const allConfigured=['twitch','youtube','kick','rumble'].every(key=>platforms[key]&&platforms[key].status!=='setup_required');
+        const allHealthy=['twitch','youtube','kick','rumble'].every(key=>platforms[key]&&['live','offline'].includes(platforms[key].status));
         const knownTotal=payload.totalViewers;
         $('platformViewersTotal').textContent=Number.isFinite(knownTotal)?Number(knownTotal).toLocaleString():'—';
-        $('platformViewersStatus').textContent=allConfigured?'LIVE API SYNC':'API SETUP';
+        $('platformViewersStatus').textContent=!allConfigured?'API SETUP':allHealthy?'LIVE API SYNC':'PARTIAL API SYNC';
         $('platformViewersMeta').textContent=(payload.updatedAt?'Updated '+new Date(payload.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'. ':'')+
           (payload.totalViewers==null?'Combined total is unavailable until all four platform counts are available. ':'')+
           'Counts refresh automatically about every minute. Combined totals are not deduplicated, so viewers watching on multiple platforms may be counted more than once.';
