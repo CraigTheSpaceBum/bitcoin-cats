@@ -366,8 +366,9 @@
     .feed-load-more button:disabled { opacity: .65; cursor: wait; }
 
   
-    header.profile{margin:0;position:static;animation:none}
-    header.profile .banner{display:none}
+    header.profile{margin:30px 0;position:relative;animation:none}
+    body.has-account header.profile{margin:0}
+    body.has-account header.profile .banner{display:none}
     .account-float{position:fixed;z-index:1400;top:14px;right:14px;display:none;align-items:center;gap:10px;max-width:min(390px,calc(100vw - 28px));padding:9px 10px;border:1px solid rgba(167,139,250,.42);border-radius:15px;background:rgba(15,13,27,.94);box-shadow:0 14px 42px rgba(0,0,0,.46),0 0 22px rgba(139,92,246,.16);backdrop-filter:blur(16px)}
     .account-float.visible{display:flex}
     .account-float img{width:42px;height:42px;flex:none;object-fit:cover;border:2px solid rgba(167,139,250,.65);border-radius:9px;background:#211c32}
@@ -1356,7 +1357,7 @@ function showAccountFloat(profile={}){
   document.getElementById("accountFloatName").textContent=String(profile.name||"Nostr user").trim()||"Nostr user";
   document.getElementById("accountFloatId").textContent=npubShort(signedInPubkey);
   const avatar=document.getElementById("accountFloatAvatar");avatar.onerror=()=>{avatar.onerror=null;avatar.src="/logo.png";};
-  avatar.src=/^https:\/\//i.test(profile.picture||"")?profile.picture:"/logo.png";box.classList.add("visible");
+  avatar.src=/^https:\/\//i.test(profile.picture||"")?profile.picture:"/logo.png";box.classList.add("visible");document.body.classList.add("has-account");
 }
 function openProfileSettings(){
   const modal=document.getElementById("nostrLoginModal"),frame=document.getElementById("nostrLoginFrame");
@@ -1404,6 +1405,12 @@ window.addEventListener("message",event=>{
     document.getElementById("loginBtn").textContent="✓ "+(profile.name||npubShort(signedInPubkey));
     document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Write a reply…");
     dismissNostrLoginModal({notifyFrame:false});
+  }else if(message.type==="bitcoin-cats-profile-updated"){
+    if(message.pubkey!==signedInPubkey)return;
+    showAccountFloat(message.profile||{});
+    document.getElementById("loginBtn").textContent="✓ "+((message.profile||{}).name||npubShort(signedInPubkey));
+  }else if(message.type==="bitcoin-cats-request-profile-setup"){
+    openProfileSettings();
   }else if(message.type==="bitcoin-cats-login-dismiss"){
     if(!nostrIframeSignerActive)dismissNostrLoginModal({notifyFrame:false});
   }else if(message.type==="bitcoin-cats-sign-result"){
@@ -1456,6 +1463,7 @@ async function connectNostr(){
     nostrRemoteSigner=null;
     try{sessionStorage.removeItem(SHARED_AUTH_KEY);sessionStorage.removeItem("bitcoinCatsLoginReturn");}catch{}
     document.getElementById("accountFloat").classList.remove("visible");
+    document.body.classList.remove("has-account");
     document.getElementById("loginBtn").textContent="🔑 Login with Nostr";
     document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Sign in to write a reply…");
     return;
