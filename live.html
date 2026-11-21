@@ -165,7 +165,25 @@ permalink: /live
     .signed-in-identity{display:flex;align-items:center;gap:5px;min-width:0;color:#c8bddf;font:10px/1.3 ui-monospace,monospace;overflow-wrap:anywhere}
     .signed-in-verified{display:inline-grid;place-items:center;width:15px;height:15px;flex:none;border-radius:50%;background:#a78bfa;color:#160d25;font:900 10px/1 system-ui}
     .signed-in-verified[hidden]{display:none!important}
-    .login-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:18px;background:rgba(3,4,12,.82);backdrop-filter:blur(13px)}
+
+    body.signed-in #profileHeader{display:none}
+    .signed-in-overlay{padding-right:9px}
+    .signed-in-settings{width:34px;height:34px;flex:none;border:1px solid rgba(255,255,255,.13);border-radius:10px;background:rgba(255,255,255,.06);color:#f7f3ff;font-size:17px;cursor:pointer}
+    .signed-in-settings:hover{border-color:rgba(192,132,252,.65);background:rgba(139,92,246,.15)}
+    .profile-settings-backdrop{position:fixed;inset:0;z-index:1300;display:grid;place-items:center;padding:16px;background:rgba(3,4,12,.84);backdrop-filter:blur(12px)}
+    .profile-settings-backdrop[hidden]{display:none!important}
+    .profile-settings-dialog{position:relative;width:min(620px,100%);max-height:90vh;overflow:auto;padding:24px;border:1px solid rgba(167,139,250,.42);border-radius:20px;background:linear-gradient(145deg,#191927,#0b0b14);box-shadow:0 28px 90px rgba(0,0,0,.7)}
+    .profile-settings-dialog h2{margin:0 42px 7px 0;font-size:20px}
+    .profile-settings-dialog p{margin:0 0 16px;color:var(--muted);font-size:12px;line-height:1.6}
+    .profile-settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .profile-settings-field{display:grid;gap:6px;min-width:0}
+    .profile-settings-field.full{grid-column:1/-1}
+    .profile-settings-field label{font-size:11px;font-weight:800;color:#d8d0e8}
+    .profile-settings-field input{width:100%;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#090910;color:var(--text);font:12px Inter,system-ui,sans-serif}
+    .profile-settings-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px;flex-wrap:wrap}
+    .profile-settings-status{margin-top:12px;color:#c9b6ef;font-size:11px;line-height:1.5}
+    @media(max-width:560px){.profile-settings-grid{grid-template-columns:1fr}.profile-settings-field.full{grid-column:auto}.profile-settings-dialog{padding:19px}}
+\n    .login-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:18px;background:rgba(3,4,12,.82);backdrop-filter:blur(13px)}
     .login-backdrop[hidden]{display:none!important}
     .login-dialog{position:relative;width:min(850px,100%);max-height:min(88vh,820px);overflow:auto;padding:26px;border:1px solid rgba(139,92,246,.42);border-radius:22px;background:linear-gradient(145deg,#191927,#0b0b14);box-shadow:0 28px 100px rgba(0,0,0,.7),0 0 48px rgba(139,92,246,.14)}
     .login-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.05);color:var(--text);font-size:20px;cursor:pointer}
@@ -240,11 +258,25 @@ permalink: /live
     </header>
     <aside class="signed-in-overlay" id="signedInOverlay" aria-live="polite" hidden>
       <img class="signed-in-avatar" id="signedInAvatar" src="/logo.png" alt="">
-      <div class="signed-in-meta">
-        <div class="signed-in-name" id="signedInName">Nostr user</div>
-        <div class="signed-in-identity"><span class="signed-in-verified" id="signedInVerified" hidden>✓</span><span id="signedInIdentity">npub…</span></div>
-      </div>
+      <div class="signed-in-meta"><div class="signed-in-name" id="signedInName">Nostr user</div><div class="signed-in-identity"><span class="signed-in-verified" id="signedInVerified" hidden>✓</span><span id="signedInIdentity">npub…</span></div></div>
+      <button class="signed-in-settings" id="signedInSettings" type="button" aria-label="Profile and wallet settings" title="Profile and wallet settings">⚙</button>
     </aside>
+    <section class="profile-settings-backdrop" id="profileSettingsModal" hidden>
+      <div class="profile-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="profileSettingsTitle">
+        <button class="login-close" id="profileSettingsClose" type="button" aria-label="Close settings">×</button>
+        <h2 id="profileSettingsTitle">Profile & Wallet Settings</h2>
+        <p>Profile details are published to your Nostr profile (kind 0). Your NWC connection is private and is never published to Nostr.</p>
+        <div class="profile-settings-grid">
+          <div class="profile-settings-field"><label for="settingsName">Display name</label><input id="settingsName" maxlength="80" autocomplete="name" placeholder="Your display name"></div>
+          <div class="profile-settings-field"><label for="settingsPicture">Profile picture URL (HTTPS)</label><input id="settingsPicture" type="url" placeholder="https://…"></div>
+          <div class="profile-settings-field"><label for="settingsNip05">NIP-05 address</label><input id="settingsNip05" placeholder="name@example.com"></div>
+          <div class="profile-settings-field"><label for="settingsLud16">Lightning address for tips</label><input id="settingsLud16" placeholder="name@wallet.example"></div>
+          <div class="profile-settings-field full"><label for="settingsNwc">NWC wallet connection URI (optional)</label><input id="settingsNwc" type="password" autocomplete="off" placeholder="nostr+walletconnect://…"></div>
+        </div>
+        <div class="profile-settings-actions"><button class="login-action secondary" id="profileSettingsCancel" type="button">Cancel</button><button class="login-action" id="profileSettingsSave" type="button">Save profile</button></div>
+        <div class="profile-settings-status" id="profileSettingsStatus" role="status" aria-live="polite"></div>
+      </div>
+    </section>
     <main class="page">
     <section class="intro" aria-label="Live stream banner">
       <div class="live-banner-wrap">
@@ -550,6 +582,37 @@ permalink: /live
       }
       if(!signed||signed.pubkey!==signedInPubkey)throw new Error('The signer returned an event for a different Nostr account.');
       return signed;
+    }
+    function openProfileSettings(){
+      if(!signedInPubkey){openLogin();return;}
+      const profile=signedInProfile||{};
+      $('settingsName').value=String(profile.name||'');$('settingsPicture').value=String(profile.picture||'');
+      $('settingsNip05').value=String(profile.nip05||'');$('settingsLud16').value=String(profile.lud16||'');
+      try{$('settingsNwc').value=sessionStorage.getItem('bitcoinCatsNwcUri')||'';}catch{$('settingsNwc').value='';}
+      $('profileSettingsStatus').textContent='NWC credentials are kept in this browser tab only. A Lightning address is what other people use to send you tips.';
+      $('profileSettingsModal').hidden=false;
+    }
+    async function saveProfileSettings(){
+      if(!signedInPubkey)return;
+      const name=$('settingsName').value.trim(),picture=$('settingsPicture').value.trim(),nip05=$('settingsNip05').value.trim(),lud16=$('settingsLud16').value.trim(),nwc=$('settingsNwc').value.trim();
+      if(picture){try{if(new URL(picture).protocol!=='https:')throw new Error();}catch{$('profileSettingsStatus').textContent='Profile picture must be a valid HTTPS URL.';return;}}
+      if(nip05&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nip05)){$('profileSettingsStatus').textContent='Enter a valid NIP-05 address, such as name@example.com.';return;}
+      if(lud16&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lud16)){$('profileSettingsStatus').textContent='Enter a valid Lightning address.';return;}
+      if(nwc&&!/^nostr\+walletconnect:\/\//i.test(nwc)){$('profileSettingsStatus').textContent='The NWC URI should begin with nostr+walletconnect://.';return;}
+      $('profileSettingsSave').disabled=true;$('profileSettingsStatus').textContent='Signing and publishing your Nostr profile…';
+      try{
+        const previous=signedInProfile||{},metadata={...previous,name,display_name:name,picture,nip05,lud16};delete metadata.lud06;
+        const event=await signUserEvent({kind:0,created_at:Math.floor(Date.now()/1000),tags:[],content:JSON.stringify(metadata)});
+        const results=await Promise.allSettled(pool.publish(RELAYS,event));
+        if(!results.some(result=>result.status==='fulfilled'))throw new Error('Your signer approved the profile, but no relay confirmed publishing.');
+        signedInProfile={...metadata};profileCache.delete(signedInPubkey);
+        try{if(nwc)sessionStorage.setItem('bitcoinCatsNwcUri',nwc);else sessionStorage.removeItem('bitcoinCatsNwcUri');}catch{}
+        await updateSignedInOverlay(signedInProfile);
+        if(embedLoginMode&&window.parent!==window)window.parent.postMessage({type:'bitcoin-cats-profile-updated',pubkey:signedInPubkey,profile:{name,picture,nip05,lud16}},location.origin);
+        $('profileSettingsStatus').textContent='Profile published. Your NWC URI remains private in this browser tab; it is not published.';
+        $('profileSettingsModal').hidden=true;
+      }catch(error){$('profileSettingsStatus').textContent=error.message||'Could not publish profile changes.';}
+      finally{$('profileSettingsSave').disabled=false;}
     }
     async function verifyNip05(identifier,pubkey){
       const value=String(identifier||'').trim();
@@ -920,7 +983,7 @@ permalink: /live
           type:'bitcoin-cats-login-complete',
           pubkey:signedInPubkey,
           method:activeSignerKind,
-          profile:{name:String(profile?.name||''),picture:String(profile?.picture||'')}
+          profile:{name:String(profile?.name||''),picture:String(profile?.picture||''),nip05:String(profile?.nip05||''),lud16:String(profile?.lud16||'')}
         },location.origin);
         return signedInPubkey;
       }
@@ -962,8 +1025,10 @@ permalink: /live
       if(!activeLocalSecret||!$('savedGeneratedNsecCheck').checked)return;
       const pure=await getNostrPure();
       const pubkey=pure.getPublicKey(activeLocalSecret);
-      await completeLogin(pubkey,{method:'local',profile:{name:'New Nostr identity',picture:'',nip05:''}});
+      await completeLogin(pubkey,{method:'local',profile:{name:'New Nostr identity',picture:'',nip05:'',lud16:''}});
       pendingNewIdentity=false;$('generatedNsec').textContent='';
+      if(embedLoginMode&&window.parent!==window)setTimeout(()=>window.parent.postMessage({type:'bitcoin-cats-request-profile-setup'},location.origin),700);
+      else setTimeout(openProfileSettings,350);
     }
     async function signInWithNsec(){
       try{
@@ -1923,7 +1988,9 @@ permalink: /live
       window.addEventListener('message',async event=>{
         if(event.origin!==location.origin||event.source!==window.parent)return;
         const message=event.data||{};
-        if(message.type==='bitcoin-cats-open-login'){
+        if(message.type==='bitcoin-cats-open-settings'){
+          if(signedInPubkey)openProfileSettings();else openLogin();
+        }else if(message.type==='bitcoin-cats-open-login'){
           if(!signedInPubkey)openLogin();
         }else if(message.type==='bitcoin-cats-close-login'){
           if(!$('loginModal').hidden)closeLogin();
@@ -1943,6 +2010,11 @@ permalink: /live
     $('aboutBtn').addEventListener('click',()=>window.location.assign('/?page=about'));
     $('liveBtn').addEventListener('click',()=>window.location.assign('/live'));
     $('zapBtn').addEventListener('click',()=>window.location.assign('/donation/'));
+    $('signedInSettings').addEventListener('click',openProfileSettings);
+    $('profileSettingsClose').addEventListener('click',()=>$('profileSettingsModal').hidden=true);
+    $('profileSettingsCancel').addEventListener('click',()=>$('profileSettingsModal').hidden=true);
+    $('profileSettingsModal').addEventListener('click',event=>{if(event.target===$('profileSettingsModal'))$('profileSettingsModal').hidden=true;});
+    $('profileSettingsSave').addEventListener('click',()=>void saveProfileSettings());
     $('loginBtn').addEventListener('click',connectNostr);
     $('loginCloseButton').addEventListener('click',closeLogin);
     $('loginModal').addEventListener('click',event=>{if(event.target===$('loginModal'))closeLogin();});
