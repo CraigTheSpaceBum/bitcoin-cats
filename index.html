@@ -1505,6 +1505,8 @@ window.addEventListener("message",event=>{
     openProfileSettings();
   }else if(message.type==="bitcoin-cats-login-dismiss"){
     if(!nostrIframeSignerActive)dismissNostrLoginModal({notifyFrame:false});
+  }else if(message.type==="bitcoin-cats-profile-settings-close"){
+    dismissNostrLoginModal({notifyFrame:false});
   }else if(message.type==="bitcoin-cats-parent-sign-request"){
     (async()=>{
       try{
