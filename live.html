@@ -2033,7 +2033,8 @@ permalink: /live
             signedInPubkey=message.pubkey;parentSignerBridge=true;
           }
           signedInPubkey=message.pubkey;
-          signedInProfile=message.profile&&typeof message.profile==='object'?message.profile:await fetchProfile(signedInPubkey);
+          const fetchedProfile=await fetchProfile(signedInPubkey);
+          signedInProfile={...fetchedProfile,...(message.profile&&typeof message.profile==='object'?message.profile:{})};
           await updateSignedInOverlay(signedInProfile||{});
         }else if(message.type==='bitcoin-cats-parent-sign-result'){
           const pending=pendingParentSignatures.get(message.requestId);if(!pending)return;
