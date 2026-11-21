@@ -1396,11 +1396,13 @@ async function showDonationPage({navigate=true,profile=null}={}){
 /* ---------- Nostr interactions: NIP-07 + relay-backed comments/reactions ---------- */
 const WRITE_RELAYS = ["wss://nos.lol","wss://relay.damus.io","wss://purplerelay.com","wss://relay.primal.net"];
 let signedInPubkey = null;
+let signedInProfile = {};
 let nostrPool = null;
 let nostrTools = null;
 let nostrRemoteSigner = null;
 let nostrIframeSignerActive = false;
 let loginFrameReady = false;
+let loginFrameIntent = "login";
 const pendingLoginSignatures = new Map();
 const SHARED_AUTH_KEY="bitcoinCatsAuth";
 function hexBytes(hex){return Uint8Array.from((hex.match(/.{2}/g)||[]).map(value=>parseInt(value,16)));}
@@ -1413,9 +1415,10 @@ function dismissNostrLoginModal({notifyFrame=true}={}){
   if(!modal)return;
   modal.hidden=true;
   document.body.style.overflow="";
-  if(notifyFrame&&!nostrIframeSignerActive&&loginFrameReady)postToLoginFrame({type:"bitcoin-cats-close-login"});
+  if(notifyFrame&&loginFrameReady)postToLoginFrame({type:"bitcoin-cats-close-login"});
 }
 function openNostrLoginModal(){
+  loginFrameIntent="login";
   const modal=document.getElementById("nostrLoginModal");
   const frame=document.getElementById("nostrLoginFrame");
   if(!modal||!frame)return;
@@ -1430,17 +1433,25 @@ function openNostrLoginModal(){
   }
 }
 async function showAccountFloat(profile={}){
+  signedInProfile={...(profile||{})};
   const box=document.getElementById("accountFloat");if(!box)return;
   document.getElementById("accountFloatName").textContent=String(profile.name||"Nostr user").trim()||"Nostr user";
   try{const {nip19}=await getNostrTools();document.getElementById("accountFloatId").textContent=nip19.npubEncode(signedInPubkey);}catch{document.getElementById("accountFloatId").textContent=npubShort(signedInPubkey);}
   const avatar=document.getElementById("accountFloatAvatar");avatar.onerror=()=>{avatar.onerror=null;avatar.src="/logo.png";};
   avatar.src=/^https:\/\//i.test(profile.picture||"")?profile.picture:"/logo.png";box.classList.add("visible");document.body.classList.add("has-account");
 }
+function sendSettingsIntentToLoginFrame(){
+  if(!signedInPubkey||!loginFrameReady)return;
+  postToLoginFrame({type:"bitcoin-cats-parent-auth",pubkey:signedInPubkey,profile:signedInProfile});
+  postToLoginFrame({type:"bitcoin-cats-open-settings"});
+}
 function openProfileSettings(){
+  if(!signedInPubkey){openNostrLoginModal();return;}
+  loginFrameIntent="settings";
   const modal=document.getElementById("nostrLoginModal"),frame=document.getElementById("nostrLoginFrame");
   modal.hidden=false;document.body.style.overflow="hidden";const frameUrl="/live.html?login=1&embed=1";
-  if(frame.getAttribute("src")!==frameUrl){loginFrameReady=false;frame.setAttribute("src",frameUrl);frame.addEventListener("load",()=>{if(loginFrameReady)postToLoginFrame({type:"bitcoin-cats-open-settings"});},{once:true});}
-  else if(loginFrameReady)postToLoginFrame({type:"bitcoin-cats-open-settings"});
+  if(frame.getAttribute("src")!==frameUrl){loginFrameReady=false;frame.setAttribute("src",frameUrl);}
+  else if(loginFrameReady)sendSettingsIntentToLoginFrame();
 }
 function signWithLoginFrame(unsignedEvent){
   if(!nostrIframeSignerActive) return Promise.reject(new Error("The sign-in window is no longer available. Please sign in again."));
@@ -1459,6 +1470,7 @@ nostrLoginFrame.addEventListener("load",()=>{
   loginFrameReady=true;
   if(nostrLoginFrame.getAttribute("src")==="/live.html?login=1&embed=1"){
     if(document.getElementById("nostrLoginModal").hidden)postToLoginFrame({type:"bitcoin-cats-close-login"});
+    else if(loginFrameIntent==="settings")sendSettingsIntentToLoginFrame();
     else postToLoginFrame({type:"bitcoin-cats-open-login"});
   }
 });
@@ -1478,12 +1490,14 @@ window.addEventListener("message",event=>{
     if(nostrRemoteSigner&&typeof nostrRemoteSigner.close==="function")void nostrRemoteSigner.close().catch(()=>{});
     nostrRemoteSigner=null;
     const profile=message.profile||{};
+    signedInProfile={...profile};
     showAccountFloat(profile);
     document.getElementById("loginBtn").textContent="✓ "+(profile.name||npubShort(signedInPubkey));
     document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Write a reply…");
     dismissNostrLoginModal({notifyFrame:false});
   }else if(message.type==="bitcoin-cats-profile-updated"){
     if(message.pubkey!==signedInPubkey)return;
+    signedInProfile={...(message.profile||{})};
     showAccountFloat(message.profile||{});
     dismissNostrLoginModal({notifyFrame:false});
     document.getElementById("loginBtn").textContent="✓ "+((message.profile||{}).name||npubShort(signedInPubkey));
@@ -1491,6 +1505,19 @@ window.addEventListener("message",event=>{
     openProfileSettings();
   }else if(message.type==="bitcoin-cats-login-dismiss"){
     if(!nostrIframeSignerActive)dismissNostrLoginModal({notifyFrame:false});
+  }else if(message.type==="bitcoin-cats-profile-settings-close"){
+    dismissNostrLoginModal({notifyFrame:false});
+  }else if(message.type==="bitcoin-cats-parent-sign-request"){
+    (async()=>{
+      try{
+        let signed=null;
+        if(nostrRemoteSigner)signed=await nostrRemoteSigner.signEvent(message.event);
+        else if(window.nostr&&typeof window.nostr.signEvent==="function")signed=await window.nostr.signEvent(message.event);
+        else throw new Error("The restored signer is unavailable. Please sign in again.");
+        if(!signed||signed.pubkey!==signedInPubkey)throw new Error("The signer returned an event for a different Nostr account.");
+        postToLoginFrame({type:"bitcoin-cats-parent-sign-result",requestId:message.requestId,ok:true,event:signed});
+      }catch(error){postToLoginFrame({type:"bitcoin-cats-parent-sign-result",requestId:message.requestId,ok:false,error:error.message||"Could not sign the profile update."});}
+    })();
   }else if(message.type==="bitcoin-cats-sign-result"){
     const pending=pendingLoginSignatures.get(message.requestId);
     if(!pending)return;
@@ -1522,6 +1549,7 @@ async function restoreSharedNostrSession(){
     }
     if(signedInPubkey){
       const profile=await getProfile(signedInPubkey);
+      signedInProfile={...profile};
       showAccountFloat(profile);
       document.getElementById("loginBtn").textContent="✓ "+(profile.name||npubShort(signedInPubkey));
       document.querySelectorAll(".comment-input").forEach(el=>el.placeholder="Write a reply…");
@@ -1540,9 +1568,10 @@ async function getNostrTools(){
 function npubShort(hex){return hex ? hex.slice(0,8)+"…"+hex.slice(-4) : "";}
 async function connectNostr(){
   if(signedInPubkey){
-    if(nostrIframeSignerActive)postToLoginFrame({type:"bitcoin-cats-sign-out"});
+    if(loginFrameReady)postToLoginFrame({type:nostrIframeSignerActive?"bitcoin-cats-sign-out":"bitcoin-cats-parent-sign-out"});
     nostrIframeSignerActive=false;
     signedInPubkey=null;
+    signedInProfile={};
     if(nostrRemoteSigner&&typeof nostrRemoteSigner.close==="function")void nostrRemoteSigner.close().catch(()=>{});
     nostrRemoteSigner=null;
     try{sessionStorage.removeItem(SHARED_AUTH_KEY);sessionStorage.removeItem("bitcoinCatsLoginReturn");}catch{}
