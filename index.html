@@ -1415,7 +1415,7 @@ function dismissNostrLoginModal({notifyFrame=true}={}){
   if(!modal)return;
   modal.hidden=true;
   document.body.style.overflow="";
-  if(notifyFrame&&!nostrIframeSignerActive&&loginFrameReady)postToLoginFrame({type:"bitcoin-cats-close-login"});
+  if(notifyFrame&&loginFrameReady)postToLoginFrame({type:"bitcoin-cats-close-login"});
 }
 function openNostrLoginModal(){
   loginFrameIntent="login";
