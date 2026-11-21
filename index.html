@@ -819,7 +819,9 @@ async function replaceNprofileMentions(container, sourceEvent=null){
         try{profile=await getProfile(pubkey)||profile;}catch{}
         const displayName=String(profile.name||profile.display_name||shortKey(pubkey)).trim()||shortKey(pubkey);
         const a=document.createElement("a");
-        a.href="https://njump.me/"+(canonical||pubkey);a.target="_blank";a.rel="noopener noreferrer";a.className="mention visible";
+        let profileLink=canonical;
+        if(!profileLink){try{const {nip19}=await getNostrTools();profileLink=nip19.npubEncode(pubkey);}catch{profileLink=pubkey;}}
+        a.href="https://njump.me/"+profileLink;a.target="_blank";a.rel="noopener noreferrer";a.className="mention visible";
         const img=document.createElement("img");img.src=profile.picture||fallbackProfile(pubkey).picture;img.alt=displayName;img.loading="lazy";
         const label=document.createElement("span");label.className="label";label.textContent=displayName;
         a.append(img,label);
