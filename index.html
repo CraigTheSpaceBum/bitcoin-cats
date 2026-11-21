@@ -847,7 +847,6 @@ async function replaceIndexedProfileMentions(container, sourceEvent){
       const fallback=fallbackProfile(pubkey);
       const labelText=String(fallback.name||shortKey(pubkey)||"Nostr user").trim();
       const a=document.createElement("a");
-      try{const {nip19}=await getNostrTools();profileId=nip19.npubEncode(pubkey);}catch{}
       a.href="https://njump.me/"+pubkey;
       getNostrTools().then(({nip19})=>{if(a.isConnected)a.href="https://njump.me/"+nip19.npubEncode(pubkey);}).catch(()=>{});
       a.target="_blank";
