@@ -1408,6 +1408,7 @@ window.addEventListener("message",event=>{
   }else if(message.type==="bitcoin-cats-profile-updated"){
     if(message.pubkey!==signedInPubkey)return;
     showAccountFloat(message.profile||{});
+    dismissNostrLoginModal({notifyFrame:false});
     document.getElementById("loginBtn").textContent="✓ "+((message.profile||{}).name||npubShort(signedInPubkey));
   }else if(message.type==="bitcoin-cats-request-profile-setup"){
     openProfileSettings();
