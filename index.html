@@ -819,6 +819,7 @@ async function replaceNprofileMentions(container){
 
 
 /* Resolve Nostr indexed profile references (#[n]) in feed posts only.
+   Render a visible fallback immediately; profile lookups update it in the background.
    Keep the established nprofile renderer untouched because comments use it too. */
 async function replaceIndexedProfileMentions(container, sourceEvent){
   const tags=Array.isArray(sourceEvent?.tags)?sourceEvent.tags:[];
@@ -826,14 +827,15 @@ async function replaceIndexedProfileMentions(container, sourceEvent){
   const walker=document.createTreeWalker(container,NodeFilter.SHOW_TEXT);
   const nodes=[];
   while(walker.nextNode()) nodes.push(walker.currentNode);
-  const tasks=[];
   const pattern=/#\[(\d+)\]/g;
   for(const node of nodes){
+    if(!node.parentNode) continue;
     const text=node.textContent;
     const matches=[...text.matchAll(pattern)];
     if(!matches.length) continue;
     const frag=document.createDocumentFragment();
     let lastIndex=0;
+    let replaced=false;
     for(const match of matches){
       const rawToken=match[0];
       const tokenIndex=Number(match[1]);
@@ -842,39 +844,39 @@ async function replaceIndexedProfileMentions(container, sourceEvent){
       if(!pubkey) continue;
       const index=match.index;
       if(index>lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex,index)));
-      const placeholder=document.createElement("span");
-      placeholder.className="mention";
-      placeholder.textContent="Loading…";
-      frag.appendChild(placeholder);
-      tasks.push((async()=>{
-        let profile=fallbackProfile(pubkey);
-        try{profile=await getProfile(pubkey)||profile;}catch(error){console.warn("Indexed mention profile lookup failed",error);}
-        const labelText=String(profile.name||shortKey(pubkey)||"Nostr user").trim()||shortKey(pubkey)||"Nostr user";
-        const a=document.createElement("a");
-        let profileId=pubkey;
-        try{const {nip19}=await getNostrTools();profileId=nip19.npubEncode(pubkey);}catch{}
-        a.href="https://njump.me/"+profileId;
-        a.target="_blank";
-        a.rel="noopener noreferrer";
-        a.className="mention visible";
-        const img=document.createElement("img");
-        img.src=profile.picture||fallbackProfile(pubkey).picture;
-        img.alt=labelText;
-        img.loading="lazy";
-        const label=document.createElement("span");
-        label.className="label";
-        label.textContent=labelText;
-        a.append(img,label);
-        if(placeholder.isConnected) placeholder.replaceWith(a);
-      })());
+      const fallback=fallbackProfile(pubkey);
+      const labelText=String(fallback.name||shortKey(pubkey)||"Nostr user").trim();
+      const a=document.createElement("a");
+      a.href="https://njump.me/"+pubkey;
+      getNostrTools().then(({nip19})=>{if(a.isConnected)a.href="https://njump.me/"+nip19.npubEncode(pubkey);}).catch(()=>{});
+      a.target="_blank";
+      a.rel="noopener noreferrer";
+      a.className="mention visible";
+      const img=document.createElement("img");
+      img.src=fallback.picture;
+      img.alt=labelText;
+      img.loading="lazy";
+      const label=document.createElement("span");
+      label.className="label";
+      label.textContent=labelText;
+      a.append(img,label);
+      frag.appendChild(a);
       lastIndex=index+rawToken.length;
+      replaced=true;
+      // Do not make the post wait for profile metadata; update the visible fallback later.
+      getProfile(pubkey).then(profile=>{
+        if(!a.isConnected) return;
+        const name=String(profile?.name||shortKey(pubkey)||"Nostr user").trim();
+        label.textContent=name;
+        img.src=profile?.picture||fallback.picture;
+        img.alt=name;
+      }).catch(error=>console.warn("Indexed mention profile lookup failed",error));
     }
+    if(!replaced) continue;
     if(lastIndex<text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
-    if(node.parentNode) node.parentNode.replaceChild(frag,node);
+    node.parentNode.replaceChild(frag,node);
   }
-  await Promise.allSettled(tasks);
 }
-
 function isReplyEvent(event){
   return (event.tags||[]).some(tag=>tag[0]==="e"&&String(tag[3]||"").toLowerCase()==="reply");
 }
