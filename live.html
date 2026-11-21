@@ -156,7 +156,6 @@ permalink: /live
     .platform-viewer-card[data-status="offline"] .platform-viewer-state{color:#a4a3b8}
     .platform-viewer-card[data-status="error"] .platform-viewer-state{color:#ffc080}
     .platform-viewer-card[data-status="setup_required"] .platform-viewer-state{color:#c7a7ff}
-    .watcher-warning{color:#d2b8ff}
     .chat-column{display:flex;flex-direction:column;gap:18px;min-width:0}
     .donors-panel{min-width:0}
     .donor-list{display:grid;gap:8px;padding:12px}
@@ -387,7 +386,6 @@ permalink: /live
             <span class="platform-viewer-total-value" id="platformViewersTotal">—</span>
           </div>
           <div class="platform-viewer-meta" id="platformViewersMeta">Counts refresh automatically when the Cloudflare Worker is configured. Combined totals are not deduplicated; one person watching multiple platforms may be counted more than once.</div>
-        </section>          <div class="watcher-footnote" id="watcherFootnote">Presence refreshes every few seconds. Viewers who leave are removed after their short heartbeat expires.</div>
         </section>
         <div class="status-note" id="streamNote" role="status" aria-live="polite" hidden></div>
       </article>
@@ -507,7 +505,6 @@ permalink: /live
     let watcherSnapshot = {nostr:[],guests:0,total:0,updatedAt:0};
     const PLATFORM_VIEWER_REFRESH_MS = 60000;
     let platformViewerRefreshRunning = false;
-    let watcherSnapshot = {nostr:[],guests:0,total:0,updatedAt:0};
 
     function setStatus(kind,text){pill.className='live-pill '+kind;label.textContent=text;}
     function getTag(event,name){const found=(event.tags||[]).find(tag=>tag[0]===name&&tag[1]);return found?found[1]:'';}
