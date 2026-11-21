@@ -1352,10 +1352,10 @@ function openNostrLoginModal(){
     postToLoginFrame({type:"bitcoin-cats-open-login"});
   }
 }
-function showAccountFloat(profile={}){
+async function showAccountFloat(profile={}){
   const box=document.getElementById("accountFloat");if(!box)return;
   document.getElementById("accountFloatName").textContent=String(profile.name||"Nostr user").trim()||"Nostr user";
-  document.getElementById("accountFloatId").textContent=npubShort(signedInPubkey);
+  try{const {nip19}=await getNostrTools();document.getElementById("accountFloatId").textContent=nip19.npubEncode(signedInPubkey);}catch{document.getElementById("accountFloatId").textContent=npubShort(signedInPubkey);}
   const avatar=document.getElementById("accountFloatAvatar");avatar.onerror=()=>{avatar.onerror=null;avatar.src="/logo.png";};
   avatar.src=/^https:\/\//i.test(profile.picture||"")?profile.picture:"/logo.png";box.classList.add("visible");document.body.classList.add("has-account");
 }
