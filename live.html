@@ -133,6 +133,30 @@ permalink: /live
     .watcher-empty{padding:18px 12px;border:1px dashed rgba(255,255,255,.1);border-radius:11px;color:var(--muted);font-size:11px;line-height:1.6;text-align:center}
     .watcher-footnote{margin-top:12px;color:#737287;font-size:9px;line-height:1.5}
     .watcher-warning{color:#d2b8ff}
+    .platform-viewers{padding:16px;border-top:1px solid var(--line);background:linear-gradient(145deg,rgba(255,173,85,.035),rgba(255,255,255,.012))}
+    .platform-viewers-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .platform-viewers-title{font-size:14px;font-weight:850;letter-spacing:-.01em}
+    .platform-viewers-caption{margin-top:4px;color:var(--muted);font-size:10px;line-height:1.5}
+    .platform-viewer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .platform-viewer-card{display:flex;align-items:center;gap:10px;min-width:0;padding:11px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(0,0,0,.19)}
+    .platform-viewer-brand{display:grid;place-items:center;width:34px;height:34px;flex:none;border-radius:10px;background:rgba(255,255,255,.07);color:#f7f3ff;font-size:15px;font-weight:900}
+    .platform-viewer-brand.twitch{background:rgba(145,70,255,.18);color:#c7a7ff}
+    .platform-viewer-brand.youtube{background:rgba(255,0,0,.13);color:#ff8b8b}
+    .platform-viewer-brand.kick{background:rgba(83,210,110,.13);color:#8cf0a4}
+    .platform-viewer-brand.rumble{background:rgba(255,173,85,.13);color:#ffd19e}
+    .platform-viewer-main{display:grid;gap:4px;min-width:0;flex:1}
+    .platform-viewer-name{font-size:11px;font-weight:850;color:#f5f2fb}
+    .platform-viewer-state{font-size:9px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .platform-viewer-count{flex:none;font:850 20px/1.1 Inter,system-ui,sans-serif;color:#fff;font-variant-numeric:tabular-nums}
+    .platform-viewer-total{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:12px;border:1px solid rgba(255,173,85,.19);border-radius:12px;background:rgba(255,173,85,.045)}
+    .platform-viewer-total-label{font-size:11px;font-weight:800;color:#f4edf8}
+    .platform-viewer-total-value{font:900 23px/1.1 Inter,system-ui,sans-serif;color:#ffd19e;font-variant-numeric:tabular-nums}
+    .platform-viewer-meta{margin-top:9px;color:#777487;font-size:9px;line-height:1.55}
+    .platform-viewer-card[data-status="live"] .platform-viewer-state{color:#8ee6b7}
+    .platform-viewer-card[data-status="offline"] .platform-viewer-state{color:#a4a3b8}
+    .platform-viewer-card[data-status="error"] .platform-viewer-state{color:#ffc080}
+    .platform-viewer-card[data-status="setup_required"] .platform-viewer-state{color:#c7a7ff}
+    .watcher-warning{color:#d2b8ff}
     .chat-column{display:flex;flex-direction:column;gap:18px;min-width:0}
     .donors-panel{min-width:0}
     .donor-list{display:grid;gap:8px;padding:12px}
@@ -328,6 +352,43 @@ permalink: /live
           <div class="watcher-list" id="watcherList" aria-live="polite"><div class="watcher-empty">Watcher information will appear when the host goes live.</div></div>
           <div class="watcher-footnote" id="watcherFootnote">Presence refreshes every few seconds. Viewers who leave are removed after their short heartbeat expires.</div>
         </section>
+        <section class="platform-viewers" id="platformViewersSection" aria-labelledby="platformViewersTitle">
+          <div class="platform-viewers-head">
+            <div>
+              <div class="platform-viewers-title" id="platformViewersTitle">Viewers Across Platforms</div>
+              <div class="platform-viewers-caption">Live audience counts from your Twitch, YouTube, Kick and Rumble channels</div>
+            </div>
+            <span class="tag" id="platformViewersStatus">CONNECTING</span>
+          </div>
+          <div class="platform-viewer-grid" aria-live="polite">
+            <div class="platform-viewer-card" data-platform-viewer="twitch" data-status="loading">
+              <span class="platform-viewer-brand twitch" aria-hidden="true">T</span>
+              <div class="platform-viewer-main"><span class="platform-viewer-name">Twitch</span><span class="platform-viewer-state" data-platform-state>Waiting for API setup</span></div>
+              <span class="platform-viewer-count" data-platform-count>—</span>
+            </div>
+            <div class="platform-viewer-card" data-platform-viewer="youtube" data-status="loading">
+              <span class="platform-viewer-brand youtube" aria-hidden="true">▶</span>
+              <div class="platform-viewer-main"><span class="platform-viewer-name">YouTube</span><span class="platform-viewer-state" data-platform-state>Waiting for API setup</span></div>
+              <span class="platform-viewer-count" data-platform-count>—</span>
+            </div>
+            <div class="platform-viewer-card" data-platform-viewer="kick" data-status="loading">
+              <span class="platform-viewer-brand kick" aria-hidden="true">K</span>
+              <div class="platform-viewer-main"><span class="platform-viewer-name">Kick</span><span class="platform-viewer-state" data-platform-state>Waiting for API setup</span></div>
+              <span class="platform-viewer-count" data-platform-count>—</span>
+            </div>
+            <div class="platform-viewer-card" data-platform-viewer="rumble" data-status="loading">
+              <span class="platform-viewer-brand rumble" aria-hidden="true">R</span>
+              <div class="platform-viewer-main"><span class="platform-viewer-name">Rumble</span><span class="platform-viewer-state" data-platform-state>Waiting for API setup</span></div>
+              <span class="platform-viewer-count" data-platform-count>—</span>
+            </div>
+          </div>
+          <div class="platform-viewer-total">
+            <span class="platform-viewer-total-label">Combined platform viewers</span>
+            <span class="platform-viewer-total-value" id="platformViewersTotal">—</span>
+          </div>
+          <div class="platform-viewer-meta" id="platformViewersMeta">Counts refresh automatically when the Cloudflare Worker is configured. Combined totals are not deduplicated; one person watching multiple platforms may be counted more than once.</div>
+        </section>          <div class="watcher-footnote" id="watcherFootnote">Presence refreshes every few seconds. Viewers who leave are removed after their short heartbeat expires.</div>
+        </section>
         <div class="status-note" id="streamNote" role="status" aria-live="polite" hidden></div>
       </article>
       <div class="chat-column">
@@ -443,6 +504,9 @@ permalink: /live
     let presenceSessionSecret = null, presenceSessionPubkey = '', presenceSessionId = '';
     let presenceSessionActivity = '', presenceSessionIdentity = '', presenceIdentityProof = null;
     let presencePublishRunning = false, watcherRefreshRunning = false, watcherRenderVersion = 0;
+    let watcherSnapshot = {nostr:[],guests:0,total:0,updatedAt:0};
+    const PLATFORM_VIEWER_REFRESH_MS = 60000;
+    let platformViewerRefreshRunning = false;
     let watcherSnapshot = {nostr:[],guests:0,total:0,updatedAt:0};
 
     function setStatus(kind,text){pill.className='live-pill '+kind;label.textContent=text;}
@@ -1958,7 +2022,59 @@ permalink: /live
         }
       }
     }
-    function addHostRelayHints(event){
+    function formatPlatformViewerStatus(platform){
+      const statuses={
+        live:'LIVE NOW',
+        offline:'OFFLINE',
+        setup_required:'API SETUP NEEDED',
+        unavailable:'COUNT UNAVAILABLE',
+        error:'TEMPORARILY UNAVAILABLE',
+        loading:'CHECKING…'
+      };
+      if(platform?.status==='live'&&platform.viewerCount==null)return 'LIVE · COUNT HIDDEN OR UNAVAILABLE';
+      return statuses[platform?.status]||'STATUS UNKNOWN';
+    }
+    function renderPlatformViewer(platformKey,platform){
+      const card=document.querySelector('[data-platform-viewer="'+platformKey+'"]');
+      if(!card)return;
+      const count=card.querySelector('[data-platform-count]');
+      const state=card.querySelector('[data-platform-state]');
+      const viewerCount=platform&&platform.viewerCount!==null&&platform.viewerCount!==undefined&&Number.isFinite(Number(platform.viewerCount))
+        ?Number(platform.viewerCount):null;
+      card.dataset.status=platform?.status||'error';
+      count.textContent=viewerCount===null?'—':viewerCount.toLocaleString();
+      state.textContent=formatPlatformViewerStatus(platform);
+      if(platform?.streamTitle)state.title=String(platform.streamTitle);
+      else state.removeAttribute('title');
+    }
+    async function refreshPlatformViewerCounts(){
+      if(platformViewerRefreshRunning)return;
+      platformViewerRefreshRunning=true;
+      try{
+        const response=await fetch('/api/platform-viewers',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'});
+        if(!response.ok)throw new Error(response.status===404?'Cloudflare Worker is not deployed yet.':'Viewer-count service returned HTTP '+response.status+'.');
+        const payload=await response.json();
+        const platforms=payload?.platforms||{};
+        for(const key of ['twitch','youtube','kick','rumble'])renderPlatformViewer(key,platforms[key]);
+        const allConfigured=['twitch','youtube','kick','rumble'].every(key=>platforms[key]&&platforms[key].status!=='setup_required');
+        const knownTotal=payload.totalViewers;
+        $('platformViewersTotal').textContent=Number.isFinite(knownTotal)?Number(knownTotal).toLocaleString():'—';
+        $('platformViewersStatus').textContent=allConfigured?'LIVE API SYNC':'API SETUP';
+        $('platformViewersMeta').textContent=(payload.updatedAt?'Updated '+new Date(payload.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'. ':'')+
+          (payload.totalViewers==null?'Combined total is unavailable until all four platform counts are available. ':'')+
+          'Counts refresh automatically about every minute. Combined totals are not deduplicated, so viewers watching on multiple platforms may be counted more than once.';
+      }catch(error){
+        $('platformViewersStatus').textContent='SETUP REQUIRED';
+        $('platformViewersTotal').textContent='—';
+        for(const key of ['twitch','youtube','kick','rumble']){
+          renderPlatformViewer(key,{status:'setup_required',viewerCount:null});
+        }
+        $('platformViewersMeta').textContent='Connect the Cloudflare Worker and add the platform API secrets to enable live counts. '+String(error?.message||'Viewer-count service is not ready.');
+      }finally{
+        platformViewerRefreshRunning=false;
+      }
+    }
+    function addHostRelayHints(event){    function addHostRelayHints(event){
       if(!event||event.kind!==10002||event.pubkey!==hostPubkey)return;
       for(const tag of event.tags||[]){
         if(tag[0]!=='r'||typeof tag[1]!=='string'||!/^wss:\/\//i.test(tag[1]))continue;
@@ -2231,7 +2347,12 @@ permalink: /live
         $('streamSource').textContent='Discovering the host’s latest Nostr stream';
         await refreshStream();
         void refreshTopBitcoinDonors();
+        void refreshPlatformViewerCounts();
+        await refreshStream();
+        void refreshTopBitcoinDonors();
         setInterval(()=>{void refreshStream();},30000);
+        setInterval(()=>{void refreshTopBitcoinDonors();},300000);
+        setInterval(()=>{void refreshPlatformViewerCounts();},PLATFORM_VIEWER_REFRESH_MS);
         setInterval(()=>{void refreshTopBitcoinDonors();},300000);
         setInterval(()=>{if(!streamRefreshRunning)void loadChatForCurrentActivity();},10000);
         setInterval(()=>{void syncViewerPresence();},PRESENCE_HEARTBEAT_MS);
