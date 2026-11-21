@@ -827,7 +827,7 @@ async function replaceIndexedProfileMentions(container, sourceEvent){
   const nodes=[];
   while(walker.nextNode()) nodes.push(walker.currentNode);
   const tasks=[];
-  const pattern=/#\\[(\\d+)\\]/g;
+  const pattern=/#\[(\d+)\]/g;
   for(const node of nodes){
     const text=node.textContent;
     const matches=[...text.matchAll(pattern)];
