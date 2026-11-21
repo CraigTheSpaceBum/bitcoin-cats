@@ -818,16 +818,25 @@ async function replaceNprofileMentions(container){
 }
 
 
-/* Resolve Nostr indexed profile references (#[n]) in feed posts only.
-   Render a visible fallback immediately; profile lookups update it in the background.
-   Keep the established nprofile renderer untouched because comments use it too. */
-async function replaceIndexedProfileMentions(container, sourceEvent){
+/* Resolve Nostr profile mentions in blog posts only.
+   Supports NIP-27 nprofile/npub identifiers and indexed #[n] tags.
+   Render a visible fallback immediately, then enrich it asynchronously.
+   The original replaceNprofileMentions helper remains in use for comments. */
+function npubToPubkey(npub){
+  try{
+    const decoded=bech32Decode(String(npub||"").replace(/^nostr:/i,""));
+    if(!decoded||decoded.hrp!=="npub") return null;
+    const bytes=new Uint8Array(convertBits(decoded.words,5,8,false));
+    if(bytes.length!==32) return null;
+    return Array.from(bytes).map(byte=>byte.toString(16).padStart(2,"0")).join("");
+  }catch{return null;}
+}
+async function replacePostProfileMentions(container, sourceEvent){
   const tags=Array.isArray(sourceEvent?.tags)?sourceEvent.tags:[];
-  if(!tags.length) return;
   const walker=document.createTreeWalker(container,NodeFilter.SHOW_TEXT);
   const nodes=[];
   while(walker.nextNode()) nodes.push(walker.currentNode);
-  const pattern=/#\[(\d+)\]/g;
+  const pattern=/(?:nostr:)?(nprofile1[0-9a-z]+|npub1[0-9a-z]+)|#\[(\d+)\]/gi;
   for(const node of nodes){
     if(!node.parentNode) continue;
     const text=node.textContent;
@@ -838,39 +847,47 @@ async function replaceIndexedProfileMentions(container, sourceEvent){
     let replaced=false;
     for(const match of matches){
       const rawToken=match[0];
-      const tokenIndex=Number(match[1]);
-      const tag=tags[tokenIndex];
-      const pubkey=tag?.[0]==="p"&&/^[0-9a-f]{64}$/i.test(tag[1]||"")?tag[1].toLowerCase():"";
-      if(!pubkey) continue;
+      let pubkey=null;
+      if(match[1]){
+        const identifier=rawToken.replace(/^nostr:/i,"");
+        pubkey=identifier.toLowerCase().startsWith("nprofile1")
+          ?nprofileToPubkey(identifier)
+          :npubToPubkey(identifier);
+      }else if(match[2]){
+        const tag=tags[Number(match[2])];
+        if(tag?.[0]==="p"&&/^[0-9a-f]{64}$/i.test(tag[1]||"")) pubkey=tag[1].toLowerCase();
+      }
+      if(!pubkey||!/^[0-9a-f]{64}$/i.test(pubkey)) continue;
       const index=match.index;
       if(index>lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex,index)));
       const fallback=fallbackProfile(pubkey);
-      const labelText=String(fallback.name||shortKey(pubkey)||"Nostr user").trim();
+      const fallbackName=String(shortKey(pubkey)||"Nostr user");
       const a=document.createElement("a");
       a.href="https://njump.me/"+pubkey;
-      getNostrTools().then(({nip19})=>{if(a.isConnected)a.href="https://njump.me/"+nip19.npubEncode(pubkey);}).catch(()=>{});
       a.target="_blank";
       a.rel="noopener noreferrer";
       a.className="mention visible";
       const img=document.createElement("img");
       img.src=fallback.picture;
-      img.alt=labelText;
+      img.alt=fallbackName;
       img.loading="lazy";
       const label=document.createElement("span");
       label.className="label";
-      label.textContent=labelText;
+      label.textContent=fallbackName;
       a.append(img,label);
       frag.appendChild(a);
       lastIndex=index+rawToken.length;
       replaced=true;
-      // Do not make the post wait for profile metadata; update the visible fallback later.
+      getNostrTools().then(({nip19})=>{
+        if(a.isConnected) a.href="https://njump.me/"+nip19.npubEncode(pubkey);
+      }).catch(()=>{});
       getProfile(pubkey).then(profile=>{
         if(!a.isConnected) return;
-        const name=String(profile?.name||shortKey(pubkey)||"Nostr user").trim();
+        const name=String(profile?.name||fallbackName).trim()||fallbackName;
         label.textContent=name;
         img.src=profile?.picture||fallback.picture;
         img.alt=name;
-      }).catch(error=>console.warn("Indexed mention profile lookup failed",error));
+      }).catch(error=>console.warn("Blog post mention profile lookup failed",error));
     }
     if(!replaced) continue;
     if(lastIndex<text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
@@ -1062,8 +1079,7 @@ async function renderPost(ev,renderedPostIndex){
   content.className="content";
   const textOnly=normalizeNprofileMarkup(stripMediaAndNevent(ev.content||""));
   content.textContent=textOnly;
-  await replaceNprofileMentions(content);
-  await replaceIndexedProfileMentions(content,ev);
+  await replacePostProfileMentions(content,ev);
   linkifyRemainingTextNodes(content);
 
   const gallery=document.createElement("div");
