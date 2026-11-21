@@ -781,31 +781,49 @@ function linkifyRemainingTextNodes(container){
     node.parentNode.replaceChild(frag,node);
   }
 }
-async function replaceNprofileMentions(container){
+async function replaceNprofileMentions(container, sourceEvent=null){
   const walker=document.createTreeWalker(container,NodeFilter.SHOW_TEXT);
   const nodes=[];
   while(walker.nextNode()) nodes.push(walker.currentNode);
   const tasks=[];
+  const mentionPattern=/(?:nostr\\?:)?nprofile1[0-9a-z]+|#\[(\d+)\]/ig;
   for(const node of nodes){
     const text=node.textContent;
-    const matches=findAllNprofiles(text);
+    const matches=[...text.matchAll(mentionPattern)];
     if(!matches.length) continue;
     const frag=document.createDocumentFragment();
     let lastIndex=0;
-    for(const rawToken of matches){
-      const index=text.indexOf(rawToken,lastIndex);
-      if(index<0) continue;
+    for(const match of matches){
+      const rawToken=match[0];
+      const index=match.index;
       if(index>lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex,index)));
-      const canonical=rawToken.replace(/^nostr:/i,"");
+      let pubkey="";
+      let canonical="";
+      if(/^#\[\d+\]$/.test(rawToken)){
+        const tagIndex=Number(rawToken.slice(2,-1));
+        const referencedTag=sourceEvent?.tags?.[tagIndex];
+        if(referencedTag?.[0]==="p"&&/^[0-9a-f]{64}$/i.test(referencedTag[1]||"")) pubkey=referencedTag[1].toLowerCase();
+      }else{
+        canonical=rawToken.replace(/^nostr:/i,"");
+        pubkey=nprofileToPubkey(canonical)||"";
+      }
+      if(!pubkey){
+        frag.appendChild(document.createTextNode(rawToken));
+        lastIndex=index+rawToken.length;
+        continue;
+      }
       const placeholder=document.createElement("span");
       placeholder.className="mention";placeholder.textContent="Loading…";frag.appendChild(placeholder);
       tasks.push((async()=>{
-        const pubkey=nprofileToPubkey(canonical);
-        const profile=pubkey?await getProfile(pubkey):fallbackProfile("");
+        let profile=fallbackProfile(pubkey);
+        try{profile=await getProfile(pubkey)||profile;}catch{}
+        const displayName=String(profile.name||profile.display_name||shortKey(pubkey)).trim()||shortKey(pubkey);
         const a=document.createElement("a");
-        a.href="https://njump.me/"+canonical;a.target="_blank";a.rel="noopener noreferrer";a.className="mention visible";
-        const img=document.createElement("img");img.src=profile.picture;img.alt=profile.name;img.loading="lazy";
-        const label=document.createElement("span");label.className="label";label.textContent=profile.name;
+        let profileLink=canonical;
+        if(!profileLink){try{const {nip19}=await getNostrTools();profileLink=nip19.npubEncode(pubkey);}catch{profileLink=pubkey;}}
+        a.href="https://njump.me/"+profileLink;a.target="_blank";a.rel="noopener noreferrer";a.className="mention visible";
+        const img=document.createElement("img");img.src=profile.picture||fallbackProfile(pubkey).picture;img.alt=displayName;img.loading="lazy";
+        const label=document.createElement("span");label.className="label";label.textContent=displayName;
         a.append(img,label);
         if(placeholder.isConnected) placeholder.replaceWith(a);
       })());
@@ -1002,7 +1020,7 @@ async function renderPost(ev,renderedPostIndex){
   content.className="content";
   const textOnly=normalizeNprofileMarkup(stripMediaAndNevent(ev.content||""));
   content.textContent=textOnly;
-  await replaceNprofileMentions(content);
+  await replaceNprofileMentions(content,ev);
   linkifyRemainingTextNodes(content);
 
   const gallery=document.createElement("div");
