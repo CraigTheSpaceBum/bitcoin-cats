@@ -583,6 +583,37 @@ permalink: /live
       if(!signed||signed.pubkey!==signedInPubkey)throw new Error('The signer returned an event for a different Nostr account.');
       return signed;
     }
+    function openProfileSettings(){
+      if(!signedInPubkey){openLogin();return;}
+      const profile=signedInProfile||{};
+      $('settingsName').value=String(profile.name||'');$('settingsPicture').value=String(profile.picture||'');
+      $('settingsNip05').value=String(profile.nip05||'');$('settingsLud16').value=String(profile.lud16||'');
+      try{$('settingsNwc').value=sessionStorage.getItem('bitcoinCatsNwcUri')||'';}catch{$('settingsNwc').value='';}
+      $('profileSettingsStatus').textContent='NWC credentials are kept in this browser tab only. A Lightning address is what other people use to send you tips.';
+      $('profileSettingsModal').hidden=false;
+    }
+    async function saveProfileSettings(){
+      if(!signedInPubkey)return;
+      const name=$('settingsName').value.trim(),picture=$('settingsPicture').value.trim(),nip05=$('settingsNip05').value.trim(),lud16=$('settingsLud16').value.trim(),nwc=$('settingsNwc').value.trim();
+      if(picture){try{if(new URL(picture).protocol!=='https:')throw new Error();}catch{$('profileSettingsStatus').textContent='Profile picture must be a valid HTTPS URL.';return;}}
+      if(nip05&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nip05)){$('profileSettingsStatus').textContent='Enter a valid NIP-05 address, such as name@example.com.';return;}
+      if(lud16&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lud16)){$('profileSettingsStatus').textContent='Enter a valid Lightning address.';return;}
+      if(nwc&&!/^nostr\+walletconnect:\/\//i.test(nwc)){$('profileSettingsStatus').textContent='The NWC URI should begin with nostr+walletconnect://.';return;}
+      $('profileSettingsSave').disabled=true;$('profileSettingsStatus').textContent='Signing and publishing your Nostr profile…';
+      try{
+        const previous=signedInProfile||{},metadata={...previous,name,display_name:name,picture,nip05,lud16};delete metadata.lud06;
+        const event=await signUserEvent({kind:0,created_at:Math.floor(Date.now()/1000),tags:[],content:JSON.stringify(metadata)});
+        const results=await Promise.allSettled(pool.publish(RELAYS,event));
+        if(!results.some(result=>result.status==='fulfilled'))throw new Error('Your signer approved the profile, but no relay confirmed publishing.');
+        signedInProfile={...metadata};profileCache.delete(signedInPubkey);
+        try{if(nwc)sessionStorage.setItem('bitcoinCatsNwcUri',nwc);else sessionStorage.removeItem('bitcoinCatsNwcUri');}catch{}
+        await updateSignedInOverlay(signedInProfile);
+        if(embedLoginMode&&window.parent!==window)window.parent.postMessage({type:'bitcoin-cats-profile-updated',pubkey:signedInPubkey,profile:{name,picture,nip05,lud16}},location.origin);
+        $('profileSettingsStatus').textContent='Profile published. Your NWC URI remains private in this browser tab; it is not published.';
+        $('profileSettingsModal').hidden=true;
+      }catch(error){$('profileSettingsStatus').textContent=error.message||'Could not publish profile changes.';}
+      finally{$('profileSettingsSave').disabled=false;}
+    }
     async function verifyNip05(identifier,pubkey){
       const value=String(identifier||'').trim();
       const at=value.lastIndexOf('@');
@@ -1977,6 +2008,11 @@ permalink: /live
     $('aboutBtn').addEventListener('click',()=>window.location.assign('/?page=about'));
     $('liveBtn').addEventListener('click',()=>window.location.assign('/live'));
     $('zapBtn').addEventListener('click',()=>window.location.assign('/donation/'));
+    $('signedInSettings').addEventListener('click',openProfileSettings);
+    $('profileSettingsClose').addEventListener('click',()=>$('profileSettingsModal').hidden=true);
+    $('profileSettingsCancel').addEventListener('click',()=>$('profileSettingsModal').hidden=true);
+    $('profileSettingsModal').addEventListener('click',event=>{if(event.target===$('profileSettingsModal'))$('profileSettingsModal').hidden=true;});
+    $('profileSettingsSave').addEventListener('click',()=>void saveProfileSettings());
     $('loginBtn').addEventListener('click',connectNostr);
     $('loginCloseButton').addEventListener('click',closeLogin);
     $('loginModal').addEventListener('click',event=>{if(event.target===$('loginModal'))closeLogin();});
