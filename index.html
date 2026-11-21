@@ -1428,10 +1428,16 @@ async function restoreSharedNostrSession(){
   try{saved=JSON.parse(sessionStorage.getItem(SHARED_AUTH_KEY)||"null");}catch{}
   if(!saved||!/^([0-9a-f]{64})$/.test(saved.pubkey||""))return;
   try{
-    if(saved.method==="nip46"&&saved.remoteUri&&/^[0-9a-f]{64}$/.test(saved.remoteSecret||"")){
+    if(saved.method==="nip46"&&/^[0-9a-f]{64}$/.test(saved.remoteSecret||"")&&(saved.bunkerPointer||saved.remoteUri)){
       const [nip46,{SimplePool}]=await Promise.all([import("https://esm.sh/nostr-tools@2.10.4/nip46?bundle"),getNostrTools()]);
       nostrPool ||= new SimplePool();
-      nostrRemoteSigner=await nip46.BunkerSigner.fromURI(hexBytes(saved.remoteSecret),saved.remoteUri,{pool:nostrPool},20000);
+      const clientSecret=hexBytes(saved.remoteSecret);
+      if(saved.bunkerPointer&&/^[0-9a-f]{64}$/i.test(saved.bunkerPointer.pubkey||"")&&Array.isArray(saved.bunkerPointer.relays)&&saved.bunkerPointer.relays.length){
+        nostrRemoteSigner=nip46.BunkerSigner.fromBunker(clientSecret,{pubkey:saved.bunkerPointer.pubkey,relays:saved.bunkerPointer.relays},{pool:nostrPool});
+        await nostrRemoteSigner.connect();
+      }else{
+        nostrRemoteSigner=await nip46.BunkerSigner.fromURI(clientSecret,saved.remoteUri,{pool:nostrPool},20000);
+      }
       signedInPubkey=await nostrRemoteSigner.getPublicKey();
     }else if(saved.method==="nip07"&&window.nostr&&typeof window.nostr.getPublicKey==="function"&&typeof window.nostr.signEvent==="function"){
       const pubkey=await window.nostr.getPublicKey();

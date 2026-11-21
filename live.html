@@ -965,9 +965,13 @@ permalink: /live
       if(options.method)activeSignerKind=options.method;
       try{
         const shared={pubkey:signedInPubkey,method:activeSignerKind};
-        if(activeSignerKind==='nip46'&&remoteClientSecret instanceof Uint8Array&&sharedRemoteLoginUri){
+        if(activeSignerKind==='nip46'&&remoteClientSecret instanceof Uint8Array){
           shared.remoteSecret=Array.from(remoteClientSecret).map(value=>value.toString(16).padStart(2,'0')).join('');
-          shared.remoteUri=sharedRemoteLoginUri;
+          const pointer=activeRemoteSigner?.bp;
+          if(pointer&&/^[0-9a-f]{64}$/i.test(pointer.pubkey||'')&&Array.isArray(pointer.relays)&&pointer.relays.length){
+            shared.bunkerPointer={pubkey:pointer.pubkey,relays:pointer.relays.filter(relay=>typeof relay==='string'&&/^wss:\/\//i.test(relay))};
+          }
+          if(sharedRemoteLoginUri)shared.remoteUri=sharedRemoteLoginUri;
         }
         if(activeSignerKind==='nip07'||(activeSignerKind==='nip46'&&shared.remoteSecret))sessionStorage.setItem('bitcoinCatsAuth',JSON.stringify(shared));
         else sessionStorage.removeItem('bitcoinCatsAuth');
@@ -1056,7 +1060,8 @@ permalink: /live
       const controller=new AbortController();
       remoteLoginAbort=controller;
       try{
-        const [nip46,pure,qr]=await Promise.all([getNip46(),getNostrPure(),getQrCode()]);
+        const [nip46,pure]=await Promise.all([getNip46(),getNostrPure()]);
+        const qr=await getQrCode().catch(error=>{console.warn('QR rendering unavailable; remote login can still use the copyable connection URI.',error);return null;});
         if(controller.signal.aborted)return;
         if(!nip46.BunkerSigner||typeof nip46.BunkerSigner.fromURI!=='function'||typeof nip46.createNostrConnectURI!=='function'){
           throw new Error('Remote Nostr login is not supported by the loaded signer library. Try a NIP-07 extension or bunker URI.');
@@ -1070,19 +1075,24 @@ permalink: /live
           secret:makeLoginSecret(),
           name:'Bitcoin Cats',
           url:'https://bitcoin-cats.ca',
-          perms:['sign_event:1311','sign_event:9734','sign_event:30078']
+          perms:['sign_event:0','sign_event:1','sign_event:1311','sign_event:9734','sign_event:30078']
         });
         sharedRemoteLoginUri=uri;
         $('remoteLoginUri').value=uri;
-        const qrApi=qr.default&&typeof qr.default.toDataURL==='function'?qr.default:qr;
-        if(typeof qrApi.toDataURL!=='function')throw new Error('QR code rendering is not available in this browser.');
-        $('remoteLoginQrImage').src=await qrApi.toDataURL(uri,{width:320,margin:2,errorCorrectionLevel:'M'});
+        if(qr){
+          const qrApi=qr.default&&typeof qr.default.toDataURL==='function'?qr.default:qr;
+          if(typeof qrApi.toDataURL==='function'){
+            $('remoteLoginQrImage').src=await qrApi.toDataURL(uri,{width:320,margin:2,errorCorrectionLevel:'M'});
+            $('remoteLoginQrImage').hidden=false;
+          }
+        }
         if(controller.signal.aborted){
           if(remoteClientSecret instanceof Uint8Array)remoteClientSecret.fill(0);
           remoteClientSecret=null;return;
         }
-        $('remoteLoginQrImage').hidden=false;
-        $('remoteLoginStatus').textContent='Waiting for your signer to approve the connection…';
+        $('remoteLoginStatus').textContent=$('remoteLoginQrImage').hidden
+          ?'QR display is unavailable. Copy the connection URI above into your signer app.'
+          :'Waiting for your signer to approve the connection…';
         const signer=await nip46.BunkerSigner.fromURI(remoteClientSecret,uri,{pool},90000);
         if(controller.signal.aborted){
           try{await signer.close();}catch{}
@@ -1154,12 +1164,17 @@ permalink: /live
         if(saved.method==='nip07'&&window.nostr&&typeof window.nostr.getPublicKey==='function'&&typeof window.nostr.signEvent==='function'){
           const pubkey=await window.nostr.getPublicKey();
           if(pubkey===saved.pubkey)await completeLogin(pubkey,{method:'nip07'});
-        }else if(saved.method==='nip46'&&saved.remoteUri&&/^[0-9a-f]{64}$/.test(saved.remoteSecret||'')){
+        }else if(saved.method==='nip46'&&/^[0-9a-f]{64}$/.test(saved.remoteSecret||'')&&(saved.bunkerPointer||saved.remoteUri)){
           await ensureNostrReady();
           const nip46=await getNip46();
           remoteClientSecret=Uint8Array.from((saved.remoteSecret.match(/.{2}/g)||[]).map(value=>parseInt(value,16)));
-          sharedRemoteLoginUri=saved.remoteUri;
-          activeRemoteSigner=await nip46.BunkerSigner.fromURI(remoteClientSecret,saved.remoteUri,{pool},20000);
+          if(saved.bunkerPointer&&/^[0-9a-f]{64}$/i.test(saved.bunkerPointer.pubkey||'')&&Array.isArray(saved.bunkerPointer.relays)&&saved.bunkerPointer.relays.length){
+            activeRemoteSigner=nip46.BunkerSigner.fromBunker(remoteClientSecret,{pubkey:saved.bunkerPointer.pubkey,relays:saved.bunkerPointer.relays},{pool});
+            await activeRemoteSigner.connect();
+          }else{
+            sharedRemoteLoginUri=saved.remoteUri;
+            activeRemoteSigner=await nip46.BunkerSigner.fromURI(remoteClientSecret,saved.remoteUri,{pool},20000);
+          }
           activeLocalSecret=null;activeSignerKind='nip46';
           await completeLogin(await activeRemoteSigner.getPublicKey(),{method:'nip46'});
         }
