@@ -227,9 +227,9 @@ permalink: /live
     .donation-help{margin-top:8px;color:var(--muted);font-size:10px;line-height:1.5}
     .donation-verified{padding:12px;border:1px solid rgba(94,230,168,.3);border-radius:10px;background:rgba(94,230,168,.08);color:#c9ffe3;font-size:11px;line-height:1.5}
     .footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;color:var(--muted);font-size:11px;line-height:1.6}.footer a{color:#ffd1a0}
-    body.signed-in .container{padding-top:82px}
+    body.signed-in .container{padding-top:20px}
     @media(max-width:900px){.layout{grid-template-columns:1fr}.chat-panel{min-height:540px}.chat-frame{min-height:480px}.video-wrap{min-height:200px}.watcher-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
-    @media(max-width:700px){.container{padding-top:12px}body.signed-in .container{padding-top:82px}.login-dialog{padding:20px}.login-grid{grid-template-columns:1fr}.signed-in-overlay{top:8px;right:8px;padding:7px 9px}.signed-in-avatar{width:36px;height:36px}.donation-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-section{padding:14px 11px}.watcher-heading{align-items:flex-start}.watcher-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-stat:first-child{grid-column:span 2}.watcher-stat-value{font-size:19px}.watcher-list{grid-template-columns:1fr}.watcher-live-state{font-size:9px;padding:5px 7px}}
+    @media(max-width:700px){.container{padding-top:12px}body.signed-in .container{padding-top:12px}.login-dialog{padding:20px}.login-grid{grid-template-columns:1fr}.signed-in-overlay{top:8px;right:8px;padding:7px 9px}.signed-in-avatar{width:36px;height:36px}.donation-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-section{padding:14px 11px}.watcher-heading{align-items:flex-start}.watcher-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.watcher-stat:first-child{grid-column:span 2}.watcher-stat-value{font-size:19px}.watcher-list{grid-template-columns:1fr}.watcher-live-state{font-size:9px;padding:5px 7px}}
     @media(max-width:700px){.container{padding:12px}.profile{margin:24px 0}.banner{padding:84px 14px 16px;align-items:flex-start;flex-direction:column;gap:14px}.pfp-wrap{left:14px;top:-22px;transform:none;width:84px;height:84px}.pfp-wrap img{width:84px;height:84px;border-width:3px}.id-name{font-size:1.5rem}.actions{width:100%;margin:0;justify-content:flex-start;gap:7px}.btn{padding:9px 10px;font-size:12px}.page{padding:0}.link-btn{padding:9px 10px;font-size:11px}.intro{display:block}.live-pill{top:8px;right:8px;padding:7px 9px;font-size:11px}.banner-links{bottom:5px;gap:5px;max-width:calc(100% - 16px)}.banner-link{min-height:24px;padding:4px 8px;border-radius:7px;font-size:9px}.panel{border-radius:16px}.panel-head{padding:14px}.stream-details{padding:14px}.video-wrap{aspect-ratio:var(--stream-aspect-ratio,2.333);min-height:0;max-height:70vh}.chat-panel{min-height:500px}.chat-frame{min-height:440px}.footer{align-items:flex-start;flex-direction:column}.stream-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.stream-action{font-size:11px;padding:10px 8px;min-height:48px}.donor-list{padding:10px}.bitcoin-donation-dialog{padding:20px}.bitcoin-donation-qr{width:190px;height:190px}}
     html.login-embed body{min-height:100vh;height:100vh;overflow:hidden;background:#090910}
     html.login-embed body .container,html.login-embed body .signed-in-overlay{display:none!important}
@@ -423,6 +423,8 @@ permalink: /live
     let activityStatus = 'offline', currentEventId = '', streamRefreshRunning = false;
     let signedInPubkey = '';
     let activeLocalSecret = null, activeRemoteSigner = null, activeSignerKind = '', signedInProfile = null;
+    let parentSignerBridge=false;
+    const pendingParentSignatures=new Map();
     let pendingNewIdentity = false, remoteLoginAbort = null, remoteClientSecret = null, pendingRemoteSigner = null;
     let sharedRemoteLoginUri = '';
     let chatRefreshRunning = false, chatRefreshQueued = false, chatRequestId = 0, lastPlaybackKey = '';
@@ -570,6 +572,14 @@ permalink: /live
     }
     async function signUserEvent(unsigned){
       if(!signedInPubkey)throw new Error('Sign in with Nostr before continuing.');
+      if(parentSignerBridge&&embedLoginMode&&window.parent!==window){
+        const requestId='parent-sign-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+        return await new Promise((resolve,reject)=>{
+          const timer=setTimeout(()=>{pendingParentSignatures.delete(requestId);reject(new Error('The main page signer did not respond. Please sign in again.'));},90000);
+          pendingParentSignatures.set(requestId,{resolve,reject,timer});
+          window.parent.postMessage({type:'bitcoin-cats-parent-sign-request',requestId,event:unsigned},location.origin);
+        });
+      }
       let signed;
       if(activeRemoteSigner){
         signed=await activeRemoteSigner.signEvent(unsigned);
@@ -586,12 +596,18 @@ permalink: /live
     }
     function openProfileSettings(){
       if(!signedInPubkey){openLogin();return;}
+      $('loginModal').hidden=true;
+      document.body.style.overflow='hidden';
       const profile=signedInProfile||{};
       $('settingsName').value=String(profile.name||'');$('settingsPicture').value=String(profile.picture||'');
       $('settingsNip05').value=String(profile.nip05||'');$('settingsLud16').value=String(profile.lud16||'');
       try{$('settingsNwc').value=sessionStorage.getItem('bitcoinCatsNwcUri')||'';}catch{$('settingsNwc').value='';}
       $('profileSettingsStatus').textContent='NWC credentials are kept in this browser tab only. A Lightning address is what other people use to send you tips.';
       $('profileSettingsModal').hidden=false;
+    }
+    function closeProfileSettings(){
+      $('profileSettingsModal').hidden=true;
+      document.body.style.overflow=$('loginModal').hidden?'':'hidden';
     }
     async function saveProfileSettings(){
       if(!signedInPubkey)return;
@@ -611,7 +627,7 @@ permalink: /live
         await updateSignedInOverlay(signedInProfile);
         if(embedLoginMode&&window.parent!==window)window.parent.postMessage({type:'bitcoin-cats-profile-updated',pubkey:signedInPubkey,profile:{name,picture,nip05,lud16}},location.origin);
         $('profileSettingsStatus').textContent='Profile published. Your NWC URI remains private in this browser tab; it is not published.';
-        $('profileSettingsModal').hidden=true;
+        closeProfileSettings();
       }catch(error){$('profileSettingsStatus').textContent=error.message||'Could not publish profile changes.';}
       finally{$('profileSettingsSave').disabled=false;}
     }
@@ -1186,6 +1202,9 @@ permalink: /live
       }
     }
     async function signOut(){
+      parentSignerBridge=false;
+      for(const pending of pendingParentSignatures.values()){clearTimeout(pending.timer);pending.reject(new Error('You have signed out.'));}
+      pendingParentSignatures.clear();
       try{sessionStorage.removeItem('bitcoinCatsAuth');sessionStorage.removeItem('bitcoinCatsLoginReturn');}catch{}
       sharedRemoteLoginUri='';
       if(remoteLoginAbort)cancelRemoteLogin();
@@ -2004,7 +2023,28 @@ permalink: /live
       window.addEventListener('message',async event=>{
         if(event.origin!==location.origin||event.source!==window.parent)return;
         const message=event.data||{};
-        if(message.type==='bitcoin-cats-open-settings'){
+        if(message.type==='bitcoin-cats-parent-auth'){
+          if(!/^[0-9a-f]{64}$/.test(message.pubkey||''))return;
+          const ownSignerAvailable=!!activeLocalSecret||!!activeRemoteSigner||(activeSignerKind==='nip07'&&window.nostr&&typeof window.nostr.signEvent==='function');
+          if(signedInPubkey===message.pubkey&&ownSignerAvailable){parentSignerBridge=false;}
+          else{
+            if(activeLocalSecret instanceof Uint8Array)activeLocalSecret.fill(0);
+            activeLocalSecret=null;activeRemoteSigner=null;activeSignerKind='';
+            signedInPubkey=message.pubkey;parentSignerBridge=true;
+          }
+          signedInPubkey=message.pubkey;
+          signedInProfile=message.profile&&typeof message.profile==='object'?message.profile:await fetchProfile(signedInPubkey);
+          await updateSignedInOverlay(signedInProfile||{});
+        }else if(message.type==='bitcoin-cats-parent-sign-result'){
+          const pending=pendingParentSignatures.get(message.requestId);if(!pending)return;
+          clearTimeout(pending.timer);pendingParentSignatures.delete(message.requestId);
+          if(message.ok&&message.event&&message.event.pubkey===signedInPubkey)pending.resolve(message.event);
+          else pending.reject(new Error(message.error||'The main page signer could not sign this event.'));
+        }else if(message.type==='bitcoin-cats-parent-sign-out'){
+          parentSignerBridge=false;signedInPubkey='';signedInProfile=null;
+          $('signedInOverlay').hidden=true;document.body.classList.remove('signed-in');
+          $('loginBtn').textContent='🔑 Login with Nostr';
+        }else if(message.type==='bitcoin-cats-open-settings'){
           if(signedInPubkey)openProfileSettings();else openLogin();
         }else if(message.type==='bitcoin-cats-open-login'){
           if(!signedInPubkey)openLogin();
@@ -2027,9 +2067,9 @@ permalink: /live
     $('liveBtn').addEventListener('click',()=>window.location.assign('/live'));
     $('zapBtn').addEventListener('click',()=>window.location.assign('/donation/'));
     $('signedInSettings').addEventListener('click',openProfileSettings);
-    $('profileSettingsClose').addEventListener('click',()=>$('profileSettingsModal').hidden=true);
-    $('profileSettingsCancel').addEventListener('click',()=>$('profileSettingsModal').hidden=true);
-    $('profileSettingsModal').addEventListener('click',event=>{if(event.target===$('profileSettingsModal'))$('profileSettingsModal').hidden=true;});
+    $('profileSettingsClose').addEventListener('click',closeProfileSettings);
+    $('profileSettingsCancel').addEventListener('click',closeProfileSettings);
+    $('profileSettingsModal').addEventListener('click',event=>{if(event.target===$('profileSettingsModal'))closeProfileSettings();});
     $('profileSettingsSave').addEventListener('click',()=>void saveProfileSettings());
     $('loginBtn').addEventListener('click',connectNostr);
     $('loginCloseButton').addEventListener('click',closeLogin);
