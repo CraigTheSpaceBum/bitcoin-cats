@@ -1344,7 +1344,7 @@ function openNostrLoginModal(){
   if(!modal||!frame)return;
   modal.hidden=false;
   document.body.style.overflow="hidden";
-  const frameUrl="/live?login=1&embed=1";
+  const frameUrl="/live.html?login=1&embed=1";
   if(frame.getAttribute("src")!==frameUrl){
     loginFrameReady=false;
     frame.setAttribute("src",frameUrl);
@@ -1361,7 +1361,7 @@ async function showAccountFloat(profile={}){
 }
 function openProfileSettings(){
   const modal=document.getElementById("nostrLoginModal"),frame=document.getElementById("nostrLoginFrame");
-  modal.hidden=false;document.body.style.overflow="hidden";const frameUrl="/live?login=1&embed=1";
+  modal.hidden=false;document.body.style.overflow="hidden";const frameUrl="/live.html?login=1&embed=1";
   if(frame.getAttribute("src")!==frameUrl){loginFrameReady=false;frame.setAttribute("src",frameUrl);frame.addEventListener("load",()=>{if(loginFrameReady)postToLoginFrame({type:"bitcoin-cats-open-settings"});},{once:true});}
   else if(loginFrameReady)postToLoginFrame({type:"bitcoin-cats-open-settings"});
 }
@@ -1380,7 +1380,7 @@ function signWithLoginFrame(unsignedEvent){
 const nostrLoginFrame=document.getElementById("nostrLoginFrame");
 nostrLoginFrame.addEventListener("load",()=>{
   loginFrameReady=true;
-  if(nostrLoginFrame.getAttribute("src")==="/live?login=1&embed=1"){
+  if(nostrLoginFrame.getAttribute("src")==="/live.html?login=1&embed=1"){
     if(document.getElementById("nostrLoginModal").hidden)postToLoginFrame({type:"bitcoin-cats-close-login"});
     else postToLoginFrame({type:"bitcoin-cats-open-login"});
   }
