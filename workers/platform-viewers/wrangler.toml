@@ -1,0 +1,11 @@
+name = "bitcoin-cats-platform-viewers"
+main = "src/index.js"
+compatibility_date = "2026-11-21"
+workers_dev = true
+preview_urls = false
+
+# The route sends only this API path through the Worker. The rest of the
+# GitHub Pages site continues to be served exactly as it is now.
+[[routes]]
+pattern = "bitcoin-cats.ca/api/platform-viewers*"
+zone_name = "bitcoin-cats.ca"
