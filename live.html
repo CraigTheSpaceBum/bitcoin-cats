@@ -1025,8 +1025,10 @@ permalink: /live
       if(!activeLocalSecret||!$('savedGeneratedNsecCheck').checked)return;
       const pure=await getNostrPure();
       const pubkey=pure.getPublicKey(activeLocalSecret);
-      await completeLogin(pubkey,{method:'local',profile:{name:'New Nostr identity',picture:'',nip05:''}});
+      await completeLogin(pubkey,{method:'local',profile:{name:'New Nostr identity',picture:'',nip05:'',lud16:''}});
       pendingNewIdentity=false;$('generatedNsec').textContent='';
+      if(embedLoginMode&&window.parent!==window)setTimeout(()=>window.parent.postMessage({type:'bitcoin-cats-request-profile-setup'},location.origin),700);
+      else setTimeout(openProfileSettings,350);
     }
     async function signInWithNsec(){
       try{
