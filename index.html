@@ -817,6 +817,64 @@ async function replaceNprofileMentions(container){
   await Promise.allSettled(tasks);
 }
 
+
+/* Resolve Nostr indexed profile references (#[n]) in feed posts only.
+   Keep the established nprofile renderer untouched because comments use it too. */
+async function replaceIndexedProfileMentions(container, sourceEvent){
+  const tags=Array.isArray(sourceEvent?.tags)?sourceEvent.tags:[];
+  if(!tags.length) return;
+  const walker=document.createTreeWalker(container,NodeFilter.SHOW_TEXT);
+  const nodes=[];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  const tasks=[];
+  const pattern=/#\[(\d+)\]/g;
+  for(const node of nodes){
+    const text=node.textContent;
+    const matches=[...text.matchAll(pattern)];
+    if(!matches.length) continue;
+    const frag=document.createDocumentFragment();
+    let lastIndex=0;
+    for(const match of matches){
+      const rawToken=match[0];
+      const tokenIndex=Number(match[1]);
+      const tag=tags[tokenIndex];
+      const pubkey=tag?.[0]==="p"&&/^[0-9a-f]{64}$/i.test(tag[1]||"")?tag[1].toLowerCase():"";
+      if(!pubkey) continue;
+      const index=match.index;
+      if(index>lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex,index)));
+      const placeholder=document.createElement("span");
+      placeholder.className="mention";
+      placeholder.textContent="Loading…";
+      frag.appendChild(placeholder);
+      tasks.push((async()=>{
+        let profile=fallbackProfile(pubkey);
+        try{profile=await getProfile(pubkey)||profile;}catch(error){console.warn("Indexed mention profile lookup failed",error);}
+        const labelText=String(profile.name||shortKey(pubkey)||"Nostr user").trim()||shortKey(pubkey)||"Nostr user";
+        const a=document.createElement("a");
+        let profileId=pubkey;
+        try{const {nip19}=await getNostrTools();profileId=nip19.npubEncode(pubkey);}catch{}
+        a.href="https://njump.me/"+profileId;
+        a.target="_blank";
+        a.rel="noopener noreferrer";
+        a.className="mention visible";
+        const img=document.createElement("img");
+        img.src=profile.picture||fallbackProfile(pubkey).picture;
+        img.alt=labelText;
+        img.loading="lazy";
+        const label=document.createElement("span");
+        label.className="label";
+        label.textContent=labelText;
+        a.append(img,label);
+        if(placeholder.isConnected) placeholder.replaceWith(a);
+      })());
+      lastIndex=index+rawToken.length;
+    }
+    if(lastIndex<text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+    if(node.parentNode) node.parentNode.replaceChild(frag,node);
+  }
+  await Promise.allSettled(tasks);
+}
+
 function isReplyEvent(event){
   return (event.tags||[]).some(tag=>tag[0]==="e"&&String(tag[3]||"").toLowerCase()==="reply");
 }
@@ -1003,6 +1061,7 @@ async function renderPost(ev,renderedPostIndex){
   const textOnly=normalizeNprofileMarkup(stripMediaAndNevent(ev.content||""));
   content.textContent=textOnly;
   await replaceNprofileMentions(content);
+  await replaceIndexedProfileMentions(content,ev);
   linkifyRemainingTextNodes(content);
 
   const gallery=document.createElement("div");
