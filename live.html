@@ -412,7 +412,7 @@ permalink: /live
     const PRESENCE_TTL_SECONDS = 65;
     const PRESENCE_REFRESH_MS = 9000;
     const $ = id => document.getElementById(id);
-    const embedLoginMode = new URLSearchParams(location.search).get('embed')==='1';
+    const embedLoginMode = new URLSearchParams(location.search).get('embed')==='1' || window.parent!==window;
     if(embedLoginMode)document.documentElement.classList.add('login-embed');
     const pill = $('livePill'), label = $('liveLabel'), note = $('streamNote');
     const video = $('streamVideo'), empty = $('videoEmpty'), videoWrap = $('videoWrap');
