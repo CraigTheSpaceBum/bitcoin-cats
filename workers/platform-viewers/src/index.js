@@ -14,11 +14,25 @@ const TWITCH_AUTH_KEY = "twitch:auth";
 const TWITCH_SECRET_KEY = "twitch:eventsub:secret";
 const TWITCH_REQUIRED_SCOPES = ["user:read:chat", "moderator:read:followers"];
 const KICK_SLUG = "craigthespacebum";
+const KICK_CHAT_KEY = "kick:chat:events";
+const KICK_WEBHOOK_URL = "https://api.bitcoin-cats.ca/api/kick/eventsub";
+const KICK_EVENT_TYPES = [
+  "chat.message.sent",
+  "channel.followed",
+  "channel.subscription.new",
+  "channel.subscription.renewal",
+  "channel.subscription.gifts",
+  "kicks.gifted",
+  "livestream.status.updated",
+  "livestream.metadata.updated"
+];
 const CACHE_SECONDS = 45;
 const REQUEST_TIMEOUT_MS = 9000;
 
 let twitchTokenCache = { token: "", expiresAt: 0 };
 let kickTokenCache = { token: "", expiresAt: 0 };
+let kickPublicKeyCache = { key: null, expiresAt: 0 };
+let kickSubscriptionsCache = { broadcasterId: "", status: null, expiresAt: 0 };
 let youtubeUploadsCache = { playlistId: "", expiresAt: 0 };
 let youtubeStatsCache = { value: null, expiresAt: 0 };
 
@@ -575,6 +589,198 @@ async function getKickToken(env) {
   return kickTokenCache.token;
 }
 
+async function ensureKickEventSubscriptions(env, broadcasterId, token) {
+  if (!env.TWITCH_AUTH || !broadcasterId) return { status: "setup_required" };
+  if (kickSubscriptionsCache.broadcasterId === String(broadcasterId) && kickSubscriptionsCache.expiresAt > Date.now()) {
+    return kickSubscriptionsCache.status;
+  }
+  const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+  const listUrl = new URL("https://api.kick.com/public/v1/events/subscriptions");
+  listUrl.searchParams.set("broadcaster_user_id", String(broadcasterId));
+  const existingData = await fetchJson(listUrl, { headers });
+  const existing = new Set((existingData.data || []).filter(item => item.method === "webhook").map(item => item.event));
+  const missing = KICK_EVENT_TYPES.filter(name => !existing.has(name));
+  let registration = [];
+  if (missing.length) {
+    const result = await fetchJson("https://api.kick.com/public/v1/events/subscriptions", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        broadcaster_user_id: Number(broadcasterId),
+        method: "webhook",
+        events: missing.map(name => ({ name, version: 1 }))
+      })
+    });
+    registration = Array.isArray(result.data) ? result.data : [];
+  }
+  const status = {
+    status: "connected",
+    events: KICK_EVENT_TYPES.map(name => ({
+      name,
+      state: existing.has(name) ? "already_subscribed" :
+        (registration.find(item => item.name === name)?.error ? "error" : "requested")
+    }))
+  };
+  kickSubscriptionsCache = {
+    broadcasterId: String(broadcasterId),
+    status,
+    expiresAt: Date.now() + 60 * 60 * 1000
+  };
+  return status;
+}
+
+async function getKickPublicKey() {
+  if (kickPublicKeyCache.key && kickPublicKeyCache.expiresAt > Date.now()) return kickPublicKeyCache.key;
+  const payload = await fetchJson("https://api.kick.com/public/v1/public-key");
+  const pem = payload.data?.public_key || payload.public_key || "";
+  if (!pem) throw new Error("Kick did not provide its webhook public key.");
+  const base64 = String(pem).replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----|\\s/g, "");
+  const der = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+  const key = await crypto.subtle.importKey(
+    "spki",
+    der,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["verify"]
+  );
+  kickPublicKeyCache = { key, expiresAt: Date.now() + 60 * 60 * 1000 };
+  return key;
+}
+
+async function verifyKickWebhook(request, rawBody) {
+  const messageId = request.headers.get("Kick-Event-Message-Id") || "";
+  const timestamp = request.headers.get("Kick-Event-Message-Timestamp") || "";
+  const signature = request.headers.get("Kick-Event-Signature") || "";
+  const timestampMs = Date.parse(timestamp);
+  if (!messageId || !Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > 10 * 60 * 1000 || !signature) return false;
+  const publicKey = await getKickPublicKey();
+  let signatureBytes;
+  try {
+    signatureBytes = Uint8Array.from(atob(signature), character => character.charCodeAt(0));
+  } catch {
+    return false;
+  }
+  const signed = messageId + "." + timestamp + "." + rawBody;
+  return crypto.subtle.verify(
+    "RSASSA-PKCS1-v1_5",
+    publicKey,
+    signatureBytes,
+    new TextEncoder().encode(signed)
+  );
+}
+
+function normalizeKickEvent(type, event, messageId, timestamp) {
+  const author = event.sender || event.follower || event.subscriber || event.gifter ||
+    event.redeemer || event.sender || event.broadcaster || {};
+  const createdAt = toIso(event.created_at || event.redeemed_at || event.started_at || timestamp);
+  const labels = {
+    "chat.message.sent": "CHAT",
+    "channel.followed": "NEW FOLLOWER",
+    "channel.subscription.new": "NEW SUBSCRIBER",
+    "channel.subscription.renewal": "SUBSCRIPTION RENEWED",
+    "channel.subscription.gifts": "GIFTED SUBSCRIPTIONS",
+    "kicks.gifted": "KICKS GIFT",
+    "channel.reward.redemption.updated": "CHANNEL REWARD",
+    "livestream.status.updated": "STREAM STATUS",
+    "livestream.metadata.updated": "STREAM UPDATE"
+  };
+  let message = "";
+  let amountLabel = "";
+  let displayName = String(author.username || "Kick user");
+  let avatar = String(author.profile_picture || "");
+  switch (type) {
+    case "chat.message.sent":
+      message = String(event.content || "");
+      break;
+    case "channel.followed":
+      message = "Followed the channel";
+      break;
+    case "channel.subscription.new":
+      message = "Subscribed to the channel";
+      break;
+    case "channel.subscription.renewal":
+      message = "Renewed their subscription";
+      if (event.duration) amountLabel = String(event.duration) + " months";
+      break;
+    case "channel.subscription.gifts": {
+      const count = Array.isArray(event.giftees) ? event.giftees.length : 0;
+      message = count ? "Gifted " + count + " subscription" + (count === 1 ? "" : "s") : "Gifted subscriptions";
+      if (count) amountLabel = String(count) + " gifts";
+      displayName = String(event.gifter?.username || "Anonymous gifter");
+      avatar = String(event.gifter?.profile_picture || "");
+      break;
+    }
+    case "kicks.gifted":
+      message = String(event.gift?.message || "Sent KICKs");
+      if (event.gift?.amount !== undefined) amountLabel = Number(event.gift.amount).toLocaleString() + " KICKs";
+      displayName = String(event.sender?.username || "Kick viewer");
+      avatar = String(event.sender?.profile_picture || "");
+      break;
+    case "channel.reward.redemption.updated":
+      message = "Redeemed " + String(event.reward?.title || "a channel reward");
+      if (event.user_input) message += ": " + String(event.user_input);
+      break;
+    case "livestream.status.updated":
+      message = event.is_live ? "Stream is now live" : "Stream ended";
+      break;
+    case "livestream.metadata.updated":
+      message = "Stream details updated";
+      if (event.metadata?.title) amountLabel = String(event.metadata.title);
+      break;
+    default:
+      message = "";
+  }
+  if (!message && !amountLabel) return null;
+  return {
+    id: "kick:" + String(messageId || crypto.randomUUID()),
+    source: "Kick",
+    createdAt,
+    displayName,
+    avatar,
+    message,
+    badge: labels[type] || "KICK EVENT",
+    amountLabel
+  };
+}
+
+async function saveKickEvent(env, item) {
+  if (!env.TWITCH_AUTH) return;
+  const previous = await env.TWITCH_AUTH.get(KICK_CHAT_KEY, "json") || [];
+  const combined = [...previous.filter(row => row.id !== item.id), item]
+    .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+    .slice(-50);
+  await env.TWITCH_AUTH.put(KICK_CHAT_KEY, JSON.stringify(combined), { expirationTtl: 60 * 60 * 24 * 14 });
+}
+
+async function handleKickEventSub(request, env) {
+  const rawBody = await request.text();
+  let verified = false;
+  try {
+    verified = await verifyKickWebhook(request, rawBody);
+  } catch (error) {
+    console.warn("Kick webhook verification failed", String(error?.message || ""));
+  }
+  if (!verified) return jsonResponse({ error: "Invalid Kick webhook signature." }, 403);
+  let payload;
+  try { payload = JSON.parse(rawBody); } catch { return jsonResponse({ error: "Invalid JSON." }, 400); }
+  const type = request.headers.get("Kick-Event-Type") || "";
+  const version = request.headers.get("Kick-Event-Version") || "";
+  const messageId = request.headers.get("Kick-Event-Message-Id") || "";
+  const timestamp = request.headers.get("Kick-Event-Message-Timestamp") || "";
+  if (version !== "1") return new Response(null, { status: 204 });
+  const item = normalizeKickEvent(type, payload, messageId, timestamp);
+  if (item) await saveKickEvent(env, item);
+  return new Response(null, { status: 204 });
+}
+
+async function getKickChatMessages(env) {
+  if (!env.KICK_CLIENT_ID || !env.KICK_CLIENT_SECRET || !env.TWITCH_AUTH) {
+    return { status: "setup_required", messages: [] };
+  }
+  const messages = await env.TWITCH_AUTH.get(KICK_CHAT_KEY, "json") || [];
+  return { status: "connected", messages: messages.slice(-50) };
+}
+
 async function getKickViewerCount(env) {
   if (!env.KICK_CLIENT_ID || !env.KICK_CLIENT_SECRET) {
     return setupRequired("Add KICK_CLIENT_ID and KICK_CLIENT_SECRET as Worker secrets.");
@@ -586,6 +792,13 @@ async function getKickViewerCount(env) {
     headers: { Authorization: "Bearer " + token }
   });
   const channel = Array.isArray(data.data) ? data.data[0] : null;
+  if (channel?.broadcaster_user_id) {
+    try {
+      await ensureKickEventSubscriptions(env, channel.broadcaster_user_id, token);
+    } catch (error) {
+      console.warn("Could not register Kick webhook events", String(error?.message || ""));
+    }
+  }
   if (!channel?.stream?.is_live) return offline();
   return live(channel.stream.viewer_count, channel.stream_title || "");
 }
@@ -666,12 +879,15 @@ export default {
     const origin = request.headers.get("Origin") || "";
     const path = url.pathname;
 
-    if (origin && !ALLOWED_ORIGINS.has(origin) && path !== "/api/twitch/eventsub") {
+    if (origin && !ALLOWED_ORIGINS.has(origin) && path !== "/api/twitch/eventsub" && path !== "/api/kick/eventsub") {
       return jsonResponse({ error: "Origin not allowed." }, 403);
     }
 
     if (path === "/api/twitch/eventsub" && request.method === "POST") {
       return handleTwitchEventSub(request, env);
+    }
+    if (path === "/api/kick/eventsub" && request.method === "POST") {
+      return handleKickEventSub(request, env);
     }
     if (request.method === "OPTIONS") {
       return new Response(null, {
@@ -693,6 +909,14 @@ export default {
       catch (error) {
         console.error("Twitch OAuth callback failed", String(error?.message || ""));
         return htmlResponse("Twitch connection failed", "The server could not complete Twitch authorization. Check that the Twitch Client ID, Client Secret and redirect URL are configured correctly, then try again.", 502);
+      }
+    }
+    if (request.method === "GET" && path === "/api/kick/chat") {
+      try {
+        const result = await getKickChatMessages(env);
+        return addCors(jsonResponse({ ok: true, ...result }), origin);
+      } catch (error) {
+        return addCors(jsonResponse({ ok: false, status: "error", messages: [], note: String(error?.message || "Kick chat is temporarily unavailable.") }), origin);
       }
     }
     if (request.method === "GET" && path === "/api/twitch/chat") {
@@ -749,7 +973,7 @@ export default {
         ...kickResult,
         followerCount: null,
         followerStatus: "unsupported",
-        followerNote: "Kick's documented public channel API does not currently provide a follower total."
+        followerNote: "Kick's documented public channel response does not provide an overall follower total."
       },
       rumble: {
         ...rumbleResult,
