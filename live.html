@@ -88,6 +88,8 @@ permalink: /live
     .chat-source-label.twitch{border-color:rgba(145,70,255,.35);background:rgba(145,70,255,.12);color:#c9a8ff}
     .chat-source-label.youtube{border-color:rgba(255,70,70,.3);background:rgba(255,70,70,.1);color:#ff9c9c}
     .chat-source-label.rumble{border-color:rgba(75,190,120,.3);background:rgba(75,190,120,.1);color:#9ce7b7}
+    .chat-twitch-connect{display:inline-flex;margin:0 0 10px;padding:6px 9px;border:1px solid rgba(145,70,255,.35);border-radius:8px;color:#d4b9ff;background:rgba(145,70,255,.1);font-size:10px;font-weight:800;text-decoration:none}
+    .chat-twitch-connect[hidden]{display:none}
     .chat-message-body{font-size:12px;line-height:1.55;color:#efedf7;overflow-wrap:anywhere;white-space:pre-wrap}
     .chat-message.zap-message{padding:9px;border:1px solid rgba(255,173,85,.24);border-radius:12px;background:linear-gradient(135deg,rgba(255,173,85,.08),rgba(139,92,246,.05))}
     .chat-zap-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid rgba(255,173,85,.28);border-radius:999px;background:rgba(255,173,85,.1);color:#ffd3a8;font-size:9px;font-weight:900;letter-spacing:.04em}
@@ -396,6 +398,7 @@ permalink: /live
       <div class="chat-column">
       <aside class="panel chat-panel">
         <div class="panel-head"><div><div class="panel-title">Live chat</div><div class="panel-kicker" id="chatSubtitle">Nostr + connected platform messages and notifications · last 15</div></div><span class="tag" id="chatStatus">SYNCING</span></div>
+        <a class="chat-twitch-connect" id="liveTwitchConnect" href="https://api.bitcoin-cats.ca/api/twitch/auth" hidden>Connect Twitch chat</a>
         <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text">
           <div class="chat-empty">Finding the host’s current stream so chat can sync to that exact broadcast…</div>
         </div>
@@ -1922,6 +1925,8 @@ permalink: /live
       const messages=[];
       const twitchPayload=results[0].status==='fulfilled'?results[0].value:null;
       const platformPayload=results[1].status==='fulfilled'?results[1].value:null;
+      const connectLink=$('liveTwitchConnect');
+      if(connectLink)connectLink.hidden=twitchPayload?.status==='connected';
       for(const item of (Array.isArray(twitchPayload?.messages)?twitchPayload.messages:[])){
         const normalized=normalizeExternalChatEvent(item,'Twitch');
         if(normalized)messages.push(normalized);
@@ -2066,7 +2071,7 @@ permalink: /live
           $('chatSubtitle').textContent='Partial relay sync · showing messages found so far; retrying automatically…';
         }else{
           chatStatus.title='';
-          $('chatSubtitle').textContent='Last 15 messages and notifications · Nostr, Twitch, YouTube and Rumble · stream '+address.split(':').slice(-1)[0];
+          $('chatSubtitle').textContent='Last 15 · Nostr, YouTube and Rumble'+(externalChat.twitchStatus==='connected'?', Twitch':' · connect Twitch from About')+' · stream '+address.split(':').slice(-1)[0];
         }
         reportHeight();
       }catch(error){
