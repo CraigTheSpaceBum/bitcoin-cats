@@ -105,3 +105,31 @@ test("Twitch EventSub rejects unsigned webhook requests", async () => {
   );
   assert.equal(response.status, 403);
 });
+
+
+test("Kick chat reports setup required until its app webhook is configured", async () => {
+  const response = await worker.fetch(
+    new Request("https://api.bitcoin-cats.ca/api/kick/chat", {
+      headers: { Origin: "https://bitcoin-cats.ca" }
+    }),
+    {},
+    context()
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(payload.status, "setup_required");
+  assert.deepEqual(payload.messages, []);
+});
+
+test("Kick EventSub rejects unsigned webhook requests", async () => {
+  const response = await worker.fetch(
+    new Request("https://api.bitcoin-cats.ca/api/kick/eventsub", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Kick-Event-Type": "chat.message.sent" },
+      body: JSON.stringify({ content: "not verified" })
+    }),
+    {},
+    context()
+  );
+  assert.equal(response.status, 403);
+});
