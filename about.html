@@ -357,7 +357,7 @@
           Number.isFinite(Number(data.followerCount)) ? Number(data.followerCount) : null;
         card.dataset.status = data && data.followerStatus ? data.followerStatus : "unavailable";
         count.textContent = number === null ? "—" : number.toLocaleString();
-        status.textContent = statusLabels[card.dataset.status] || "Count unavailable";
+        status.textContent = card.dataset.status === "available" ? (platform === "youtube" ? "Subscribers" : "Followers") : (statusLabels[card.dataset.status] || "Count unavailable");
         if (data && data.followerNote) status.title = String(data.followerNote);
         else status.removeAttribute("title");
         count.setAttribute("aria-label", platformLabels[platform] + ": " + (number === null ? status.textContent : number.toLocaleString()));
