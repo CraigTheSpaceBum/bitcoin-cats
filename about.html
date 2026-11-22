@@ -275,7 +275,7 @@
               </div>
             </div>
             <div class="social-follower-connect" id="twitchConnectWrap">
-              <a href="/api/twitch/auth">Connect Twitch to enable follower counts and live chat</a>
+              <a href="https://api.bitcoin-cats.ca/api/twitch/auth">Connect Twitch to enable follower counts and live chat</a>
             </div>
           </section>
         </div>
@@ -365,7 +365,7 @@
       async function refreshFollowerCounts() {
         const connect = document.getElementById("twitchConnectWrap");
         try {
-          const response = await fetch("/api/platform-viewers", {
+          const response = await fetch("https://api.bitcoin-cats.ca/api/platform-viewers", {
             method: "GET", headers: { Accept: "application/json" }, cache: "no-store", credentials: "same-origin"
           });
           if (!response.ok) throw new Error("Follower service returned HTTP " + response.status + ".");
