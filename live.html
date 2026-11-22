@@ -2070,6 +2070,7 @@ permalink: /live
           chatStatus.title='Some chat or zap relays did not respond; the displayed history may be incomplete.';
           $('chatSubtitle').textContent='Partial relay sync · showing messages found so far; retrying automatically…';
         }else{
+          chatStatus.textContent='SYNCED';
           chatStatus.title='';
           $('chatSubtitle').textContent='Last 15 · Nostr, YouTube and Rumble'+(externalChat.twitchStatus==='connected'?', Twitch':' · connect Twitch from About')+' · stream '+address.split(':').slice(-1)[0];
         }
