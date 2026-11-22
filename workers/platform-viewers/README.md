@@ -15,7 +15,7 @@ The Worker is read-only. It does not publish, change stream settings, or access 
 
 ## Deploy from the Cloudflare dashboard
 
-The ChatGPT session can prepare this repository, but it is not connected to your Cloudflare account. You must perform the account-specific secret entry and first deployment while signed in to Cloudflare.
+The Worker is deployed to the Cloudflare account for `bitcoin-cats.ca`. Provider credentials must still be added as Worker secrets in Cloudflare before live viewer counts can be retrieved. The public website never receives these credentials.
 
 1. Open **Workers & Pages** and create a Worker named `bitcoin-cats-platform-viewers`.
 2. Connect it to this GitHub repository, or create the Worker from the files in this folder. Set the Worker root directory to `workers/platform-viewers`; use `npx wrangler deploy` as the build/deploy command if the dashboard asks for one. The `wrangler.toml` file contains the route.
