@@ -1,5 +1,5 @@
-// Bitcoin Cats platform viewer counts.
-// Public response only; all provider credentials remain in Cloudflare Worker secrets.
+// Bitcoin Cats platform data API.
+// Provider credentials and Twitch OAuth tokens remain server-side in Cloudflare.
 
 const ALLOWED_ORIGINS = new Set([
   "https://bitcoin-cats.ca",
@@ -201,7 +201,7 @@ async function getYoutubeFollowerCount(env) {
   let value;
   if (stats.hiddenSubscriberCount) {
     value = { status: "hidden", followerCount: null, note: "YouTube has hidden the public subscriber count." };
-  } else if (stats.subscriberCount !== undefined) {
+  } else if (stats.subscriberCount !== undefined && stats.subscriberCount !== null && Number.isFinite(Number(stats.subscriberCount))) {
     value = { status: "available", followerCount: Number(stats.subscriberCount), note: "" };
   } else {
     value = { status: "unavailable", followerCount: null, note: "YouTube did not return a subscriber count." };
@@ -335,7 +335,8 @@ async function verifyTwitchWebhook(request, rawBody, env) {
   const messageId = request.headers.get("Twitch-Eventsub-Message-Id") || "";
   const timestamp = request.headers.get("Twitch-Eventsub-Message-Timestamp") || "";
   const signature = request.headers.get("Twitch-Eventsub-Message-Signature") || "";
-  if (!messageId || !timestamp || !signature.startsWith("sha256=")) return false;
+  const timestampMs = Date.parse(timestamp);
+  if (!messageId || !Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > 10 * 60 * 1000 || !signature.startsWith("sha256=")) return false;
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(messageId + timestamp + rawBody));
   const expected = "sha256=" + bytesToHex(digest);
@@ -605,8 +606,9 @@ async function getRumbleViewerCount(env) {
     throw new Error("The saved Rumble Live Stream API URL is invalid.");
   }
   const data = await fetchJson(apiUrl.toString());
-  const followerCount = Number.isFinite(Number(data.followers?.num_followers_total))
-    ? Number(data.followers.num_followers_total) : null;
+  const rawFollowerCount = data.followers?.num_followers_total;
+  const followerCount = rawFollowerCount !== null && rawFollowerCount !== undefined && Number.isFinite(Number(rawFollowerCount))
+    ? Number(rawFollowerCount) : null;
   const recentEvents = makeRumbleEvents(data);
   const streams = Array.isArray(data.livestreams) ? data.livestreams : [];
   const active = streams.filter(stream => stream && stream.is_live === true);
