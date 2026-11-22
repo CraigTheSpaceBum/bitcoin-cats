@@ -8,7 +8,7 @@ const ALLOWED_ORIGINS = new Set([
 
 const TWITCH_LOGIN = "craigthespacebum";
 const YOUTUBE_HANDLE = "@craigthespacebum";
-const TWITCH_OAUTH_REDIRECT = "https://bitcoin-cats.ca/api/twitch/callback";
+const TWITCH_OAUTH_REDIRECT = "https://api.bitcoin-cats.ca/api/twitch/callback";
 const TWITCH_CHAT_KEY = "twitch:chat:events";
 const TWITCH_AUTH_KEY = "twitch:auth";
 const TWITCH_SECRET_KEY = "twitch:eventsub:secret";
@@ -249,7 +249,7 @@ async function ensureTwitchEventSubSubscriptions(env, auth, secret) {
           type,
           version: "1",
           condition: { broadcaster_user_id: auth.userId, user_id: auth.userId },
-          transport: { method: "webhook", callback: "https://bitcoin-cats.ca/api/twitch/eventsub", secret }
+          transport: { method: "webhook", callback: "https://api.bitcoin-cats.ca/api/twitch/eventsub", secret }
         })
       });
       results.push({ type, status: "verification_pending" });
