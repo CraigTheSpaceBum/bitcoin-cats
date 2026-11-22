@@ -613,14 +613,16 @@ async function ensureKickEventSubscriptions(env, broadcasterId, token) {
     });
     registration = Array.isArray(result.data) ? result.data : [];
   }
+  const hasErrors = registration.some(item => item.error);
   const status = {
-    status: "connected",
+    status: hasErrors ? "setup_required" : "connected",
     events: KICK_EVENT_TYPES.map(name => ({
       name,
       state: existing.has(name) ? "already_subscribed" :
         (registration.find(item => item.name === name)?.error ? "error" : "requested")
     }))
   };
+  await env.TWITCH_AUTH.put("kick:connection-status", JSON.stringify(status), { expirationTtl: 60 * 60 * 24 });
   kickSubscriptionsCache = {
     broadcasterId: String(broadcasterId),
     status,
@@ -777,8 +779,15 @@ async function getKickChatMessages(env) {
   if (!env.KICK_CLIENT_ID || !env.KICK_CLIENT_SECRET || !env.TWITCH_AUTH) {
     return { status: "setup_required", messages: [] };
   }
-  const messages = await env.TWITCH_AUTH.get(KICK_CHAT_KEY, "json") || [];
-  return { status: "connected", messages: messages.slice(-50) };
+  const [messages, connection] = await Promise.all([
+    env.TWITCH_AUTH.get(KICK_CHAT_KEY, "json"),
+    env.TWITCH_AUTH.get("kick:connection-status", "json")
+  ]);
+  return {
+    status: connection?.status || "setup_required",
+    messages: Array.isArray(messages) ? messages.slice(-50) : [],
+    note: connection?.status === "connected" ? "" : "Set the Kick webhook URL in the Developer app settings; the Worker registers event subscriptions when its API credentials are present."
+  };
 }
 
 async function getKickViewerCount(env) {
