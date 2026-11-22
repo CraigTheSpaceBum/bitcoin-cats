@@ -7,5 +7,10 @@ preview_urls = false
 # The route sends only this API path through the Worker. The rest of the
 # GitHub Pages site continues to be served exactly as it is now.
 [[routes]]
-pattern = "bitcoin-cats.ca/api/platform-viewers*"
+pattern = "bitcoin-cats.ca/api/*"
 zone_name = "bitcoin-cats.ca"
+
+# Private OAuth state, Twitch access/refresh tokens and EventSub chat history.
+[[kv_namespaces]]
+binding = "TWITCH_AUTH"
+id = "00a6e41cb8d448948baaf89f80c0a74d"
