@@ -82,6 +82,19 @@
       opacity: 0.9;
     }
 
+    .social-followers{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,164,71,.2);text-align:left}
+    .social-followers-title{margin:0 0 12px;color:var(--orange);font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
+    .social-followers-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .social-follower{min-width:0;padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(0,0,0,.2)}
+    .social-follower-name{display:block;color:#f2edf9;font-size:12px;font-weight:800}
+    .social-follower-count{display:block;margin-top:5px;color:#fff;font-size:20px;font-weight:900;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+    .social-follower-caption{display:block;margin-top:3px;color:var(--muted);font-size:10px;line-height:1.4;overflow-wrap:anywhere}
+    .social-follower[data-status="available"] .social-follower-caption{color:#9fe8bd}
+    .social-follower-connect{display:none;margin-top:12px;text-align:center}
+    .social-follower-connect a{display:inline-flex;justify-content:center;padding:9px 14px;border:1px solid rgba(255,164,71,.38);border-radius:10px;color:#ffd4a8;background:rgba(255,164,71,.08);font-size:11px;font-weight:800;text-decoration:none}
+    .social-follower-connect a:hover{background:rgba(255,164,71,.15)}
+    @media(max-width:420px){.social-followers-grid{grid-template-columns:1fr 1fr}.social-follower{padding:10px}.social-follower-count{font-size:18px}}
+
     /* Info box */
     .about-box h2, .about-box h3 {
       color: var(--orange);
@@ -237,6 +250,34 @@
           <img src="https://bitcoin-cats.ca/Craig%20Head2.png" alt="Craig Head">
           <h3>Craig</h3>
           <p><em>Bitcoin Maximalist, Node Runner & Nostr Maniac</em></p>
+          <section class="social-followers" aria-labelledby="socialFollowersTitle">
+            <h4 class="social-followers-title" id="socialFollowersTitle">Platform Followers</h4>
+            <div class="social-followers-grid" aria-live="polite">
+              <div class="social-follower" data-follower-platform="twitch" data-status="loading">
+                <span class="social-follower-name">Twitch</span>
+                <span class="social-follower-count" data-follower-count>—</span>
+                <span class="social-follower-caption" data-follower-status>Checking followers…</span>
+              </div>
+              <div class="social-follower" data-follower-platform="youtube" data-status="loading">
+                <span class="social-follower-name">YouTube</span>
+                <span class="social-follower-count" data-follower-count>—</span>
+                <span class="social-follower-caption" data-follower-status>Checking subscribers…</span>
+              </div>
+              <div class="social-follower" data-follower-platform="kick" data-status="loading">
+                <span class="social-follower-name">Kick</span>
+                <span class="social-follower-count" data-follower-count>—</span>
+                <span class="social-follower-caption" data-follower-status>Checking followers…</span>
+              </div>
+              <div class="social-follower" data-follower-platform="rumble" data-status="loading">
+                <span class="social-follower-name">Rumble</span>
+                <span class="social-follower-count" data-follower-count>—</span>
+                <span class="social-follower-caption" data-follower-status>Checking followers…</span>
+              </div>
+            </div>
+            <div class="social-follower-connect" id="twitchConnectWrap">
+              <a href="/api/twitch/auth">Connect Twitch to enable follower counts and live chat</a>
+            </div>
+          </section>
         </div>
 
         <section class="sifaka-feature" aria-label="Sifaka.Live">
@@ -290,5 +331,59 @@
       <div class="gallery-item"><img src="https://image.nostr.build/5cd5aadfc780be8d6f586a29dd4757bd8e8160760e03b6d654d8e6fb75f386c8.jpg" alt="Bitcoin Seminar"></div>
     </div>
   </div>
+
+  <script>
+    (function () {
+      const platformLabels = {
+        twitch: "Twitch followers",
+        youtube: "YouTube subscribers",
+        kick: "Kick followers",
+        rumble: "Rumble followers"
+      };
+      const statusLabels = {
+        available: "Followers",
+        hidden: "Count hidden by platform",
+        setup_required: "API connection needed",
+        unsupported: "Not provided by official API",
+        unavailable: "Count unavailable",
+        error: "Temporarily unavailable"
+      };
+      function renderFollower(platform, data) {
+        const card = document.querySelector('[data-follower-platform="' + platform + '"]');
+        if (!card) return;
+        const count = card.querySelector("[data-follower-count]");
+        const status = card.querySelector("[data-follower-status]");
+        const number = data && data.followerCount !== null && data.followerCount !== undefined &&
+          Number.isFinite(Number(data.followerCount)) ? Number(data.followerCount) : null;
+        card.dataset.status = data && data.followerStatus ? data.followerStatus : "unavailable";
+        count.textContent = number === null ? "—" : number.toLocaleString();
+        status.textContent = statusLabels[card.dataset.status] || "Count unavailable";
+        if (data && data.followerNote) status.title = String(data.followerNote);
+        else status.removeAttribute("title");
+        count.setAttribute("aria-label", platformLabels[platform] + ": " + (number === null ? status.textContent : number.toLocaleString()));
+      }
+      async function refreshFollowerCounts() {
+        const connect = document.getElementById("twitchConnectWrap");
+        try {
+          const response = await fetch("/api/platform-viewers", {
+            method: "GET", headers: { Accept: "application/json" }, cache: "no-store", credentials: "same-origin"
+          });
+          if (!response.ok) throw new Error("Follower service returned HTTP " + response.status + ".");
+          const payload = await response.json();
+          const platforms = payload && payload.platforms ? payload.platforms : {};
+          ["twitch", "youtube", "kick", "rumble"].forEach(key => renderFollower(key, platforms[key]));
+          if (connect) connect.style.display =
+            platforms.twitch && platforms.twitch.followerStatus === "available" ? "none" : "block";
+        } catch (error) {
+          ["twitch", "youtube", "kick", "rumble"].forEach(key => renderFollower(key, {
+            followerStatus: "unavailable", followerCount: null, followerNote: String(error && error.message || "The follower service is not responding.")
+          }));
+          if (connect) connect.style.display = "block";
+        }
+      }
+      refreshFollowerCounts();
+      window.setInterval(refreshFollowerCounts, 60000);
+    })();
+  </script>
 </body>
 </html>
