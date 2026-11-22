@@ -4,11 +4,11 @@ This Cloudflare Worker reads live viewer counts from the official Twitch, YouTub
 
 `GET https://bitcoin-cats.ca/api/platform-viewers`
 
-The Worker is read-only. It does not publish, change stream settings, or access chat. Provider credentials remain in Cloudflare Worker secrets and are never sent to the browser.
+The Worker keeps provider credentials and Twitch OAuth tokens on Cloudflare. It reads public stream data and live chat/notification events; it does not send messages or change stream settings. The Nostr composer remains separate.
 
 ## Handles configured in the Worker
 
-- Twitch: `craigthespacebum`
+- Twitch: `craigthespacebum` (followers + chat/notifications after broadcaster OAuth authorization)
 - YouTube: `@craigthespacebum`
 - Kick: `craigthespacebum`
 - Rumble: account-specific Live Stream API URL belonging to `Craigthespacebum`
@@ -30,19 +30,20 @@ The Worker is deployed to the Cloudflare account for `bitcoin-cats.ca`. Provider
    | `KICK_CLIENT_SECRET` | The secret for that Kick application |
    | `RUMBLE_LIVE_API_URL` | Your private Rumble Live Stream API URL |
 
-4. Deploy the Worker. Confirm that its route is `bitcoin-cats.ca/api/platform-viewers*` and that the DNS record for the zone is proxied through Cloudflare. The route must not replace or intercept any other site path.
+4. Deploy the Worker. Its route is `bitcoin-cats.ca/api/*`, which serves the platform API and Twitch OAuth/EventSub callback paths. The Worker returns 404 for other API paths.
 5. Test `https://bitcoin-cats.ca/api/platform-viewers`. It should return JSON with `platforms.twitch`, `platforms.youtube`, `platforms.kick`, and `platforms.rumble`.
 
 ## Creating the API credentials
 
-- **Twitch:** create an application in the Twitch developer console and copy its Client ID and Client Secret. The Worker obtains an app access token using the client-credentials flow and calls Helix Get Streams.
-- **YouTube:** enable YouTube Data API v3 in Google Cloud and create an API key. Restrict the key to YouTube Data API v3. The Worker finds the channel uploads playlist, checks recent uploaded videos for an active live broadcast, and reads `liveStreamingDetails.concurrentViewers`. The field is absent when YouTube does not provide a public count; the Worker displays an unknown count rather than inventing zero.
-- **Kick:** create a Kick developer application and use its Client ID and Client Secret. The Worker obtains an app access token and reads `stream.is_live` and `stream.viewer_count` from the channel endpoint.
-- **Rumble:** in your Rumble account, open the Live Stream API page and generate/copy its private API URL. Add the full URL as `RUMBLE_LIVE_API_URL`. Treat this URL like a password: do not paste it into chat, commit it to GitHub, or put it in website HTML. You can reset it from Rumble if it is exposed.
+- **Twitch:** create a **Confidential** application in the Twitch developer console. Set its OAuth Redirect URL to exactly `https://bitcoin-cats.ca/api/twitch/callback`. Add `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` as Worker secrets. Then open `https://bitcoin-cats.ca/api/twitch/auth` (or use the About page's Connect Twitch link) and authorize the channel owner account `craigthespacebum`. The requested user scopes are `user:read:chat` and `moderator:read:followers`. The OAuth access and refresh tokens, EventSub signing secret, and recent chat events are stored in the private `TWITCH_AUTH` KV namespace; they are not sent to the browser. The Worker uses an app token for viewer counts and the broadcaster's user token for the follower total and EventSub chat/message notifications. Twitch Bits cheers and chat notices are labelled in the combined chat.
+- **YouTube:** enable YouTube Data API v3 in Google Cloud and create an API key. Restrict the key to YouTube Data API v3. The Worker reads the channel subscriber total, finds active broadcasts and reads `liveStreamingDetails.concurrentViewers`. When YouTube exposes an active live-chat ID, it also reads recent public chat items, including Super Chats and membership notices. Hidden counts remain unavailable rather than being shown as zero.
+- **Kick:** create a Kick developer application and use its Client ID and Client Secret. The Worker obtains an app access token and reads `stream.is_live` and `stream.viewer_count` from the channel endpoint. Kick's documented public channel API currently does not provide the follower total or a chat message feed, so those are shown as unavailable rather than being guessed or scraped.
+- **Rumble:** in your Rumble account, open the Live Stream API page and generate/copy its private API URL. Add the full URL as `RUMBLE_LIVE_API_URL`. The Worker reads the total follower count and, while live, recent chat messages and Rants. Treat this URL like a password: do not paste it into chat, commit it to GitHub, or put it in website HTML. You can reset it from Rumble if it is exposed.
 
 ## Data and refresh behaviour
 
-- The page polls about once per minute.
+- The About page refreshes follower/subscriber counts about once per minute.
+- The Live page combines Nostr chat and verified zaps with the supported Twitch, YouTube and Rumble live messages/notifications. It displays only the latest 15 entries across those sources. Kick live chat is not exposed by its documented public API.
 - The Worker caches the combined response at the edge for 45 seconds to reduce provider API calls.
 - Offline channels are shown as `0`; hidden or missing public counts are shown as unavailable, not zero.
 - The combined count is shown only when all four platform counts are known. It is a simple sum and is not deduplicated, so one person watching on multiple platforms can be counted more than once.
