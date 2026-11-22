@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "live.html"
+      - "about.html"
       - "workers/platform-viewers/**"
       - ".github/workflows/platform-viewers-worker.yml"
   pull_request:

@@ -84,6 +84,12 @@ permalink: /live
     .chat-message-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px}
     .chat-message-name{font-size:11px;font-weight:800;color:#ffd1a0;overflow-wrap:anywhere}
     .chat-message-time{font-size:10px;color:#77778d}
+    .chat-source-label{display:inline-flex;align-items:center;padding:2px 5px;border:1px solid rgba(255,255,255,.12);border-radius:5px;background:rgba(255,255,255,.05);color:#bbb5ca;font-size:8px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .chat-source-label.twitch{border-color:rgba(145,70,255,.35);background:rgba(145,70,255,.12);color:#c9a8ff}
+    .chat-source-label.youtube{border-color:rgba(255,70,70,.3);background:rgba(255,70,70,.1);color:#ff9c9c}
+    .chat-source-label.rumble{border-color:rgba(75,190,120,.3);background:rgba(75,190,120,.1);color:#9ce7b7}
+    .chat-twitch-connect{display:inline-flex;margin:0 0 10px;padding:6px 9px;border:1px solid rgba(145,70,255,.35);border-radius:8px;color:#d4b9ff;background:rgba(145,70,255,.1);font-size:10px;font-weight:800;text-decoration:none}
+    .chat-twitch-connect[hidden]{display:none}
     .chat-message-body{font-size:12px;line-height:1.55;color:#efedf7;overflow-wrap:anywhere;white-space:pre-wrap}
     .chat-message.zap-message{padding:9px;border:1px solid rgba(255,173,85,.24);border-radius:12px;background:linear-gradient(135deg,rgba(255,173,85,.08),rgba(139,92,246,.05))}
     .chat-zap-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid rgba(255,173,85,.28);border-radius:999px;background:rgba(255,173,85,.1);color:#ffd3a8;font-size:9px;font-weight:900;letter-spacing:.04em}
@@ -391,7 +397,8 @@ permalink: /live
       </article>
       <div class="chat-column">
       <aside class="panel chat-panel">
-        <div class="panel-head"><div><div class="panel-title">Live chat</div><div class="panel-kicker" id="chatSubtitle">Chat for the selected Nostr stream</div></div><span class="tag" id="chatStatus">SYNCING</span></div>
+        <div class="panel-head"><div><div class="panel-title">Live chat</div><div class="panel-kicker" id="chatSubtitle">Nostr + connected platform messages and notifications · last 15</div></div><span class="tag" id="chatStatus">SYNCING</span></div>
+        <a class="chat-twitch-connect" id="liveTwitchConnect" href="https://api.bitcoin-cats.ca/api/twitch/auth" hidden>Connect Twitch chat</a>
         <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text">
           <div class="chat-empty">Finding the host’s current stream so chat can sync to that exact broadcast…</div>
         </div>
@@ -1887,6 +1894,59 @@ permalink: /live
         console.warn('Could not refresh Top Bitcoin Donors',error);
       }finally{donorRefreshRunning=false;}
     }
+    function normalizeExternalChatEvent(item, fallbackSource){
+      if(!item||typeof item!=='object')return null;
+      const createdAt=item.createdAt||item.created_at||item.publishedAt||item.created_on||'';
+      const parsed=Date.parse(createdAt);
+      if(!Number.isFinite(parsed))return null;
+      const source=String(item.source||fallbackSource||'Platform');
+      const message=String(item.message||item.text||'').trim();
+      const amountLabel=String(item.amountLabel||'');
+      if(!message&&!amountLabel)return null;
+      return {
+        id:String(item.id||source+':'+parsed+':'+message),
+        pubkey:'',
+        created_at:Math.floor(parsed/1000),
+        content:message||'Notification',
+        _platform:source,
+        _displayName:String(item.displayName||item.username||'Viewer'),
+        _avatar:String(item.avatar||''),
+        _badge:String(item.badge||''),
+        _amountLabel:amountLabel
+      };
+    }
+    async function fetchExternalPlatformChat(){
+      const results=await Promise.allSettled([
+        fetch('https://api.bitcoin-cats.ca/api/twitch/chat',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
+          .then(async response=>{if(!response.ok)throw new Error('Twitch chat service returned HTTP '+response.status+'.');return response.json();}),
+        fetch('https://api.bitcoin-cats.ca/api/platform-viewers',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
+          .then(async response=>{if(!response.ok)throw new Error('Platform data service returned HTTP '+response.status+'.');return response.json();})
+      ]);
+      const messages=[];
+      const twitchPayload=results[0].status==='fulfilled'?results[0].value:null;
+      const platformPayload=results[1].status==='fulfilled'?results[1].value:null;
+      const connectLink=$('liveTwitchConnect');
+      if(connectLink)connectLink.hidden=twitchPayload?.status==='connected';
+      for(const item of (Array.isArray(twitchPayload?.messages)?twitchPayload.messages:[])){
+        const normalized=normalizeExternalChatEvent(item,'Twitch');
+        if(normalized)messages.push(normalized);
+      }
+      const platforms=platformPayload?.platforms||{};
+      for(const key of ['youtube','rumble']){
+        const source=platforms[key]?.recentEvents;
+        for(const item of (Array.isArray(source)?source:[])){
+          const normalized=normalizeExternalChatEvent(item,key==='youtube'?'YouTube':'Rumble');
+          if(normalized)messages.push(normalized);
+        }
+      }
+      const unique=new Map();
+      for(const item of messages)unique.set(item.id,item);
+      return {
+        messages:[...unique.values()],
+        twitchStatus:twitchPayload?.status|| (results[0].status==='rejected'?'unavailable':'unknown'),
+        platformStatus:results[1].status==='fulfilled'?'available':'unavailable'
+      };
+    }
     async function loadChatForCurrentActivity(){
       const address=activityAddress;
       if(!address||!pool){
@@ -1909,12 +1969,14 @@ permalink: /live
           targetEventId
             ? queryRelays({kinds:[1311],'#e':[targetEventId],limit:500},9000,11000,'Stream-linked chat lookup timed out',relayUrls)
             : Promise.resolve([]),
-          queryRelays({kinds:[9735],'#p':[hostPubkey],limit:500},9000,11000,'Zap receipt lookup timed out',relayUrls)
+          queryRelays({kinds:[9735],'#p':[hostPubkey],limit:500},9000,11000,'Zap receipt lookup timed out',relayUrls),
+          fetchExternalPlatformChat()
         ]);
         if(requestId!==chatRequestId||activityAddress!==address||currentEventId!==targetEventId)return;
         const messageLookupFailed=results[0].status==='rejected'&&results[1].status==='rejected';
         const receiptLookupFailed=results[2].status==='rejected';
-        if(messageLookupFailed){
+        const externalChat=results[3].status==='fulfilled'?results[3].value:{messages:[],twitchStatus:'unavailable',platformStatus:'unavailable'};
+        if(messageLookupFailed&&!externalChat.messages.length){
           chatStatus.textContent='RETRYING';
           chatStatus.title='Chat relays did not respond. Existing messages are being retained while the page retries.';
           $('chatSubtitle').textContent='Chat relay lookup failed; keeping the last messages while reconnecting…';
@@ -1944,11 +2006,12 @@ permalink: /live
           }
         }
         for(const zap of verifiedZaps)unique.set(zap.id,zap);
-        const messages=[...unique.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0)).slice(-150);
+        for(const item of externalChat.messages||[])unique.set(item.id,item);
+        const messages=[...unique.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0)).slice(-15);
         if(!messages.length){
           chatList.replaceChildren();
           const msg=document.createElement('div');msg.className='chat-empty';
-          msg.textContent='No messages in this stream’s chat yet.';
+          msg.textContent='No recent messages or notifications across connected platforms yet.';
           chatList.appendChild(msg);
           setChatComposerState();
           if(results[0].status==='rejected'||results[1].status==='rejected'||zapVerificationUnavailable){
@@ -1963,27 +2026,34 @@ permalink: /live
         for(const event of messages){
           const row=document.createElement('article');
           const payment=getEventTag(event,'payment');
+          const isPlatform=!!event._platform;
           const isZap=!!event._zap;
           const isOnchain=payment==='bitcoin';
-          row.className='chat-message'+((isZap||isOnchain)?' zap-message':'');
+          const hasPlatformBadge=isPlatform&&!!event._badge&&event._badge!=='CHAT';
+          row.className='chat-message'+((isZap||isOnchain||event._amountLabel)?' zap-message':'');
           const avatar=document.createElement('img');avatar.className='chat-avatar';avatar.alt='';avatar.loading='lazy';
-          avatar.src='https://api.dicebear.com/7.x/identicon/svg?seed='+encodeURIComponent(event.pubkey||'nostr');
+          avatar.src=isPlatform&&event._avatar&&isSecureUrl(event._avatar)
+            ?event._avatar
+            :'https://api.dicebear.com/7.x/identicon/svg?seed='+encodeURIComponent(isPlatform?(event._platform+':'+event._displayName):(event.pubkey||'nostr'));
           const main=document.createElement('div');main.className='chat-message-main';
           const head=document.createElement('div');head.className='chat-message-head';
           const name=document.createElement('span');name.className='chat-message-name';
-          name.textContent=event.pubkey?event.pubkey.slice(0,8)+'…'+event.pubkey.slice(-4):'Nostr user';
-          const badge=(isZap||isOnchain)?document.createElement('span'):null;
-          if(badge){badge.className='chat-zap-badge';badge.textContent=isZap?'⚡ VERIFIED ZAP':'₿ MAINCHAIN';}
-          const amount=(isZap||isOnchain)?document.createElement('span'):null;
-          if(amount){amount.className='chat-zap-amount';amount.textContent=(isZap?Number(event._zap.sats).toLocaleString():Number(getEventTag(event,'amount')||0).toLocaleString())+' sats';}
+          name.textContent=isPlatform?(event._displayName||'Viewer'):(event.pubkey?event.pubkey.slice(0,8)+'…'+event.pubkey.slice(-4):'Nostr user');
+          const source=isPlatform?document.createElement('span'):null;
+          if(source){source.className='chat-source-label '+String(event._platform).toLowerCase();source.textContent=event._platform;}
+          const badge=(isZap||isOnchain||hasPlatformBadge)?document.createElement('span'):null;
+          if(badge){badge.className='chat-zap-badge';badge.textContent=isPlatform?event._badge:(isZap?'⚡ VERIFIED ZAP':'₿ MAINCHAIN');}
+          const amount=(isZap||isOnchain||isPlatform&&event._amountLabel)?document.createElement('span'):null;
+          if(amount){amount.className='chat-zap-amount';amount.textContent=isPlatform?event._amountLabel:(isZap?Number(event._zap.sats).toLocaleString():Number(getEventTag(event,'amount')||0).toLocaleString())+' sats';}
           const time=document.createElement('time');time.className='chat-message-time';time.textContent=formatTime(event.created_at||0);
           if(event.created_at)time.dateTime=new Date(event.created_at*1000).toISOString();
           const body=document.createElement('div');body.className='chat-message-body';body.textContent=event.content||((isZap||isOnchain)?'Donation received':'');
           head.append(name);
+          if(source)head.append(source);
           if(badge)head.append(badge);
           if(amount)head.append(amount);
           head.append(time);main.append(head,body);row.append(avatar,main);chatList.appendChild(row);
-          authorElements.push({pubkey:event.pubkey,avatar,name});
+          if(!isPlatform&&event.pubkey)authorElements.push({pubkey:event.pubkey,avatar,name});
         }
         const pubkeys=[...new Set(authorElements.map(item=>item.pubkey).filter(Boolean))];
         const profiles=await Promise.all(pubkeys.map(async pubkey=>[pubkey,await fetchProfile(pubkey)]));
@@ -2000,8 +2070,9 @@ permalink: /live
           chatStatus.title='Some chat or zap relays did not respond; the displayed history may be incomplete.';
           $('chatSubtitle').textContent='Partial relay sync · showing messages found so far; retrying automatically…';
         }else{
+          chatStatus.textContent='SYNCED';
           chatStatus.title='';
-          $('chatSubtitle').textContent='Synced to stream '+address.split(':').slice(-1)[0]+' · last 150 messages';
+          $('chatSubtitle').textContent='Last 15 · Nostr, YouTube and Rumble'+(externalChat.twitchStatus==='connected'?', Twitch':' · connect Twitch from About')+' · stream '+address.split(':').slice(-1)[0];
         }
         reportHeight();
       }catch(error){
