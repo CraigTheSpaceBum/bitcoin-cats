@@ -1914,9 +1914,9 @@ permalink: /live
     }
     async function fetchExternalPlatformChat(){
       const results=await Promise.allSettled([
-        fetch('/api/twitch/chat',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
+        fetch('https://api.bitcoin-cats.ca/api/twitch/chat',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
           .then(async response=>{if(!response.ok)throw new Error('Twitch chat service returned HTTP '+response.status+'.');return response.json();}),
-        fetch('/api/platform-viewers',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
+        fetch('https://api.bitcoin-cats.ca/api/platform-viewers',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
           .then(async response=>{if(!response.ok)throw new Error('Platform data service returned HTTP '+response.status+'.');return response.json();})
       ]);
       const messages=[];
