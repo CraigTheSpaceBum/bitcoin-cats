@@ -1,6 +1,6 @@
 # Bitcoin Cats platform viewer counts
 
-This Cloudflare Worker reads live viewer counts from the official Twitch, YouTube and Kick APIs, plus Rumble's account-specific Live Stream API. The website calls the same-origin endpoint:
+This Cloudflare Worker reads live viewer counts from the official Twitch, YouTube and Kick APIs, plus Rumble's account-specific Live Stream API. The website calls the API service at `https://api.bitcoin-cats.ca`:
 
 `GET https://bitcoin-cats.ca/api/platform-viewers`
 
@@ -30,7 +30,7 @@ The Worker is deployed to the Cloudflare account for `bitcoin-cats.ca`. Provider
    | `KICK_CLIENT_SECRET` | The secret for that Kick application |
    | `RUMBLE_LIVE_API_URL` | Your private Rumble Live Stream API URL |
 
-4. Deploy the Worker. Its route is `api.bitcoin-cats.ca` custom domain, which serves the platform API and Twitch OAuth/EventSub callback paths. The Worker returns 404 for other API paths.
+4. Deploy the Worker. Its custom domain is `api.bitcoin-cats.ca`, which serves the platform API and Twitch/Kick webhook callbacks. The Worker returns 404 for unknown paths.
 5. Test `https://api.bitcoin-cats.ca/api/platform-viewers`. It should return JSON with `platforms.twitch`, `platforms.youtube`, `platforms.kick`, and `platforms.rumble`.
 
 ## Creating the API credentials
@@ -43,7 +43,7 @@ The Worker is deployed to the Cloudflare account for `bitcoin-cats.ca`. Provider
 ## Data and refresh behaviour
 
 - The About page refreshes follower/subscriber counts about once per minute.
-- The Live page combines Nostr chat and verified zaps with the supported Twitch, YouTube and Rumble live messages/notifications. It displays only the latest 15 entries across those sources. Kick live chat is not exposed by its documented public API.
+- The Live page combines Nostr chat and verified zaps with Twitch EventSub, Kick Event webhooks, YouTube live chat (including Super Chats and membership notices) and Rumble chat/Rants. It displays only the latest 15 entries across all available sources. Twitch and Kick event feeds require their respective app credentials and authorization/webhook configuration.
 - The Worker caches the combined response at the edge for 45 seconds to reduce provider API calls.
 - Offline channels are shown as `0`; hidden or missing public counts are shown as unavailable, not zero.
 - The combined count is shown only when all four platform counts are known. It is a simple sum and is not deduplicated, so one person watching on multiple platforms can be counted more than once.
