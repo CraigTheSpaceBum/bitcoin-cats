@@ -88,6 +88,7 @@ permalink: /live
     .chat-source-label.twitch{border-color:rgba(145,70,255,.35);background:rgba(145,70,255,.12);color:#c9a8ff}
     .chat-source-label.youtube{border-color:rgba(255,70,70,.3);background:rgba(255,70,70,.1);color:#ff9c9c}
     .chat-source-label.rumble{border-color:rgba(75,190,120,.3);background:rgba(75,190,120,.1);color:#9ce7b7}
+    .chat-source-label.kick{border-color:rgba(83,195,110,.35);background:rgba(83,195,110,.1);color:#a5e9b5}
     .chat-twitch-connect{display:inline-flex;margin:0 0 10px;padding:6px 9px;border:1px solid rgba(145,70,255,.35);border-radius:8px;color:#d4b9ff;background:rgba(145,70,255,.1);font-size:10px;font-weight:800;text-decoration:none}
     .chat-twitch-connect[hidden]{display:none}
     .chat-message-body{font-size:12px;line-height:1.55;color:#efedf7;overflow-wrap:anywhere;white-space:pre-wrap}
@@ -1920,15 +1921,22 @@ permalink: /live
         fetch('https://api.bitcoin-cats.ca/api/twitch/chat',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
           .then(async response=>{if(!response.ok)throw new Error('Twitch chat service returned HTTP '+response.status+'.');return response.json();}),
         fetch('https://api.bitcoin-cats.ca/api/platform-viewers',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
-          .then(async response=>{if(!response.ok)throw new Error('Platform data service returned HTTP '+response.status+'.');return response.json();})
+          .then(async response=>{if(!response.ok)throw new Error('Platform data service returned HTTP '+response.status+'.');return response.json();}),
+        fetch('https://api.bitcoin-cats.ca/api/kick/chat',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
+          .then(async response=>{if(!response.ok)throw new Error('Kick chat service returned HTTP '+response.status+'.');return response.json();})
       ]);
       const messages=[];
       const twitchPayload=results[0].status==='fulfilled'?results[0].value:null;
       const platformPayload=results[1].status==='fulfilled'?results[1].value:null;
+      const kickPayload=results[2].status==='fulfilled'?results[2].value:null;
       const connectLink=$('liveTwitchConnect');
       if(connectLink)connectLink.hidden=twitchPayload?.status==='connected';
       for(const item of (Array.isArray(twitchPayload?.messages)?twitchPayload.messages:[])){
         const normalized=normalizeExternalChatEvent(item,'Twitch');
+        if(normalized)messages.push(normalized);
+      }
+      for(const item of (Array.isArray(kickPayload?.messages)?kickPayload.messages:[])){
+        const normalized=normalizeExternalChatEvent(item,'Kick');
         if(normalized)messages.push(normalized);
       }
       const platforms=platformPayload?.platforms||{};
@@ -1944,6 +1952,7 @@ permalink: /live
       return {
         messages:[...unique.values()],
         twitchStatus:twitchPayload?.status|| (results[0].status==='rejected'?'unavailable':'unknown'),
+        kickStatus:kickPayload?.status|| (results[2].status==='rejected'?'unavailable':'unknown'),
         platformStatus:results[1].status==='fulfilled'?'available':'unavailable'
       };
     }
@@ -2072,7 +2081,7 @@ permalink: /live
         }else{
           chatStatus.textContent='SYNCED';
           chatStatus.title='';
-          $('chatSubtitle').textContent='Last 15 · Nostr, YouTube and Rumble'+(externalChat.twitchStatus==='connected'?', Twitch':' · connect Twitch from About')+' · stream '+address.split(':').slice(-1)[0];
+          $('chatSubtitle').textContent='Last 15 · Nostr, Twitch, Kick, YouTube and Rumble'+(externalChat.twitchStatus==='connected'?'':' · connect Twitch from About')+(externalChat.kickStatus==='connected'?'':' · Kick webhook setup required')+' · stream '+address.split(':').slice(-1)[0];
         }
         reportHeight();
       }catch(error){
