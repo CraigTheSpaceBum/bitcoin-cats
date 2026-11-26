@@ -143,6 +143,19 @@ permalink: /live
     .watcher-empty{padding:18px 12px;border:1px dashed rgba(255,255,255,.1);border-radius:11px;color:var(--muted);font-size:11px;line-height:1.6;text-align:center}
     .watcher-footnote{margin-top:12px;color:#737287;font-size:9px;line-height:1.5}
     .watcher-warning{color:#d2b8ff}
+    .watcher-account-card{align-items:flex-start;padding:12px;background:linear-gradient(135deg,rgba(139,92,246,.065),rgba(0,0,0,.2))}
+    .watcher-account-card .watcher-avatar{width:48px;height:48px;border-radius:12px}
+    .watcher-account-card .watcher-profile{flex:1;gap:5px}
+    .watcher-identities{display:grid;gap:3px;min-width:0}
+    .watcher-npub{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;font-size:8px}
+    .watcher-nip05{display:flex;align-items:center;gap:5px;white-space:normal;overflow-wrap:anywhere;color:#d8c7ff}
+    .watcher-client-list{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px}
+    .watcher-client-heading{color:#8d849e;font-size:8px;font-weight:850;letter-spacing:.08em}
+    .watcher-client-badge{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid rgba(255,173,85,.18);border-radius:999px;background:rgba(255,173,85,.07);color:#ffd5aa;font-size:9px;font-weight:750;line-height:1.4;overflow-wrap:anywhere}
+    .watcher-client-link:hover{border-color:rgba(255,173,85,.52);background:rgba(255,173,85,.13)}
+    .watcher-guest-card{border-color:rgba(255,173,85,.2);background:linear-gradient(135deg,rgba(255,173,85,.07),rgba(0,0,0,.18))}
+    .watcher-guest-icon{display:grid;place-items:center;width:42px;height:42px;flex:none;border:1px solid rgba(255,173,85,.28);border-radius:12px;background:rgba(255,173,85,.11);color:#ffd3a8;font-size:14px;font-weight:900}
+    .watcher-guest-count{color:#ffd3a8;font-size:10px;font-weight:800}
     .platform-viewers{padding:16px;border-top:1px solid var(--line);background:linear-gradient(145deg,rgba(255,173,85,.035),rgba(255,255,255,.012))}
     .platform-viewers-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
     .platform-viewers-title{font-size:14px;font-weight:850;letter-spacing:-.01em}
@@ -341,26 +354,6 @@ permalink: /live
           <button class="stream-action donate" id="bitcoinMainchainButton" type="button">₿ Donation (Bitcoin Mainchain)</button>
           <button class="stream-action donate" id="bitcoinLightningButton" type="button">⚡ Donation (Bitcoin Lightning)</button>
         </nav>
-        <section class="watcher-section" id="watcherSection" aria-labelledby="watcherTitle">
-          <div class="watcher-heading">
-            <div>
-              <div class="watcher-title" id="watcherTitle">Watching Bitcoin Cats Live</div>
-              <div class="watcher-caption">Combined live audiences across Nostr, Twitch, YouTube, Kick and Rumble. Public platform APIs provide audience totals, not individual viewer identities.</div>
-            </div>
-            <span class="watcher-live-state offline" id="watcherLiveState"><span class="watcher-live-dot"></span><span id="watcherLiveLabel">Waiting for stream</span></span>
-          </div>
-          <div class="watcher-stats" aria-live="polite">
-            <div class="watcher-stat"><div class="watcher-stat-label">Total viewers across platforms</div><div class="watcher-stat-value" id="watcherTotalCount">—</div><div class="watcher-stat-note">Platform audiences + Nostr accounts and guests</div></div>
-            <div class="watcher-stat"><div class="watcher-stat-label">Nostr accounts</div><div class="watcher-stat-value" id="watcherNostrCount">—</div><div class="watcher-stat-note">Unique accounts watching</div></div>
-            <div class="watcher-stat"><div class="watcher-stat-label">Nostr guests</div><div class="watcher-stat-value" id="watcherGuestCount">—</div><div class="watcher-stat-note">Nostr sessions without a verified account</div></div>
-          </div>
-          <div class="watcher-list-head">
-            <div class="watcher-list-title">Nostr accounts + platform audiences</div>
-            <div class="watcher-updated" id="watcherUpdatedAt">Waiting for relay presence…</div>
-          </div>
-          <div class="watcher-list" id="watcherList" aria-live="polite"><div class="watcher-empty">Watcher information will appear when the host goes live.</div></div>
-          <div class="watcher-footnote" id="watcherFootnote">Presence refreshes every few seconds. Viewers who leave are removed after their short heartbeat expires.</div>
-        </section>
         <section class="platform-viewers" id="platformViewersSection" aria-labelledby="platformViewersTitle">
           <div class="platform-viewers-head">
             <div>
@@ -401,6 +394,25 @@ permalink: /live
             <span class="platform-viewer-total-value" id="platformViewersTotal">—</span>
           </div>
           <div class="platform-viewer-meta" id="platformViewersMeta">Counts combine the four public platform audience totals with Nostr page-presence sessions, including guests. Names on external platforms are not exposed by their public viewer-count APIs. Totals are not deduplicated across platforms.</div>
+        </section>
+        <section class="watcher-section" id="watcherSection" aria-labelledby="watcherTitle">
+          <div class="watcher-heading">
+            <div>
+              <div class="watcher-title" id="watcherTitle">Nostr Viewers</div>
+              <div class="watcher-caption">Nostr accounts and guest sessions currently watching this Bitcoin Cats broadcast.</div>
+            </div>
+            <span class="watcher-live-state offline" id="watcherLiveState"><span class="watcher-live-dot"></span><span id="watcherLiveLabel">Waiting for stream</span></span>
+          </div>
+          <div class="watcher-stats" aria-live="polite">
+            <div class="watcher-stat"><div class="watcher-stat-label">Nostr accounts</div><div class="watcher-stat-value" id="watcherNostrCount">—</div><div class="watcher-stat-note">Unique verified accounts watching</div></div>
+            <div class="watcher-stat"><div class="watcher-stat-label">Nostr guests</div><div class="watcher-stat-value" id="watcherGuestCount">—</div><div class="watcher-stat-note">Sessions without a verified account</div></div>
+          </div>
+          <div class="watcher-list-head">
+            <div class="watcher-list-title">Nostr accounts and guests watching</div>
+            <div class="watcher-updated" id="watcherUpdatedAt">Waiting for relay presence…</div>
+          </div>
+          <div class="watcher-list" id="watcherList" aria-live="polite"><div class="watcher-empty">Nostr viewer profiles will appear when the host goes live.</div></div>
+          <div class="watcher-footnote" id="watcherFootnote">Account profiles and disclosed Nostr clients/sites appear here. Guest sessions are counted without exposing an identity.</div>
         </section>
         <div class="status-note" id="streamNote" role="status" aria-live="polite" hidden></div>
       </article>
@@ -789,7 +801,7 @@ permalink: /live
           ['d',PRESENCE_D_TAG],
           ['a',presenceSessionActivity],
           ['p',hostPubkey],
-          ['client','Bitcoin Cats'],
+          ['client','bitcoin-cats.ca'],
           ['expiration',String(expiresAt||now+PRESENCE_TTL_SECONDS)]
         ],
         content:JSON.stringify({
@@ -856,7 +868,6 @@ permalink: /live
         watcherSnapshot={nostr:[],nostrClients:{},guests:0,total:0,available:activityStatus!=='live',updatedAt:Date.now()};
         $('watcherLiveState').classList.add('offline');
         $('watcherLiveLabel').textContent=activityStatus==='live'?'Waiting for stream activity':'Host offline';
-        $('watcherTotalCount').textContent='—';
         $('watcherNostrCount').textContent='0';
         $('watcherGuestCount').textContent='0';
         $('watcherList').replaceChildren();
@@ -955,7 +966,7 @@ permalink: /live
           if(getTag(event,'a')!==address)continue;
           if(event.kind===10312){
             if(!/^[0-9a-f]{64}$/i.test(String(event.pubkey||'')))continue;
-            const client=getTag(event,'client')||'Nostr client not disclosed';
+            const client=normalizePresenceClient(getTag(event,'client'));
             const entry=nostrByPubkey.get(event.pubkey)||{clients:new Set()};
             entry.clients.add(client);
             nostrByPubkey.set(event.pubkey,entry);
@@ -976,7 +987,7 @@ permalink: /live
         for(const item of sessions.values()){
           const identity=await verifyPresenceIdentity(item.event,item.content,address);
           if(identity){
-            const client=getTag(item.event,'client')||'Bitcoin Cats (web)';
+            const client=normalizePresenceClient(getTag(item.event,'client')||'bitcoin-cats.ca');
             const entry=nostrByPubkey.get(identity)||{clients:new Set()};
             entry.clients.add(client);
             nostrByPubkey.set(identity,entry);
@@ -992,8 +1003,8 @@ permalink: /live
         $('watcherLiveLabel').textContent=relayResult.responders===relayResult.totalRelays?'Live · updating':'Partial relay sync';
         $('watcherUpdatedAt').textContent='Updated '+new Date(watcherSnapshot.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+relayResult.responders+'/'+relayResult.totalRelays+' relays responded';
         $('watcherFootnote').textContent=relayResult.responders===relayResult.totalRelays
-          ?'Nostr presence expires after '+PRESENCE_TTL_SECONDS+' seconds without a heartbeat. Other platform APIs report audience totals only, not viewer names. Counts are not deduplicated across platforms.'
-          :'Only '+relayResult.responders+' of '+relayResult.totalRelays+' relays responded, so Nostr totals may be undercounted until relay connectivity recovers.';
+          ?'Verified Nostr accounts show their profile and any disclosed client or website. Guest sessions are counted without revealing an identity. Presence expires after '+PRESENCE_TTL_SECONDS+' seconds without a heartbeat.'
+          :'Only '+relayResult.responders+' of '+relayResult.totalRelays+' relays responded, so Nostr viewer totals may be undercounted until relay connectivity recovers.';
         updateCombinedAudienceTotal();
         await renderWatcherProfiles(nostr,address,version);
       }catch(error){
@@ -1007,6 +1018,14 @@ permalink: /live
         console.warn('Could not refresh Nostr watcher roster',error);
       }finally{watcherRefreshRunning=false;}
     }
+    function normalizePresenceClient(value){
+      const label=String(value||'').trim();
+      if(!label)return 'Nostr client not disclosed';
+      const normalized=label.toLowerCase();
+      if(normalized.includes('bitcoin-cats.ca')||normalized.includes('bitcoin cats')||normalized.includes('bitcoin-cats'))return 'bitcoin-cats.ca';
+      if(normalized.includes('sifaka.live')||normalized==='sifaka'||normalized.includes('sifaka live'))return 'sifaka.live';
+      return label;
+    }
     async function renderWatcherProfiles(pubkeys,address,version){
       const list=$('watcherList');
       const rows=await Promise.all((pubkeys||[]).map(async pubkey=>{
@@ -1017,54 +1036,63 @@ permalink: /live
       if(version!==watcherRenderVersion||activityAddress!==address)return;
       const {nip19}=await nostrModulePromise;
       rows.sort((a,b)=>String(a.profile.name||'').localeCompare(String(b.profile.name||'')));
-      list.replaceChildren();
+      const fragment=document.createDocumentFragment();
       for(const rowData of rows){
-        const card=document.createElement('article');card.className='watcher-card';
+        const card=document.createElement('article');card.className='watcher-card watcher-account-card';
         const avatar=document.createElement('img');avatar.className='watcher-avatar';avatar.alt='';avatar.loading='lazy';
         avatar.onerror=()=>{avatar.onerror=null;avatar.src='/logo.png';};
         avatar.src=rowData.profile.picture&&isSecureUrl(rowData.profile.picture)?rowData.profile.picture:'/logo.png';
         const details=document.createElement('div');details.className='watcher-profile';
         const name=document.createElement('div');name.className='watcher-name';
         name.textContent=rowData.profile.name||rowData.pubkey.slice(0,8)+'…'+rowData.pubkey.slice(-4);
-        const identity=document.createElement('div');identity.className='watcher-identity';
+        const identities=document.createElement('div');identities.className='watcher-identities';
+        const npub=nip19.npubEncode(rowData.pubkey);
+        const npubLine=document.createElement('div');npubLine.className='watcher-identity watcher-npub';
+        npubLine.textContent=npub;npubLine.title=npub;
+        identities.appendChild(npubLine);
         if(rowData.valid){
-          const check=document.createElement('span');check.className='watcher-verified';check.textContent='✓';check.title='Verified NIP-05';identity.appendChild(check);
-          const nip05=document.createElement('span');nip05.textContent=rowData.profile.nip05;identity.appendChild(nip05);
-        }else{
-          const npub=nip19.npubEncode(rowData.pubkey);
-          identity.textContent=npub.slice(0,15)+'…'+npub.slice(-9);
-          identity.title=npub;
+          const nip05Line=document.createElement('div');nip05Line.className='watcher-identity watcher-nip05';
+          const check=document.createElement('span');check.className='watcher-verified';check.textContent='✓';check.title='Verified NIP-05';
+          const nip05=document.createElement('span');nip05.textContent=rowData.profile.nip05;
+          nip05Line.append(check,nip05);identities.appendChild(nip05Line);
         }
-        const client=document.createElement('div');client.className='watcher-client';
-        client.textContent='Nostr client · '+(watcherSnapshot.nostrClients?.[rowData.pubkey]||'Nostr client not disclosed');
-        details.append(name,identity,client);card.append(avatar,details);list.appendChild(card);
+        const clientList=document.createElement('div');clientList.className='watcher-client-list';
+        const clientHeading=document.createElement('span');clientHeading.className='watcher-client-heading';clientHeading.textContent='WATCHING FROM';
+        clientList.appendChild(clientHeading);
+        const clientValues=String(watcherSnapshot.nostrClients?.[rowData.pubkey]||'Nostr client not disclosed')
+          .split(' · ').map(value=>normalizePresenceClient(value)).filter(Boolean);
+        for(const clientValue of [...new Set(clientValues)]){
+          const isKnownSite=clientValue==='bitcoin-cats.ca'||clientValue==='sifaka.live';
+          const clientBadge=document.createElement(isKnownSite?'a':'span');
+          clientBadge.className='watcher-client-badge'+(isKnownSite?' watcher-client-link':'');
+          clientBadge.textContent=clientValue;
+          if(isKnownSite){
+            clientBadge.href=clientValue==='bitcoin-cats.ca'?'https://bitcoin-cats.ca/live':'https://sifaka.live/';
+            clientBadge.target='_blank';clientBadge.rel='noopener noreferrer';
+          }
+          clientList.appendChild(clientBadge);
+        }
+        details.append(name,identities,clientList);card.append(avatar,details);fragment.appendChild(card);
       }
       if(watcherSnapshot.guests){
-        const guest=document.createElement('div');guest.className='watcher-empty';
-        guest.textContent=watcherSnapshot.guests+' Nostr guest viewer'+(watcherSnapshot.guests===1?' is':'s are')+' watching without a verified account.';
-        list.appendChild(guest);
-      }
-      const platforms=platformViewerSnapshot?.platforms||{};
-      const labels=[['twitch','Twitch','T'],['youtube','YouTube','▶'],['kick','Kick','K'],['rumble','Rumble','R']];
-      for(const [key,label,mark] of labels){
-        const platform=platforms[key];
-        const card=document.createElement('article');card.className='watcher-card';
-        const icon=document.createElement('span');icon.className='watcher-platform-icon';icon.textContent=mark;icon.setAttribute('aria-hidden','true');
+        const guest=document.createElement('article');guest.className='watcher-card watcher-guest-card';
+        const icon=document.createElement('span');icon.className='watcher-guest-icon';icon.textContent='G';icon.setAttribute('aria-hidden','true');
         const details=document.createElement('div');details.className='watcher-profile';
-        const name=document.createElement('div');name.className='watcher-name';name.textContent=label+' audience';
-        const count=platform?.status==='offline'?0:
-          (platform?.status==='live'&&platform.viewerCount!==null&&platform.viewerCount!==undefined&&Number.isFinite(Number(platform.viewerCount))?Number(platform.viewerCount):null);
-        const identity=document.createElement('div');identity.className='watcher-identity';
-        identity.textContent=count===null?'Audience count unavailable':count.toLocaleString()+' viewers watching';
+        const name=document.createElement('div');name.className='watcher-name';name.textContent='Nostr guests';
+        const count=document.createElement('div');count.className='watcher-guest-count';
+        count.textContent=watcherSnapshot.guests.toLocaleString()+' guest '+(watcherSnapshot.guests===1?'session':'sessions')+' watching';
         const note=document.createElement('div');note.className='watcher-platform-note';
-        note.textContent='Individual viewer identities are not provided by '+label+' public viewer-count APIs.';
-        details.append(name,identity,note);card.append(icon,details);list.appendChild(card);
+        note.textContent='Not signed in with a verified Nostr account; no public profile is available.';
+        details.append(name,count,note);guest.append(icon,details);fragment.appendChild(guest);
       }
-      if(!rows.length&&!watcherSnapshot.guests&&!Object.keys(platforms).length){
+      if(!rows.length&&!watcherSnapshot.guests){
         const empty=document.createElement('div');empty.className='watcher-empty';
-        empty.textContent='No signed-in Nostr accounts or platform audience data are available yet.';
-        list.appendChild(empty);
+        empty.textContent=watcherSnapshot.available
+          ?'No Nostr accounts or guest sessions are watching right now.'
+          :'Nostr viewer information will appear here when the host goes live.';
+        fragment.appendChild(empty);
       }
+      list.replaceChildren(fragment);
     }
     function showLoginPanel(panelId){
       ['hardwareLoginPanel','remoteLoginPanel','newIdentityPanel'].forEach(id=>$(id).hidden=id!==panelId);
@@ -2207,7 +2235,6 @@ permalink: /live
       if(nostrCount===null)known=false;else total+=nostrCount;
       const display=known?total.toLocaleString():'—';
       $('platformViewersTotal').textContent=display;
-      $('watcherTotalCount').textContent=display;
       renderPlatformViewer('nostr',{status:nostrCount===null?'loading':(activityStatus==='live'?'live':'offline'),viewerCount:nostrCount});
     }
     function formatPlatformViewerStatus(platform){
