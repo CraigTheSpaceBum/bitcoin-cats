@@ -69,6 +69,21 @@ test("unknown paths are rejected", async () => {
   assert.equal(response.status, 404);
 });
 
+test("Twitch follower endpoint returns setup required until broadcaster OAuth is connected", async () => {
+  const response = await worker.fetch(
+    new Request("https://api.bitcoin-cats.ca/api/twitch/followers", {
+      headers: { Origin: "https://bitcoin-cats.ca" }
+    }),
+    {},
+    context()
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "https://bitcoin-cats.ca");
+  assert.equal(payload.followerStatus, "setup_required");
+  assert.equal(payload.followerCount, null);
+});
+
 test("Twitch chat reports setup required until broadcaster OAuth is connected", async () => {
   const response = await worker.fetch(
     new Request("https://bitcoin-cats.ca/api/twitch/chat", {
