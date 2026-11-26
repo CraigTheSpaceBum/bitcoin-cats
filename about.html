@@ -362,7 +362,69 @@
         else status.removeAttribute("title");
         count.setAttribute("aria-label", platformLabels[platform] + ": " + (number === null ? status.textContent : number.toLocaleString()));
       }
+      let followerRefreshRunning = false;
+      async function fetchFollowerJson(url, label, timeoutMs) {
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+            credentials: "same-origin",
+            signal: controller.signal
+          });
+          if (!response.ok) throw new Error(label + " returned HTTP " + response.status + ".");
+          return await response.json();
+        } catch (error) {
+          if (error && error.name === "AbortError") throw new Error(label + " timed out.");
+          throw error;
+        } finally {
+          window.clearTimeout(timer);
+        }
+      }
       async function refreshFollowerCounts() {
+        if (followerRefreshRunning) return;
+        followerRefreshRunning = true;
+        const connect = document.getElementById("twitchConnectWrap");
+        const [platformResult, twitchResult] = await Promise.allSettled([
+          fetchFollowerJson("https://api.bitcoin-cats.ca/api/platform-viewers", "Platform follower service", 15000),
+          fetchFollowerJson("https://api.bitcoin-cats.ca/api/twitch/followers", "Twitch follower service", 12000)
+        ]);
+
+        if (platformResult.status === "fulfilled") {
+          const platforms = platformResult.value && platformResult.value.platforms
+            ? platformResult.value.platforms : {};
+          ["youtube", "kick", "rumble"].forEach(key => renderFollower(key, platforms[key]));
+        } else {
+          const note = String(platformResult.reason && platformResult.reason.message ||
+            "The platform follower service is not responding.");
+          ["youtube", "kick", "rumble"].forEach(key => renderFollower(key, {
+            followerStatus: "unavailable", followerCount: null, followerNote: note
+          }));
+        }
+
+        let twitchData;
+        if (twitchResult.status === "fulfilled") {
+          twitchData = twitchResult.value;
+          renderFollower("twitch", twitchData);
+        } else {
+          twitchData = {
+            followerStatus: "error",
+            followerCount: null,
+            followerNote: String(twitchResult.reason && twitchResult.reason.message ||
+              "The Twitch follower service is not responding.")
+          };
+          renderFollower("twitch", twitchData);
+        }
+
+        if (connect) {
+          connect.style.display = twitchData && twitchData.followerStatus === "available" ? "none" : "block";
+        }
+        followerRefreshRunning = false;
+      }
+      refreshFollowerCounts();
+      window.setInterval(refreshFollowerCounts, 60000);
         const connect = document.getElementById("twitchConnectWrap");
         try {
           const response = await fetch("https://api.bitcoin-cats.ca/api/platform-viewers", {
