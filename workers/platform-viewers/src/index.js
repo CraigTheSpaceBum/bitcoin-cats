@@ -268,7 +268,10 @@ async function beginTwitchAuthorization(env) {
 }
 
 async function ensureTwitchEventSubSubscriptions(env, auth, secret) {
-  const headers = { Authorization: "Bearer " + auth.accessToken, "Client-Id": env.TWITCH_CLIENT_ID, "Content-Type": "application/json" };
+  // Twitch requires App Access Tokens for EventSub webhook subscriptions.
+  // The broadcaster user OAuth token remains stored for scope authorization and follower reads.
+  const appAccessToken = await getTwitchToken(env);
+  const headers = { Authorization: "Bearer " + appAccessToken, "Client-Id": env.TWITCH_CLIENT_ID, "Content-Type": "application/json" };
   const listUrl = new URL("https://api.twitch.tv/helix/eventsub/subscriptions");
   listUrl.searchParams.set("user_id", auth.userId);
   const existingData = await fetchTwitchEventSubJson(listUrl, { headers });
