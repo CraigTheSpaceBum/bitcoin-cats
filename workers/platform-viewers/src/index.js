@@ -928,6 +928,24 @@ export default {
         return addCors(jsonResponse({ ok: false, status: "error", messages: [], note: String(error?.message || "Kick chat is temporarily unavailable.") }), origin);
       }
     }
+    if (request.method === "GET" && path === "/api/twitch/followers") {
+      try {
+        const result = await safelyGet(getTwitchFollowerCount, env);
+        return addCors(jsonResponse({
+          ok: result.status !== "error",
+          followerStatus: result.status,
+          followerCount: result.followerCount ?? null,
+          followerNote: result.note || ""
+        }), origin);
+      } catch (error) {
+        return addCors(jsonResponse({
+          ok: false,
+          followerStatus: "error",
+          followerCount: null,
+          followerNote: String(error?.message || "Twitch follower count is temporarily unavailable.")
+        }), origin);
+      }
+    }
     if (request.method === "GET" && path === "/api/twitch/chat") {
       try {
         const result = await getTwitchChatMessages(env);
