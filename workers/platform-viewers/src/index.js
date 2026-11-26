@@ -89,7 +89,7 @@ async function fetchTwitchEventSubJson(url, init = {}) {
     let payload = {};
     try { payload = raw ? JSON.parse(raw) : {}; } catch {}
     if (!response.ok) {
-      const detail = String(payload.message || payload.error || "").replace(/[\\r\\n\\t]+/g, " ").trim().slice(0, 220);
+      const detail = String(payload.message || payload.error || "").replace(/\s+/g, " ").trim().slice(0, 220);
       throw new Error("Twitch EventSub HTTP " + response.status + (detail ? ": " + detail : "."));
     }
     return payload;
