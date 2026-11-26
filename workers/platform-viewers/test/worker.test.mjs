@@ -203,7 +203,7 @@ test("Twitch chat endpoint repairs missing chat and follow EventSub subscription
   try {
     const response = await worker.fetch(
       new Request("https://api.bitcoin-cats.ca/api/twitch/chat", { headers: { Origin: "https://bitcoin-cats.ca" } }),
-      { TWITCH_AUTH: kv, TWITCH_CLIENT_ID: "test-client-id" },
+      { TWITCH_AUTH: kv, TWITCH_CLIENT_ID: "test-client-id", TWITCH_CLIENT_SECRET: "test-client-secret" },
       context()
     );
     const payload = await response.json();
@@ -249,7 +249,7 @@ test("Twitch EventSub diagnostics preserve the provider's safe error message", a
   try {
     const response = await worker.fetch(
       new Request("https://api.bitcoin-cats.ca/api/twitch/chat", { headers: { Origin: "https://bitcoin-cats.ca" } }),
-      { TWITCH_AUTH: kv, TWITCH_CLIENT_ID: "test-client-id" },
+      { TWITCH_AUTH: kv, TWITCH_CLIENT_ID: "test-client-id", TWITCH_CLIENT_SECRET: "test-client-secret" },
       context()
     );
     const payload = await response.json();
