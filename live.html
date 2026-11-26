@@ -136,6 +136,9 @@ permalink: /live
     .watcher-profile{min-width:0;display:grid;gap:4px}
     .watcher-name{font-size:11px;font-weight:850;color:#f5efff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .watcher-identity{display:flex;align-items:center;gap:5px;min-width:0;color:#b9aecb;font:9px/1.4 ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .watcher-client{color:#a99bbd;font-size:9px;line-height:1.4;overflow-wrap:anywhere}
+    .watcher-platform-icon{display:grid;place-items:center;width:38px;height:38px;flex:none;border:1px solid rgba(167,139,250,.26);border-radius:9px;background:rgba(139,92,246,.12);color:#ddd0ff;font-size:12px;font-weight:900}
+    .watcher-platform-note{font-size:9px;line-height:1.4;color:#8d849e;overflow-wrap:anywhere}
     .watcher-verified{display:inline-grid;place-items:center;width:13px;height:13px;flex:none;border-radius:50%;background:#a78bfa;color:#160d25;font:900 9px/1 system-ui}
     .watcher-empty{padding:18px 12px;border:1px dashed rgba(255,255,255,.1);border-radius:11px;color:var(--muted);font-size:11px;line-height:1.6;text-align:center}
     .watcher-footnote{margin-top:12px;color:#737287;font-size:9px;line-height:1.5}
@@ -342,17 +345,17 @@ permalink: /live
           <div class="watcher-heading">
             <div>
               <div class="watcher-title" id="watcherTitle">Watching Bitcoin Cats Live</div>
-              <div class="watcher-caption">People currently watching this page. Signed-in Nostr accounts are listed below; guests are included in the total.</div>
+              <div class="watcher-caption">Combined live audiences across Nostr, Twitch, YouTube, Kick and Rumble. Public platform APIs provide audience totals, not individual viewer identities.</div>
             </div>
             <span class="watcher-live-state offline" id="watcherLiveState"><span class="watcher-live-dot"></span><span id="watcherLiveLabel">Waiting for stream</span></span>
           </div>
           <div class="watcher-stats" aria-live="polite">
-            <div class="watcher-stat"><div class="watcher-stat-label">Total viewers here</div><div class="watcher-stat-value" id="watcherTotalCount">—</div><div class="watcher-stat-note">Signed-in accounts + guests</div></div>
+            <div class="watcher-stat"><div class="watcher-stat-label">Total viewers across platforms</div><div class="watcher-stat-value" id="watcherTotalCount">—</div><div class="watcher-stat-note">Platform audiences + Nostr accounts and guests</div></div>
             <div class="watcher-stat"><div class="watcher-stat-label">Nostr accounts</div><div class="watcher-stat-value" id="watcherNostrCount">—</div><div class="watcher-stat-note">Unique accounts watching</div></div>
-            <div class="watcher-stat"><div class="watcher-stat-label">Guests</div><div class="watcher-stat-value" id="watcherGuestCount">—</div><div class="watcher-stat-note">Not signed in</div></div>
+            <div class="watcher-stat"><div class="watcher-stat-label">Nostr guests</div><div class="watcher-stat-value" id="watcherGuestCount">—</div><div class="watcher-stat-note">Nostr sessions without a verified account</div></div>
           </div>
           <div class="watcher-list-head">
-            <div class="watcher-list-title">Nostr accounts watching</div>
+            <div class="watcher-list-title">Nostr accounts + platform audiences</div>
             <div class="watcher-updated" id="watcherUpdatedAt">Waiting for relay presence…</div>
           </div>
           <div class="watcher-list" id="watcherList" aria-live="polite"><div class="watcher-empty">Watcher information will appear when the host goes live.</div></div>
@@ -362,7 +365,7 @@ permalink: /live
           <div class="platform-viewers-head">
             <div>
               <div class="platform-viewers-title" id="platformViewersTitle">Viewers Across Platforms</div>
-              <div class="platform-viewers-caption">Live audience counts from your Twitch, YouTube, Kick and Rumble channels</div>
+              <div class="platform-viewers-caption">Live audience counts from Twitch, YouTube, Kick, Rumble and Nostr</div>
             </div>
             <span class="tag" id="platformViewersStatus">CONNECTING</span>
           </div>
@@ -387,18 +390,23 @@ permalink: /live
               <div class="platform-viewer-main"><span class="platform-viewer-name">Rumble</span><span class="platform-viewer-state" data-platform-state>Waiting for API setup</span></div>
               <span class="platform-viewer-count" data-platform-count>—</span>
             </div>
+            <div class="platform-viewer-card" data-platform-viewer="nostr" data-status="loading">
+              <span class="platform-viewer-brand" aria-hidden="true">N</span>
+              <div class="platform-viewer-main"><span class="platform-viewer-name">Nostr</span><span class="platform-viewer-state" data-platform-state>Waiting for Nostr presence</span></div>
+              <span class="platform-viewer-count" data-platform-count>—</span>
+            </div>
           </div>
           <div class="platform-viewer-total">
-            <span class="platform-viewer-total-label">Combined platform viewers</span>
+            <span class="platform-viewer-total-label">Combined viewers across all platforms</span>
             <span class="platform-viewer-total-value" id="platformViewersTotal">—</span>
           </div>
-          <div class="platform-viewer-meta" id="platformViewersMeta">Counts refresh automatically when the Cloudflare Worker is configured. Combined totals are not deduplicated; one person watching multiple platforms may be counted more than once.</div>
+          <div class="platform-viewer-meta" id="platformViewersMeta">Counts combine the four public platform audience totals with Nostr page-presence sessions, including guests. Names on external platforms are not exposed by their public viewer-count APIs. Totals are not deduplicated across platforms.</div>
         </section>
         <div class="status-note" id="streamNote" role="status" aria-live="polite" hidden></div>
       </article>
       <div class="chat-column">
       <aside class="panel chat-panel">
-        <div class="panel-head"><div><div class="panel-title">Live chat</div><div class="panel-kicker" id="chatSubtitle">Nostr + connected platform messages and notifications · last 15</div></div><span class="tag" id="chatStatus">SYNCING</span></div>
+        <div class="panel-head"><div><div class="panel-title">Live chat</div><div class="panel-kicker" id="chatSubtitle">Nostr + connected platform messages and notifications · last 10</div></div><span class="tag" id="chatStatus">SYNCING</span></div>
         <a class="chat-twitch-connect" id="liveTwitchConnect" href="https://api.bitcoin-cats.ca/api/twitch/auth" hidden>Connect Twitch chat</a>
         <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text">
           <div class="chat-empty">Finding the host’s current stream so chat can sync to that exact broadcast…</div>
@@ -510,7 +518,10 @@ permalink: /live
     let presenceSessionSecret = null, presenceSessionPubkey = '', presenceSessionId = '';
     let presenceSessionActivity = '', presenceSessionIdentity = '', presenceIdentityProof = null;
     let presencePublishRunning = false, watcherRefreshRunning = false, watcherRenderVersion = 0;
-    let watcherSnapshot = {nostr:[],guests:0,total:0,updatedAt:0};
+    let watcherSnapshot = {nostr:[],nostrClients:{},guests:0,total:0,available:false,updatedAt:0};
+    let platformViewerSnapshot = null;
+    let nostrFollowRosterInitialized = false;
+    const nostrFollowingPubkeys = new Set();
     const PLATFORM_VIEWER_REFRESH_MS = 60000;
     let platformViewerRefreshRunning = false;
 
@@ -778,6 +789,7 @@ permalink: /live
           ['d',PRESENCE_D_TAG],
           ['a',presenceSessionActivity],
           ['p',hostPubkey],
+          ['client','Bitcoin Cats'],
           ['expiration',String(expiresAt||now+PRESENCE_TTL_SECONDS)]
         ],
         content:JSON.stringify({
@@ -841,9 +853,10 @@ permalink: /live
       if(!activityAddress||activityStatus!=='live'||!pool||!hostPubkey){
         await stopPresenceSession();
         if(!$('watcherList'))return;
+        watcherSnapshot={nostr:[],nostrClients:{},guests:0,total:0,available:activityStatus!=='live',updatedAt:Date.now()};
         $('watcherLiveState').classList.add('offline');
         $('watcherLiveLabel').textContent=activityStatus==='live'?'Waiting for stream activity':'Host offline';
-        $('watcherTotalCount').textContent='0';
+        $('watcherTotalCount').textContent='—';
         $('watcherNostrCount').textContent='0';
         $('watcherGuestCount').textContent='0';
         $('watcherList').replaceChildren();
@@ -852,6 +865,8 @@ permalink: /live
           ?'The host is live, but there is no NIP-53 activity identifier to track viewers yet.'
           :'Viewer presence starts when the host goes live.';
         $('watcherList').appendChild(empty);
+        updateCombinedAudienceTotal();
+        void renderWatcherProfiles([],activityAddress,watcherRenderVersion);
         return;
       }
       if(presencePublishRunning)return;
@@ -911,33 +926,42 @@ permalink: /live
       if(watcherRefreshRunning)return;
       const address=activityAddress,version=++watcherRenderVersion;
       if(!address||activityStatus!=='live'||!pool){
-        $('watcherTotalCount').textContent='0';$('watcherNostrCount').textContent='0';$('watcherGuestCount').textContent='0';
+        watcherSnapshot={nostr:[],nostrClients:{},guests:0,total:0,available:activityStatus!=='live',updatedAt:Date.now()};
+        $('watcherNostrCount').textContent='0';$('watcherGuestCount').textContent='0';
         $('watcherUpdatedAt').textContent='Waiting for the host to go live';
-        $('watcherList').replaceChildren();
-        const empty=document.createElement('div');empty.className='watcher-empty';
-        empty.textContent='Viewer presence starts when the host goes live.';
-        $('watcherList').appendChild(empty);
+        updateCombinedAudienceTotal();
+        await renderWatcherProfiles([],address,version);
         return;
       }
       watcherRefreshRunning=true;
       try{
+        const now=Math.floor(Date.now()/1000);
         const relayResult=await queryPresenceRelays({
-          kinds:[PRESENCE_KIND],
-          '#d':[PRESENCE_D_TAG],
+          kinds:[PRESENCE_KIND,10312],
           '#a':[address],
+          since:now-PRESENCE_TTL_SECONDS,
           limit:1000
         });
         const events=relayResult.events;
         if(version!==watcherRenderVersion||activityAddress!==address)return;
         const pure=await getNostrPure();
-        const now=Math.floor(Date.now()/1000);
         const validEvents=[];
+        const nostrByPubkey=new Map(),guests=new Set();
         for(const event of events||[]){
-          if(!event||event.kind!==PRESENCE_KIND||!pure.verifyEvent(event))continue;
-          if(getTag(event,'d')!==PRESENCE_D_TAG||getTag(event,'a')!==address)continue;
+          if(!event||!pure.verifyEvent(event))continue;
           const age=now-Number(event.created_at||0);
           const expiry=Number(getTag(event,'expiration')||0);
-          if(age< -15||age>PRESENCE_TTL_SECONDS||expiry<now)continue;
+          if(age< -15||age>PRESENCE_TTL_SECONDS||(expiry&&expiry<now))continue;
+          if(getTag(event,'a')!==address)continue;
+          if(event.kind===10312){
+            if(!/^[0-9a-f]{64}$/i.test(String(event.pubkey||'')))continue;
+            const client=getTag(event,'client')||'Nostr client not disclosed';
+            const entry=nostrByPubkey.get(event.pubkey)||{clients:new Set()};
+            entry.clients.add(client);
+            nostrByPubkey.set(event.pubkey,entry);
+            continue;
+          }
+          if(event.kind!==PRESENCE_KIND||getTag(event,'d')!==PRESENCE_D_TAG)continue;
           let content={};try{content=JSON.parse(event.content||'{}');}catch{continue;}
           if(content.protocol!=='bitcoin-cats-live-presence'||content.version!==1||content.state!=='watching'||!content.sessionId)continue;
           if(!(event.tags||[]).some(tag=>tag[0]==='p'&&tag[1]===hostPubkey))continue;
@@ -949,46 +973,43 @@ permalink: /live
           const previous=sessions.get(key);
           if(!previous||(item.event.created_at||0)>(previous.event.created_at||0))sessions.set(key,item);
         }
-        const nostrByPubkey=new Map(),guests=new Set();
         for(const item of sessions.values()){
           const identity=await verifyPresenceIdentity(item.event,item.content,address);
-          if(identity)nostrByPubkey.set(identity,item);
-          else guests.add(item.content.sessionId);
+          if(identity){
+            const client=getTag(item.event,'client')||'Bitcoin Cats (web)';
+            const entry=nostrByPubkey.get(identity)||{clients:new Set()};
+            entry.clients.add(client);
+            nostrByPubkey.set(identity,entry);
+          }else guests.add(item.content.sessionId);
         }
         if(version!==watcherRenderVersion||activityAddress!==address)return;
-        const nostr= [...nostrByPubkey.keys()];
-        watcherSnapshot={nostr,guests:guests.size,total:nostr.length+guests.size,updatedAt:Date.now()};
-        $('watcherTotalCount').textContent=watcherSnapshot.total.toLocaleString();
+        const nostr=[...nostrByPubkey.keys()];
+        const nostrClients=Object.fromEntries([...nostrByPubkey.entries()].map(([pubkey,entry])=>[pubkey,[...entry.clients].join(' · ')]));
+        watcherSnapshot={nostr,nostrClients,guests:guests.size,total:nostr.length+guests.size,available:true,updatedAt:Date.now()};
         $('watcherNostrCount').textContent=nostr.length.toLocaleString();
         $('watcherGuestCount').textContent=guests.size.toLocaleString();
         $('watcherLiveState').classList.remove('offline');
         $('watcherLiveLabel').textContent=relayResult.responders===relayResult.totalRelays?'Live · updating':'Partial relay sync';
         $('watcherUpdatedAt').textContent='Updated '+new Date(watcherSnapshot.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+relayResult.responders+'/'+relayResult.totalRelays+' relays responded';
         $('watcherFootnote').textContent=relayResult.responders===relayResult.totalRelays
-          ?'New page visitors usually appear within '+Math.ceil(PRESENCE_REFRESH_MS/1000)+' seconds. A closed or disconnected page expires after '+PRESENCE_TTL_SECONDS+' seconds. Counts are for this Bitcoin Cats page only.'
-          :'Only '+relayResult.responders+' of '+relayResult.totalRelays+' relays responded, so totals may be undercounted until relay connectivity recovers.';
+          ?'Nostr presence expires after '+PRESENCE_TTL_SECONDS+' seconds without a heartbeat. Other platform APIs report audience totals only, not viewer names. Counts are not deduplicated across platforms.'
+          :'Only '+relayResult.responders+' of '+relayResult.totalRelays+' relays responded, so Nostr totals may be undercounted until relay connectivity recovers.';
+        updateCombinedAudienceTotal();
         await renderWatcherProfiles(nostr,address,version);
       }catch(error){
         if(version===watcherRenderVersion){
           $('watcherLiveState').classList.add('offline');
           $('watcherLiveLabel').textContent='Relay sync delayed';
           $('watcherUpdatedAt').textContent='Could not refresh relay presence';
-          $('watcherFootnote').textContent='The last successful counts are retained while the page reconnects to the Nostr relays. A failed refresh is not shown as zero viewers.';
+          $('watcherFootnote').textContent='The last successful Nostr counts are retained while the page reconnects. A failed refresh is not shown as zero viewers.';
+          updateCombinedAudienceTotal();
         }
         console.warn('Could not refresh Nostr watcher roster',error);
       }finally{watcherRefreshRunning=false;}
     }
     async function renderWatcherProfiles(pubkeys,address,version){
       const list=$('watcherList');
-      if(!pubkeys.length){
-        list.replaceChildren();
-        const empty=document.createElement('div');empty.className='watcher-empty';
-        empty.textContent=watcherSnapshot.guests
-          ? watcherSnapshot.guests+' guest viewer'+(watcherSnapshot.guests===1?' is':'s are')+' watching. Sign in with Nostr to appear in the account list.'
-          :'No signed-in Nostr accounts are watching yet.';
-        list.appendChild(empty);return;
-      }
-      const rows=await Promise.all(pubkeys.map(async pubkey=>{
+      const rows=await Promise.all((pubkeys||[]).map(async pubkey=>{
         const profile=await fetchProfile(pubkey);
         const valid=profile.nip05?await verifyNip05(profile.nip05,pubkey):false;
         return {pubkey,profile,valid};
@@ -1014,12 +1035,35 @@ permalink: /live
           identity.textContent=npub.slice(0,15)+'…'+npub.slice(-9);
           identity.title=npub;
         }
-        details.append(name,identity);card.append(avatar,details);list.appendChild(card);
+        const client=document.createElement('div');client.className='watcher-client';
+        client.textContent='Nostr client · '+(watcherSnapshot.nostrClients?.[rowData.pubkey]||'Nostr client not disclosed');
+        details.append(name,identity,client);card.append(avatar,details);list.appendChild(card);
       }
       if(watcherSnapshot.guests){
         const guest=document.createElement('div');guest.className='watcher-empty';
-        guest.textContent=watcherSnapshot.guests+' additional guest viewer'+(watcherSnapshot.guests===1?'':'s')+' are watching without signing in.';
+        guest.textContent=watcherSnapshot.guests+' Nostr guest viewer'+(watcherSnapshot.guests===1?' is':'s are')+' watching without a verified account.';
         list.appendChild(guest);
+      }
+      const platforms=platformViewerSnapshot?.platforms||{};
+      const labels=[['twitch','Twitch','T'],['youtube','YouTube','▶'],['kick','Kick','K'],['rumble','Rumble','R']];
+      for(const [key,label,mark] of labels){
+        const platform=platforms[key];
+        const card=document.createElement('article');card.className='watcher-card';
+        const icon=document.createElement('span');icon.className='watcher-platform-icon';icon.textContent=mark;icon.setAttribute('aria-hidden','true');
+        const details=document.createElement('div');details.className='watcher-profile';
+        const name=document.createElement('div');name.className='watcher-name';name.textContent=label+' audience';
+        const count=platform?.status==='offline'?0:
+          (platform?.status==='live'&&platform.viewerCount!==null&&platform.viewerCount!==undefined&&Number.isFinite(Number(platform.viewerCount))?Number(platform.viewerCount):null);
+        const identity=document.createElement('div');identity.className='watcher-identity';
+        identity.textContent=count===null?'Audience count unavailable':count.toLocaleString()+' viewers watching';
+        const note=document.createElement('div');note.className='watcher-platform-note';
+        note.textContent='Individual viewer identities are not provided by '+label+' public viewer-count APIs.';
+        details.append(name,identity,note);card.append(icon,details);list.appendChild(card);
+      }
+      if(!rows.length&&!watcherSnapshot.guests&&!Object.keys(platforms).length){
+        const empty=document.createElement('div');empty.className='watcher-empty';
+        empty.textContent='No signed-in Nostr accounts or platform audience data are available yet.';
+        list.appendChild(empty);
       }
     }
     function showLoginPanel(panelId){
@@ -1956,6 +2000,43 @@ permalink: /live
         platformStatus:results[1].status==='fulfilled'?'available':'unavailable'
       };
     }
+    function collectNewNostrFollowEvents(events){
+      const purePromise=getNostrPure();
+      const current=new Map();
+      return purePromise.then(pure=>{
+        for(const event of events||[]){
+          if(!event||event.kind!==3||!pure.verifyEvent(event))continue;
+          if(!(event.tags||[]).some(tag=>tag[0]==='p'&&String(tag[1]||'').toLowerCase()===hostPubkey.toLowerCase()))continue;
+          if(!/^[0-9a-f]{64}$/i.test(String(event.pubkey||'')))continue;
+          const previous=current.get(event.pubkey);
+          if(!previous||(event.created_at||0)>(previous.created_at||0))current.set(event.pubkey,event);
+        }
+        if(!nostrFollowRosterInitialized){
+          for(const pubkey of current.keys())nostrFollowingPubkeys.add(pubkey);
+          nostrFollowRosterInitialized=true;
+          return [];
+        }
+        const followers=[...current.entries()]
+          .filter(([pubkey])=>!nostrFollowingPubkeys.has(pubkey))
+          .map(([pubkey,event])=>{
+            nostrFollowingPubkeys.add(pubkey);
+            return {
+              id:'nostr-follow:'+event.id,
+              pubkey,
+              created_at:Number(event.created_at||Math.floor(Date.now()/1000)),
+              content:'Started following Bitcoin Cats on Nostr',
+              _platform:'Nostr',
+              _displayName:pubkey.slice(0,8)+'…'+pubkey.slice(-4),
+              _badge:'NEW FOLLOWER',
+              _amountLabel:''
+            };
+          });
+        return followers;
+      }).catch(error=>{
+        console.warn('Could not inspect Nostr follow lists',error);
+        return [];
+      });
+    }
     async function loadChatForCurrentActivity(){
       const address=activityAddress;
       if(!address||!pool){
@@ -1979,13 +2060,18 @@ permalink: /live
             ? queryRelays({kinds:[1311],'#e':[targetEventId],limit:500},9000,11000,'Stream-linked chat lookup timed out',relayUrls)
             : Promise.resolve([]),
           queryRelays({kinds:[9735],'#p':[hostPubkey],limit:500},9000,11000,'Zap receipt lookup timed out',relayUrls),
-          fetchExternalPlatformChat()
+          fetchExternalPlatformChat(),
+          // NIP-02 follow lists are replaceable; only newly observed followers
+          // after the initial baseline are announced during this page session.
+          queryRelays({kinds:[3],'#p':[hostPubkey],limit:1000},7000,8500,'Nostr follower lookup timed out',relayUrls)
         ]);
         if(requestId!==chatRequestId||activityAddress!==address||currentEventId!==targetEventId)return;
         const messageLookupFailed=results[0].status==='rejected'&&results[1].status==='rejected';
         const receiptLookupFailed=results[2].status==='rejected';
-        const externalChat=results[3].status==='fulfilled'?results[3].value:{messages:[],twitchStatus:'unavailable',platformStatus:'unavailable'};
-        if(messageLookupFailed&&!externalChat.messages.length){
+        const externalChat=results[3].status==='fulfilled'?results[3].value:{messages:[],twitchStatus:'unavailable',platformStatus:'unavailable',twitchSubscriptions:[]};
+        const followLookupFailed=results[4].status==='rejected';
+        const nostrFollowEvents=results[4].status==='fulfilled'?await collectNewNostrFollowEvents(results[4].value):[];
+        if(messageLookupFailed&&!externalChat.messages.length&&!nostrFollowEvents.length){
           chatStatus.textContent='RETRYING';
           chatStatus.title='Chat relays did not respond. Existing messages are being retained while the page retries.';
           $('chatSubtitle').textContent='Chat relay lookup failed; keeping the last messages while reconnecting…';
@@ -2016,14 +2102,15 @@ permalink: /live
         }
         for(const zap of verifiedZaps)unique.set(zap.id,zap);
         for(const item of externalChat.messages||[])unique.set(item.id,item);
-        const messages=[...unique.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0)).slice(-15);
+        for(const item of nostrFollowEvents)unique.set(item.id,item);
+        const messages=[...unique.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0)).slice(-10);
         if(!messages.length){
           chatList.replaceChildren();
           const msg=document.createElement('div');msg.className='chat-empty';
           msg.textContent='No recent messages or notifications across connected platforms yet.';
           chatList.appendChild(msg);
           setChatComposerState();
-          if(results[0].status==='rejected'||results[1].status==='rejected'||zapVerificationUnavailable){
+          if(results[0].status==='rejected'||results[1].status==='rejected'||zapVerificationUnavailable||followLookupFailed){
             chatStatus.textContent='PARTIAL';
             chatStatus.title='Some chat or zap relays did not respond; the result may be incomplete.';
             $('chatSubtitle').textContent='Only part of the chat history could be checked. Retrying automatically…';
@@ -2062,7 +2149,7 @@ permalink: /live
           if(badge)head.append(badge);
           if(amount)head.append(amount);
           head.append(time);main.append(head,body);row.append(avatar,main);chatList.appendChild(row);
-          if(!isPlatform&&event.pubkey)authorElements.push({pubkey:event.pubkey,avatar,name});
+          if((!isPlatform||event._platform==='Nostr')&&event.pubkey)authorElements.push({pubkey:event.pubkey,avatar,name});
         }
         const pubkeys=[...new Set(authorElements.map(item=>item.pubkey).filter(Boolean))];
         const profiles=await Promise.all(pubkeys.map(async pubkey=>[pubkey,await fetchProfile(pubkey)]));
@@ -2074,14 +2161,15 @@ permalink: /live
           if(profile.picture&&isSecureUrl(profile.picture))item.avatar.src=profile.picture;
         }
         chatList.scrollTop=chatList.scrollHeight;setChatComposerState();
-        if(results[0].status==='rejected'||results[1].status==='rejected'||zapVerificationUnavailable){
+        if(results[0].status==='rejected'||results[1].status==='rejected'||zapVerificationUnavailable||followLookupFailed){
           chatStatus.textContent='PARTIAL';
           chatStatus.title='Some chat or zap relays did not respond; the displayed history may be incomplete.';
           $('chatSubtitle').textContent='Partial relay sync · showing messages found so far; retrying automatically…';
         }else{
           chatStatus.textContent='SYNCED';
           chatStatus.title='';
-          $('chatSubtitle').textContent='Last 15 · Nostr, Twitch, Kick, YouTube and Rumble'+(externalChat.twitchStatus==='connected'?'':' · connect Twitch from About')+(externalChat.kickStatus==='connected'?'':' · Kick webhook setup required')+' · stream '+address.split(':').slice(-1)[0];
+          const twitchEventSubFailed=(externalChat.twitchSubscriptions||[]).some(item=>item.status==='error');
+          $('chatSubtitle').textContent='Last 10 · Nostr chat/follows, Twitch chat/follows, Kick, YouTube and Rumble'+(externalChat.twitchStatus==='connected'?(twitchEventSubFailed?' · Twitch EventSub needs attention':''):' · connect Twitch from About')+(externalChat.kickStatus==='connected'?'':' · Kick webhook setup required')+' · stream '+address.split(':').slice(-1)[0];
         }
         reportHeight();
       }catch(error){
@@ -2098,6 +2186,29 @@ permalink: /live
           if(activityAddress&&pool)void loadChatForCurrentActivity();
         }
       }
+    }
+    function getNostrAudienceCount(){
+      if(watcherSnapshot.available)return watcherSnapshot.total;
+      return activityStatus==='live'?null:0;
+    }
+    function updateCombinedAudienceTotal(){
+      const platforms=platformViewerSnapshot?.platforms||{};
+      let total=0,known=!!platformViewerSnapshot;
+      for(const key of ['twitch','youtube','kick','rumble']){
+        const platform=platforms[key];
+        if(!platform){known=false;continue;}
+        if(platform.status==='offline')continue;
+        if(platform.status==='live'&&platform.viewerCount!==null&&platform.viewerCount!==undefined&&Number.isFinite(Number(platform.viewerCount))){
+          total+=Number(platform.viewerCount);continue;
+        }
+        known=false;
+      }
+      const nostrCount=getNostrAudienceCount();
+      if(nostrCount===null)known=false;else total+=nostrCount;
+      const display=known?total.toLocaleString():'—';
+      $('platformViewersTotal').textContent=display;
+      $('watcherTotalCount').textContent=display;
+      renderPlatformViewer('nostr',{status:nostrCount===null?'loading':(activityStatus==='live'?'live':'offline'),viewerCount:nostrCount});
     }
     function formatPlatformViewerStatus(platform){
       const statuses={
@@ -2131,23 +2242,25 @@ permalink: /live
         const response=await fetch('https://api.bitcoin-cats.ca/api/platform-viewers',{method:'GET',headers:{Accept:'application/json'},cache:'no-store',credentials:'same-origin'});
         if(!response.ok)throw new Error(response.status===404?'Cloudflare Worker is not deployed yet.':'Viewer-count service returned HTTP '+response.status+'.');
         const payload=await response.json();
+        platformViewerSnapshot=payload;
         const platforms=payload?.platforms||{};
         for(const key of ['twitch','youtube','kick','rumble'])renderPlatformViewer(key,platforms[key]);
         const allConfigured=['twitch','youtube','kick','rumble'].every(key=>platforms[key]&&platforms[key].status!=='setup_required');
         const allHealthy=['twitch','youtube','kick','rumble'].every(key=>platforms[key]&&['live','offline'].includes(platforms[key].status));
-        const knownTotal=payload.totalViewers;
-        $('platformViewersTotal').textContent=Number.isFinite(knownTotal)?Number(knownTotal).toLocaleString():'—';
         $('platformViewersStatus').textContent=!allConfigured?'API SETUP':allHealthy?'LIVE API SYNC':'PARTIAL API SYNC';
         $('platformViewersMeta').textContent=(payload.updatedAt?'Updated '+new Date(payload.updatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'. ':'')+
-          (payload.totalViewers==null?'Combined total is unavailable until all four platform counts are available. ':'')+
-          'Counts refresh automatically about every minute. Combined totals are not deduplicated, so viewers watching on multiple platforms may be counted more than once.';
+          'Combined total includes all four platform audience counts plus Nostr signed-in accounts and guest sessions. Totals are not deduplicated across platforms.';
+        updateCombinedAudienceTotal();
+        void renderWatcherProfiles(watcherSnapshot.nostr||[],activityAddress,watcherRenderVersion);
       }catch(error){
+        platformViewerSnapshot=null;
         $('platformViewersStatus').textContent='SETUP REQUIRED';
         $('platformViewersTotal').textContent='—';
         for(const key of ['twitch','youtube','kick','rumble']){
           renderPlatformViewer(key,{status:'setup_required',viewerCount:null});
         }
         $('platformViewersMeta').textContent='Connect the Cloudflare Worker and add the platform API secrets to enable live counts. '+String(error?.message||'Viewer-count service is not ready.');
+        updateCombinedAudienceTotal();
       }finally{
         platformViewerRefreshRunning=false;
       }
