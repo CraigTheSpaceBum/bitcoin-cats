@@ -12,6 +12,7 @@ const TWITCH_OAUTH_REDIRECT = "https://api.bitcoin-cats.ca/api/twitch/callback";
 const TWITCH_CHAT_KEY = "twitch:chat:events";
 const TWITCH_AUTH_KEY = "twitch:auth";
 const TWITCH_SECRET_KEY = "twitch:eventsub:secret";
+const TWITCH_EVENTSUB_SYNC_KEY = "twitch:eventsub:last-sync";
 const TWITCH_REQUIRED_SCOPES = ["user:read:chat", "moderator:read:followers"];
 const KICK_SLUG = "craigthespacebum";
 const KICK_CHAT_KEY = "kick:chat:events";
@@ -69,6 +70,31 @@ async function fetchJson(url, init = {}) {
     if (error?.name === "AbortError") {
       throw new Error("Provider API request timed out.");
     }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchTwitchEventSubJson(url, init = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      headers: { Accept: "application/json", ...(init.headers || {}) }
+    });
+    const raw = await response.text();
+    let payload = {};
+    try { payload = raw ? JSON.parse(raw) : {}; } catch {}
+    if (!response.ok) {
+      const detail = String(payload.message || payload.error || "").replace(/[\\r\\n\\t]+/g, " ").trim().slice(0, 220);
+      throw new Error("Twitch EventSub HTTP " + response.status + (detail ? ": " + detail : "."));
+    }
+    return payload;
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error("Twitch EventSub request timed out.");
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -245,30 +271,49 @@ async function ensureTwitchEventSubSubscriptions(env, auth, secret) {
   const headers = { Authorization: "Bearer " + auth.accessToken, "Client-Id": env.TWITCH_CLIENT_ID, "Content-Type": "application/json" };
   const listUrl = new URL("https://api.twitch.tv/helix/eventsub/subscriptions");
   listUrl.searchParams.set("user_id", auth.userId);
-  const existingData = await fetchJson(listUrl, { headers });
+  const existingData = await fetchTwitchEventSubJson(listUrl, { headers });
   const existing = new Set((existingData.data || [])
     .filter(item => ["enabled", "webhook_callback_verification_pending"].includes(item.status))
-    .map(item => item.type));
+    .map(item => String(item.type) + ":" + String(item.version)));
+  const requested = [
+    {
+      type: "channel.chat.message",
+      version: "1",
+      condition: { broadcaster_user_id: auth.userId, user_id: auth.userId }
+    },
+    {
+      type: "channel.chat.notification",
+      version: "1",
+      condition: { broadcaster_user_id: auth.userId, user_id: auth.userId }
+    },
+    {
+      type: "channel.follow",
+      version: "2",
+      condition: { broadcaster_user_id: auth.userId, moderator_user_id: auth.userId }
+    }
+  ];
   const results = [];
-  for (const type of ["channel.chat.message", "channel.chat.notification"]) {
-    if (existing.has(type)) {
-      results.push({ type, status: "already_subscribed" });
+  for (const subscription of requested) {
+    const { type, version, condition } = subscription;
+    if (existing.has(type + ":" + version)) {
+      results.push({ type, version, status: "already_subscribed" });
       continue;
     }
     try {
-      await fetchJson("https://api.twitch.tv/helix/eventsub/subscriptions", {
+      const created = await fetchTwitchEventSubJson("https://api.twitch.tv/helix/eventsub/subscriptions", {
         method: "POST",
         headers,
         body: JSON.stringify({
           type,
-          version: "1",
-          condition: { broadcaster_user_id: auth.userId, user_id: auth.userId },
+          version,
+          condition,
           transport: { method: "webhook", callback: "https://api.bitcoin-cats.ca/api/twitch/eventsub", secret }
         })
       });
-      results.push({ type, status: "verification_pending" });
+      const status = created.data?.[0]?.status || "verification_pending";
+      results.push({ type, version, status });
     } catch (error) {
-      results.push({ type, status: "error", note: String(error?.message || "Subscription request failed.") });
+      results.push({ type, version, status: "error", note: String(error?.message || "Subscription request failed.") });
     }
   }
   return results;
@@ -329,12 +374,14 @@ async function completeTwitchAuthorization(request, env) {
     await env.TWITCH_AUTH.put(TWITCH_SECRET_KEY, secret);
   }
   const subscriptions = await ensureTwitchEventSubSubscriptions(env, auth, secret);
+  const updatedAt = new Date().toISOString();
   await env.TWITCH_AUTH.put("twitch:connection-status", JSON.stringify({
     connected: true,
     login,
     subscriptions,
-    updatedAt: new Date().toISOString()
+    updatedAt
   }));
+  await env.TWITCH_AUTH.put(TWITCH_EVENTSUB_SYNC_KEY, String(Date.now()), { expirationTtl: 600 });
   return htmlResponse("Twitch connected", "The Twitch broadcaster account is authorized. Chat messages and chat notifications are being registered; Twitch may take a short moment to verify the webhook. You can return to the Live page now.");
 }
 
@@ -362,6 +409,17 @@ async function verifyTwitchWebhook(request, rawBody, env) {
 
 function normalizeTwitchEvent(subscriptionType, event, messageId) {
   const noticeType = String(event.notice_type || "").toLowerCase();
+  if (subscriptionType === "channel.follow") {
+    return {
+      id: "twitch:" + messageId,
+      source: "Twitch",
+      createdAt: toIso(event.followed_at || event.created_at),
+      displayName: String(event.user_name || event.user_login || "Twitch viewer"),
+      message: "Followed the channel",
+      badge: "NEW FOLLOWER",
+      amountLabel: ""
+    };
+  }
   if (subscriptionType === "channel.chat.message") {
     const bits = Number(event.cheer?.bits || 0);
     return {
@@ -435,11 +493,46 @@ async function handleTwitchEventSub(request, env) {
 }
 
 async function getTwitchChatMessages(env) {
-  if (!env.TWITCH_AUTH) return { status: "setup_required", messages: [] };
+  if (!env.TWITCH_AUTH) return { status: "setup_required", messages: [], subscriptions: [] };
   const auth = await getTwitchUserAuth(env);
-  if (!auth) return { status: "setup_required", messages: [] };
+  if (!auth) return { status: "setup_required", messages: [], subscriptions: [] };
+
+  let connection = await env.TWITCH_AUTH.get("twitch:connection-status", "json") || {};
+  let subscriptions = Array.isArray(connection.subscriptions) ? connection.subscriptions : [];
+  const lastSync = Number(await env.TWITCH_AUTH.get(TWITCH_EVENTSUB_SYNC_KEY) || 0);
+  if (Date.now() - lastSync > 120000) {
+    await env.TWITCH_AUTH.put(TWITCH_EVENTSUB_SYNC_KEY, String(Date.now()), { expirationTtl: 600 });
+    try {
+      const secret = await env.TWITCH_AUTH.get(TWITCH_SECRET_KEY);
+      if (!secret) throw new Error("The Twitch EventSub signing secret is missing from Worker storage.");
+      subscriptions = await ensureTwitchEventSubSubscriptions(env, auth, secret);
+      connection = {
+        ...connection,
+        connected: true,
+        login: auth.login || TWITCH_LOGIN,
+        subscriptions,
+        updatedAt: new Date().toISOString()
+      };
+      await env.TWITCH_AUTH.put("twitch:connection-status", JSON.stringify(connection));
+    } catch (error) {
+      subscriptions = [{ type: "eventsub", status: "error", note: String(error?.message || "Could not synchronize Twitch EventSub subscriptions.") }];
+      connection = {
+        ...connection,
+        connected: true,
+        login: auth.login || TWITCH_LOGIN,
+        subscriptions,
+        updatedAt: new Date().toISOString()
+      };
+      await env.TWITCH_AUTH.put("twitch:connection-status", JSON.stringify(connection));
+    }
+  }
   const messages = await env.TWITCH_AUTH.get(TWITCH_CHAT_KEY, "json") || [];
-  return { status: "connected", messages: messages.slice(-50) };
+  return {
+    status: "connected",
+    eventSubStatus: subscriptions.some(item => item.status === "error") ? "error" : "active",
+    subscriptions,
+    messages: messages.slice(-50)
+  };
 }
 
 function unavailable(note) {
