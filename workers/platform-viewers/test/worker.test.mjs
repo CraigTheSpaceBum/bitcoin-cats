@@ -185,8 +185,17 @@ test("Twitch chat endpoint repairs missing chat and follow EventSub subscription
   });
   const originalFetch = globalThis.fetch;
   const posted = [];
+  const eventsubAuthHeaders = [];
   globalThis.fetch = async (url, init = {}) => {
     const target = new URL(url);
+    if (target.pathname === "/oauth2/token") {
+      return new Response(JSON.stringify({ access_token: "test-app-access-token", expires_in: 3600 }), {
+        status: 200, headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (target.pathname.endsWith("/eventsub/subscriptions")) {
+      eventsubAuthHeaders.push(init.headers?.Authorization || "");
+    }
     if (target.pathname.endsWith("/eventsub/subscriptions") && (init.method || "GET") === "GET") {
       return new Response(JSON.stringify({ data: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
@@ -211,6 +220,8 @@ test("Twitch chat endpoint repairs missing chat and follow EventSub subscription
     assert.equal(payload.status, "connected");
     assert.equal(payload.eventSubStatus, "active");
     assert.equal(posted.length, 3);
+    assert.ok(eventsubAuthHeaders.length >= 4);
+    assert.ok(eventsubAuthHeaders.every(value => value === "Bearer test-app-access-token"));
     const follows = posted.find(item => item.type === "channel.follow");
     assert.equal(follows.version, "2");
     assert.deepEqual(follows.condition, { broadcaster_user_id: "12345", moderator_user_id: "12345" });
@@ -238,6 +249,11 @@ test("Twitch EventSub diagnostics preserve the provider's safe error message", a
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, init = {}) => {
     const target = new URL(url);
+    if (target.pathname === "/oauth2/token") {
+      return new Response(JSON.stringify({ access_token: "test-app-access-token", expires_in: 3600 }), {
+        status: 200, headers: { "Content-Type": "application/json" }
+      });
+    }
     if ((init.method || "GET") === "GET") {
       return new Response(JSON.stringify({ data: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
