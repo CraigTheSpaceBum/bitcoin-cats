@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import worker from "../src/index.js";
+import { createHmac, webcrypto } from "node:crypto";
+
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 globalThis.caches = {
   default: {
@@ -147,4 +150,150 @@ test("Kick EventSub rejects unsigned webhook requests", async () => {
     context()
   );
   assert.equal(response.status, 403);
+});
+
+
+class MemoryKV {
+  constructor(initial = {}) {
+    this.values = new Map(Object.entries(initial));
+  }
+  async get(key, type) {
+    const value = this.values.get(key);
+    if (value === undefined) return null;
+    if (type === "json" && typeof value === "string") return JSON.parse(value);
+    return value;
+  }
+  async put(key, value) {
+    this.values.set(key, String(value));
+  }
+  async delete(key) {
+    this.values.delete(key);
+  }
+}
+
+test("Twitch chat endpoint repairs missing chat and follow EventSub subscriptions", async () => {
+  const kv = new MemoryKV({
+    "twitch:auth": JSON.stringify({
+      accessToken: "test-access-token",
+      refreshToken: "test-refresh-token",
+      expiresAt: Date.now() + 3600000,
+      userId: "12345",
+      login: "craigthespacebum",
+      scopes: ["user:read:chat", "moderator:read:followers"]
+    }),
+    "twitch:eventsub:secret": "eventsub-test-secret"
+  });
+  const originalFetch = globalThis.fetch;
+  const posted = [];
+  globalThis.fetch = async (url, init = {}) => {
+    const target = new URL(url);
+    if (target.pathname.endsWith("/eventsub/subscriptions") && (init.method || "GET") === "GET") {
+      return new Response(JSON.stringify({ data: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (target.pathname.endsWith("/eventsub/subscriptions") && init.method === "POST") {
+      const body = JSON.parse(init.body);
+      posted.push(body);
+      return new Response(JSON.stringify({ data: [{ status: "webhook_callback_verification_pending" }] }), {
+        status: 202,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    throw new Error("Unexpected Twitch API request: " + target.toString());
+  };
+  try {
+    const response = await worker.fetch(
+      new Request("https://api.bitcoin-cats.ca/api/twitch/chat", { headers: { Origin: "https://bitcoin-cats.ca" } }),
+      { TWITCH_AUTH: kv, TWITCH_CLIENT_ID: "test-client-id" },
+      context()
+    );
+    const payload = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(payload.status, "connected");
+    assert.equal(payload.eventSubStatus, "active");
+    assert.equal(posted.length, 3);
+    const follows = posted.find(item => item.type === "channel.follow");
+    assert.equal(follows.version, "2");
+    assert.deepEqual(follows.condition, { broadcaster_user_id: "12345", moderator_user_id: "12345" });
+    const chat = posted.find(item => item.type === "channel.chat.message");
+    assert.deepEqual(chat.condition, { broadcaster_user_id: "12345", user_id: "12345" });
+    const saved = JSON.parse(await kv.get("twitch:connection-status"));
+    assert.equal(saved.subscriptions.length, 3);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Twitch EventSub diagnostics preserve the provider's safe error message", async () => {
+  const kv = new MemoryKV({
+    "twitch:auth": JSON.stringify({
+      accessToken: "test-access-token",
+      refreshToken: "test-refresh-token",
+      expiresAt: Date.now() + 3600000,
+      userId: "12345",
+      login: "craigthespacebum",
+      scopes: ["user:read:chat", "moderator:read:followers"]
+    }),
+    "twitch:eventsub:secret": "eventsub-test-secret"
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    const target = new URL(url);
+    if ((init.method || "GET") === "GET") {
+      return new Response(JSON.stringify({ data: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    return new Response(JSON.stringify({ message: "Test callback validation error." }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" }
+    });
+  };
+  try {
+    const response = await worker.fetch(
+      new Request("https://api.bitcoin-cats.ca/api/twitch/chat", { headers: { Origin: "https://bitcoin-cats.ca" } }),
+      { TWITCH_AUTH: kv, TWITCH_CLIENT_ID: "test-client-id" },
+      context()
+    );
+    const payload = await response.json();
+    assert.equal(payload.eventSubStatus, "error");
+    assert.match(payload.subscriptions[0].note, /Test callback validation error/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Twitch channel.follow webhook is stored as a chat notification", async () => {
+  const secret = "eventsub-test-secret";
+  const kv = new MemoryKV({ "twitch:eventsub:secret": secret });
+  const body = JSON.stringify({
+    subscription: { type: "channel.follow", version: "2" },
+    event: {
+      user_name: "NewFollower",
+      user_login: "newfollower",
+      followed_at: "2026-11-25T22:00:00Z"
+    }
+  });
+  const messageId = "follow-event-test";
+  const timestamp = new Date().toISOString();
+  const signature = "sha256=" + createHmac("sha256", secret).update(messageId + timestamp + body).digest("hex");
+  const response = await worker.fetch(
+    new Request("https://api.bitcoin-cats.ca/api/twitch/eventsub", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Twitch-Eventsub-Message-Type": "notification",
+        "Twitch-Eventsub-Message-Id": messageId,
+        "Twitch-Eventsub-Message-Timestamp": timestamp,
+        "Twitch-Eventsub-Message-Signature": signature
+      },
+      body
+    }),
+    { TWITCH_AUTH: kv },
+    context()
+  );
+  assert.equal(response.status, 204);
+  const events = JSON.parse(await kv.get("twitch:chat:events"));
+  assert.equal(events.length, 1);
+  assert.equal(events[0].source, "Twitch");
+  assert.equal(events[0].displayName, "NewFollower");
+  assert.equal(events[0].badge, "NEW FOLLOWER");
+  assert.equal(events[0].message, "Followed the channel");
 });
